@@ -2,189 +2,216 @@
 
 namespace JQL;
 
-use ArrayIterator;
-use Generator;
 use JQL\Enum\LogicalOperator;
+use JQL\Enum\Operator;
 use JQL\Enum\Sort;
-use JQL\Exceptions\InvalidArgumentException;
-use JQL\Helpers\ArrayHelper;
 
-final class Query
+/**
+ * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
+ * @phpstan-type ConditionValue int|float|string|InArrayList
+ * @phpstan-type BaseCondition array{
+ *     key: string,
+ *     operator: Operator,
+ *     value: ConditionValue
+ * }
+ * @phpstan-type Condition array{
+ *     type: LogicalOperator,
+ *     key: string,
+ *     operator: Operator,
+ *     value: ConditionValue
+ * }
+ * @phpstan-type ConditionGroup array{
+ *     type: LogicalOperator,
+ *     group: BaseCondition[]
+ * }
+ */
+interface Query
 {
-    use Traits\Conditions;
-    use Traits\From;
-    use Traits\Limit;
-    use Traits\Select;
-
-    /** @var ArrayIterator<string|int, mixed> $stream */
-    private ArrayIterator $stream;
-
-    public function __construct(private Json $json)
-    {
-    }
-
-    public function orderBy(string $key, Sort $direction = Sort::ASC): self
-    {
-        $data = iterator_to_array($this->fetchAll());
-
-        usort($data, function ($a, $b) use ($key, $direction) {
-            $valA = $a[$key] ?? null;
-            $valB = $b[$key] ?? null;
-            $comparison = $valA <=> $valB;
-            return $direction->value === Sort::ASC->value ? $comparison : -$comparison;
-        });
-
-        /** @var ArrayIterator<int|string, mixed> $iterator */
-        $iterator = new ArrayIterator($data);
-        $this->stream = $iterator;
-
-        return $this;
-    }
-
-    public function fetchAll(?string $dto = null): Generator
-    {
-        $count = 0;
-        $currentOffset = 0; // Počet přeskočených záznamů
-
-        if (!isset($this->stream)) {
-            $this->stream = $this->json->getStream($this->streamSource);
-        }
-
-        foreach ($this->stream as $item) {
-            if ($this->filterStream($item)) {
-                // Aplikace offsetu
-                if ($this->offset !== null && $currentOffset < $this->offset) {
-                    $currentOffset++;
-                    continue;
-                }
-
-                $item = $this->applySelect($item);
-                if ($dto !== null) {
-                    $item = new $dto($item);
-                }
-
-                yield $item;
-
-                $count++;
-                if ($this->limit !== null && $count >= $this->limit) {
-                    break;
-                }
-            }
-        }
-    }
-
-    public function fetchNth(int|string $n, ?string $dto = null): Generator
-    {
-        if (!is_int($n) && !in_array($n, ['even', 'odd'], true)) {
-            throw new InvalidArgumentException(
-                "Invalid parameter: $n. Allowed values are an integer, 'even', or 'odd'."
-            );
-        }
-
-        $index = 0; // Index záznamů
-
-        foreach ($this->fetchAll($dto) as $item) {
-            $matchesNth = false;
-
-            if ($n === 'even') {
-                $matchesNth = $index % 2 === 0;
-            } elseif ($n === 'odd') {
-                $matchesNth = $index % 2 !== 0;
-            } elseif (is_int($n)) {
-                $matchesNth = ($index + 1) % $n === 0;
-            }
-
-            if ($matchesNth) {
-                yield $item;
-            }
-
-            $index++;
-        }
-    }
-
-
-    public function fetch(?string $dto = null): mixed
-    {
-        foreach ($this->fetchAll($dto) as $item) {
-            return $item;
-        }
-        return null;
-    }
-
-    public function fetchSingle(string $key): mixed
-    {
-        $item = $this->fetch();
-        return ArrayHelper::getNestedValue($item, $key);
-    }
-
-    public function count(): int
-    {
-        return iterator_count($this->fetchAll());
-    }
-
-    public function sum(string $key): float
-    {
-        $sum = 0;
-        foreach ($this->fetchAll() as $item) {
-            $sum += $item[$key] ?? 0;
-        }
-        return $sum;
-    }
-
-    public function avg(string $key, int $decimalPlaces = 2): float
-    {
-        return round($this->sum($key) / $this->count(), $decimalPlaces);
-    }
-
-    public function test(): string
-    {
-        $queryParts = [];
-        // SELECT část
-        $queryParts[] = $this->selectToString();
-        // FROM část
-        $queryParts[] = $this->fromToString();
-        // WHERE část
-        $allConditions = $this->getConditionsArray();
-        if (!empty($allConditions)) {
-            $queryParts[] = "\nWHERE " . $this->conditionsToString($allConditions);
-        }
-
-        // LIMIT a OFFSET
-        $queryParts[] = $this->limitToString();
-        $queryParts[] = $this->offsetToString();
-
-        return implode(' ', $queryParts);
-    }
+    /**
+     * Enable or disable grouping of conditions in a query.
+     *
+     * By default, grouping is enabled. When grouping is enabled, you can create
+     * groups of conditions enclosed in parentheses. If grouping is disabled,
+     * all conditions will be joined without parentheses.
+     *
+     * Example with grouping (default):
+     * ```
+     * $query->where($cond1)->and($cond2)->or($cond3)->or($cond4);
+     * // Result: (cond1 AND cond2) OR (cond3 OR cond4)
+     * ```
+     *
+     * Example without grouping:
+     * ```
+     * $query->disableGrouping()
+     *       ->where($cond1)->and($cond2)->or($cond3)->or($cond4);
+     * // Result: cond1 AND cond2 OR cond3 OR cond4
+     * ```
+     *
+     * Use this method to toggle grouping behavior as needed.
+     */
+    public function setGrouping(bool $grouping): Query;
 
     /**
-     * @param mixed $item
-     * @return bool
+     * Specify fields to select in a query.
+     *
+     * This method allows you to define the fields you want to include in the selection.
+     * It supports dot notation for selecting nested fields. If you call the `select()`
+     * method multiple times, the fields will be merged into a single selection.
+     *
+     * Example with simple fields:
+     *
+     * ```
+     * $query->select('id, name');
+     * // Result: SELECT id, name
+     * ```
+     *
+     * Example with nested fields:
+     *
+     * ```
+     * $query->select('user.id, user.profile.email');
+     * // Result: SELECT user.id, user.profile.email
+     * ```
+     *
+     * Example with multiple calls to `select()`:
+     *
+     * ```
+     * $query->select('id')->select('name, email');
+     * // Result: SELECT id, name, email
+     * ```
+     *
+     * Use this method to customize the fields included in your query results.
      */
-    private function filterStream(mixed $item): bool
-    {
-        $this->flushGroup();
-        $result = null;
 
-        foreach ($this->conditions as $condition) {
-            if (isset($condition['group'])) {
-                $matches = $this->evaluateGroup($item, $condition['group']);
-            } else {
-                $key = $condition['key'] ?? null;
-                $value = $key ? ArrayHelper::getNestedValue($item, $key) : null;
-                $matches = $this->evaluateCondition(
-                    $value,
-                    $condition['operator'],
-                    $condition['value']
-                );
-            }
+    public function select(string $fields): Query;
 
-            if ($condition['type'] === LogicalOperator::AND) {
-                $result = $result === null ? $matches : $result && $matches;
-            } elseif ($condition['type'] === LogicalOperator::OR) {
-                $result = $result === null ? $matches : $result || $matches;
-            }
-        }
+    /**
+     * Specify a specific part of the data to select.
+     *
+     * This method allows you to target a specific section of the data for selection.
+     * It supports dot notation to navigate and select nested fields within a structure.
+     *
+     * Example with simple fields:
+     * ```
+     * $query->from('details');
+     * // Result: FROM details
+     * ```
+     *
+     * Example with nested fields:
+     * ```
+     * $query->from('data.products');
+     * // Result: FROM data.products
+     * ```
+     *
+     * Use this method to refine your query to a specific part of the data.
+     */
 
-        return $result ?? true;
-    }
+    public function from(string $query): Query;
+
+    /**
+     * Add a conditional clause to the query.
+     *
+     * This method allows you to specify a condition for filtering data in the query.
+     * You can define the field (`$key`), the operator (`$operator`), and the value (`$value`)
+     * that the field is compared against.
+     *
+     * Example usage:
+     *  ```
+     *  $query->where('age', Operator::GREATER_THAN, 18);
+     *  // Result: WHERE age > 18
+     *
+     *  $query->where('user.status', Operator::EQUAL, 'active');
+     *  // Result: WHERE user.status = 'active'
+     *
+     *  $query->where('id', Operator::IN, [1, 2, 3]);
+     *  // Result: WHERE id IN (1, 2, 3)
+     *  ```
+     *
+     * @param string $key The field name to filter by. Supports nested fields using dot notation
+     * (e.g., `user.profile.name`).
+     * @param Operator $operator The comparison operator (e.g., `Operator::EQUAL`, `Operator::GREATER_THAN`).
+     * @param ConditionValue $value The value to compare against.
+     * It can be a single value or an array for operators like `IN`.
+     * @return Query Returns the current query instance, allowing for method chaining.
+     */
+
+    public function where(string $key, Operator $operator, array|float|int|string $value): Query;
+
+    /**
+     * Alias for the `where` method.
+     *
+     * This method serves as a shorthand or alternative name for the `where` method,
+     * allowing you to add a conditional clause to the query using a simplified syntax.
+     *
+     * Example usage:
+     *  ```
+     *  $query->and('age', Operator::GREATER_THAN, 18);
+     *  // Equivalent to: $query->where('age', Operator::GREATER_THAN, 18);
+     *  // Result: WHERE age > 18
+     *  ```
+     *
+     * @param ConditionValue $value A predefined condition value, representing the field, operator,
+     * and value to filter by.
+     * @return Query Returns the current query instance, allowing for method chaining.
+     */
+
+    public function and(string $key, Operator $operator, int|float|string|array $value): Query;
+
+    /**
+     * @param string[]|int[]|float[] $values
+     */
+    public function in(string $key, array $values): Query;
+
+    /**
+     * @param string[]|int[]|float[] $values
+     */
+    public function orIn(string $key, array $values): Query;
+
+    /**
+     * @param string[]|int[]|float[] $values
+     */
+    public function notIn(string $key, array $values): Query;
+
+    /**
+     * @param string[]|int[]|float[] $values
+     */
+    public function orNotIn(string $key, array $values): Query;
+
+    /**
+     * @param ConditionValue $value
+     */
+    public function or(string $key, Operator $operator, int|float|string|array $value): Query;
+
+    public function is(string $key, null|int|float|string $value): Query;
+
+    public function orIs(string $key, null|int|float|string $value): Query;
+
+    public function isNull(string $key): Query;
+
+    public function isNotNull(string $key): Query;
+
+    public function orIsNull(string $key): Query;
+
+    public function orIsNotNull(string $key): Query;
+
+    public function limit(int $limit, ?int $offset = null): Query;
+
+    public function offset(int $offset): Query;
+
+    public function orderBy(string $key, Sort $direction = Sort::ASC): Query;
+
+    public function fetchAll(?string $dto = null): \Generator;
+
+    public function fetchNth(int|string $n, ?string $dto = null): \Generator;
+
+    public function fetch(?string $dto = null): mixed;
+
+    public function fetchSingle(string $key): mixed;
+
+    public function count(): int;
+
+    public function sum(string $key): float;
+
+    public function avg(string $key, int $decimalPlaces = 2): float;
+
+    public function test(): string;
 }

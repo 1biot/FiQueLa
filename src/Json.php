@@ -51,6 +51,12 @@ final class Json
      */
     public static function string(string $json): self
     {
+        // if (json_validate($json) === false) { // only php >= 8.3
+        //     throw new InvalidJson("Invalid JSON string: " . json_last_error_msg());
+        // }
+        // $decoded = json_decode($json, true);
+        // $stream = is_array($decoded) ? new ArrayIterator($decoded) : new ArrayIterator([$decoded]);
+
         $decoded = json_decode($json, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new InvalidJson("Invalid JSON string: " . json_last_error_msg());
@@ -66,15 +72,16 @@ final class Json
     public function getStream(?string $query = null): ArrayIterator
     {
         $keys = $query !== null ? explode('.', $query) : [];
+        $stream = new ArrayIterator($this->stream->getArrayCopy());
         foreach ($keys as $key) {
-            $this->stream = $this->applyKeyFilter($this->getStream(), $key);
+            $stream = $this->applyKeyFilter($stream, $key);
         }
-        return $this->stream;
+        return $stream;
     }
 
     public function query(): Query
     {
-        return new Query($this);
+        return new QueryProvider($this);
     }
 
     /**

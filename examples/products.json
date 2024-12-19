@@ -4,22 +4,38 @@
       {
         "id": 1,
         "name": "Product A",
-        "price": 100
+        "price": 100,
+        "brand": {
+          "code": "BRAND-A",
+          "name": "Brand A"
+        }
       },
       {
         "id": 2,
         "name": "Product B",
-        "price": 200
+        "price": 200,
+        "brand": {
+          "code": "BRAND-C",
+          "name": "Brand C"
+        }
       },
       {
         "id": 3,
         "name": "Product C",
-        "price": 300
+        "price": 300,
+        "brand": {
+          "code": "BRAND-D",
+          "name": "Brand D"
+        }
       },
       {
         "id": 4,
         "name": "Product D",
-        "price": 400
+        "price": 400,
+        "brand": {
+          "code": "BRAND-B",
+          "name": "Brand B"
+        }
       }
     ],
     "paginator": {

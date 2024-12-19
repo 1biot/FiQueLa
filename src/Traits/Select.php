@@ -3,13 +3,14 @@
 namespace JQL\Traits;
 
 use JQL\Helpers\ArrayHelper;
+use JQL\Query;
 
 trait Select
 {
     /** @var string[] $selectedFields */
     private array $selectedFields = [];
 
-    public function select(string $fields): self
+    public function select(string $fields): Query
     {
         $this->selectedFields = array_merge($this->selectedFields, array_map('trim', explode(',', $fields)));
         return $this;

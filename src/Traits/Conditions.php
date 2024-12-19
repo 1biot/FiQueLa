@@ -5,24 +5,14 @@ namespace JQL\Traits;
 use JQL\Enum\LogicalOperator;
 use JQL\Enum\Operator;
 use JQL\Helpers\ArrayHelper;
+use JQL\Query;
 
 /**
- * @phpstan-type ConditionValue int|float|string|int[]|string[]|array<int|string>
- * @phpstan-type BaseCondition array{
- *     key: string,
- *     operator: Operator,
- *     value: ConditionValue
- * }
- * @phpstan-type Condition array{
- *     type: LogicalOperator,
- *     key: string,
- *     operator: Operator,
- *     value: ConditionValue
- * }
- * @phpstan-type ConditionGroup array{
- *     type: LogicalOperator,
- *     group: BaseCondition[]
- * }
+ * @phpstan-import-type InArrayList from Query
+ * @phpstan-import-type ConditionValue from Query
+ * @phpstan-import-type BaseCondition from Query
+ * @phpstan-import-type Condition from Query
+ * @phpstan-import-type ConditionGroup from Query
  */
 trait Conditions
 {
@@ -36,7 +26,7 @@ trait Conditions
     /** @var array<Condition|ConditionGroup> $conditions */
     private array $conditions = [];
 
-    public function setGrouping(bool $grouping): self
+    public function setGrouping(bool $grouping): Query
     {
         $this->useGrouping = $grouping;
         return $this;
@@ -45,10 +35,10 @@ trait Conditions
     /**
      * @param ConditionValue $value
      */
-    public function where(string $key, Operator $operator, int|float|string|array $value): self
+    public function where(string $key, Operator $operator, array|float|int|string $value): Query
     {
         if ($this->couldFlushGroup(LogicalOperator::AND)) {
-            $this->flushGroup(); // Ukončí předchozí skupinu
+            $this->flushGroup(); // End previous group
         }
 
         $this->currentOperator = LogicalOperator::AND;
@@ -59,18 +49,80 @@ trait Conditions
     /**
      * @param ConditionValue $value
      */
-    public function and(string $key, Operator $operator, int|float|string|array $value): self
+    public function and(string $key, Operator $operator, int|float|string|array $value): Query
     {
         return $this->where($key, $operator, $value);
+    }
+
+    public function is(string $key, null|int|float|string $value): Query
+    {
+        return $this->where($key, Operator::EQUAL, $value);
+    }
+
+    public function orIs(string $key, null|int|float|string $value): Query
+    {
+        return $this->or($key, Operator::EQUAL, $value);
+    }
+
+    public function isNull(string $key): Query
+    {
+        return $this->where($key, Operator::EQUAL_STRICT, null);
+    }
+
+    public function orIsNull(string $key): Query
+    {
+        return $this->or($key, Operator::EQUAL_STRICT, null);
+    }
+
+    public function isNotNull(string $key): Query
+    {
+        return $this->where($key, Operator::NOT_EQUAL_STRICT, null);
+    }
+
+    public function orIsNotNull(string $key): Query
+    {
+        return $this->or($key, Operator::NOT_EQUAL_STRICT, null);
+    }
+
+    /**
+     * @param InArrayList $values
+     */
+    public function in(string $key, array $values): Query
+    {
+        return $this->where($key, Operator::IN, $values);
+    }
+
+    /**
+     * @param InArrayList $values
+     */
+    public function orIn(string $key, array $values): Query
+    {
+        return $this->or($key, Operator::IN, $values);
+    }
+
+    /**
+     * @param InArrayList $values
+     */
+    public function notIn(string $key, array $values): Query
+    {
+        return $this->where($key, Operator::NOT_IN, $values);
+    }
+
+    /**
+     * @param InArrayList $values
+     */
+    public function orNotIn(string $key, array $values): Query
+    {
+        return $this->or($key, Operator::NOT_IN, $values);
     }
 
     /**
      * @param ConditionValue $value
      */
-    public function or(string $key, Operator $operator, int|float|string|array $value): self
+    public function or(string $key, Operator $operator, int|float|string|array $value): Query
     {
         if ($this->couldFlushGroup(LogicalOperator::OR)) {
-            $this->flushGroup(); // Ukončí předchozí skupinu
+            $this->flushGroup(); // End previous group
         }
 
         $this->currentOperator = LogicalOperator::OR;
@@ -145,30 +197,36 @@ trait Conditions
     }
 
     /**
-     * @param mixed $value
-     * @param Operator $operator
      * @param ConditionValue $operand
-     * @return bool
      */
     private function evaluateCondition(mixed $value, Operator $operator, int|float|string|array $operand): bool
     {
         return $operator->evaluate($value, $operand);
     }
 
+    private function conditionsToString(): string
+    {
+        $conditions = $this->getConditionsArray();
+        if (empty($conditions)) {
+            return '';
+        }
+
+        return sprintf("\nWHERE %s", $this->convertConditions($conditions));
+    }
+
     /**
      * @param array<BaseCondition|Condition|ConditionGroup> $conditions
-     * @return string
      */
-    private function conditionsToString(array $conditions): string
+    private function convertConditions(array $conditions): string
     {
         $queryParts = [];
         foreach ($conditions as $index => $condition) {
             if (isset($condition['group'])) {
-                // Reprezentace skupiny
-                $groupString = '(' . $this->conditionsToString($condition['group']) . "\n)";
+                // Representation of group
+                $groupString = '(' . $this->convertConditions($condition['group']) . "\n)";
                 $queryParts[] = ($index > 0 ? $condition['type']->value . ' ' : '') . $groupString;
             } else {
-                // Reprezentace jednoduché podmínky
+                // Representation of simple condition
                 $key = $condition['key'];
                 $operator = $condition['operator']->value;
                 $value = is_string($condition['value']) ? "'{$condition['value']}'" : $condition['value'];
@@ -183,6 +241,10 @@ trait Conditions
                 $conditionPart .= " $key $operator $value";
                 $queryParts[] = $conditionPart;
             }
+        }
+
+        if (count($queryParts) === 0) {
+            return '';
         }
 
         return implode(' ', $queryParts);

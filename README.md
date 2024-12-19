@@ -1,11 +1,10 @@
 # JQL - JSON Query Language
 JQL (JSON Query Language) is a PHP library for easy manipulation of JSON data. It offers SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity, simplicity, and efficiency.
 
-[![Latest Stable Version](http://poser.pugx.org/1biot/jql/v)](https://packagist.org/packages/1biot/jql)
-[![Total Downloads](http://poser.pugx.org/1biot/jql/downloads)](https://packagist.org/packages/1biot/jql)
-[![Latest Unstable Version](http://poser.pugx.org/1biot/jql/v/unstable)](https://packagist.org/packages/1biot/jql)
-[![License](http://poser.pugx.org/1biot/jql/license)](https://packagist.org/packages/1biot/jql)
-[![PHP Version Require](http://poser.pugx.org/1biot/jql/require/php)](https://packagist.org/packages/1biot/jql)
+![GitHub Release](https://img.shields.io/github/v/release/1biot/jql)
+![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/jql)
+![GitHub License](https://img.shields.io/github/license/1biot/jql)
+![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
 
 ## Table of Contents
 - [Installation](#installation)
@@ -39,9 +38,9 @@ $json = Json::string(file_get_contents('data.json'));
 ```
 
 ### 2. Querying Data
-    
+
 ```php
-use JQL\Query;
+use JQL\QueryProvider;
 
 $query = $json->query();
 
@@ -85,6 +84,36 @@ $results = $query
     ->limit(20)
     ->offset(40)
     ->fetchAll();
+```
+
+### 5. SQL
+You can view interpreted SQL query.
+
+```php
+use JQL\Enum\Operator;
+
+$query->select('name, price, brand')
+    ->from('data.products')
+    ->where('brand.code', Operator::EQUAL, 'AD')
+    ->and('name', Operator::NOT_EQUAL, 'Product B')
+    ->or('name', Operator::EQUAL, 'Product B')
+    ->or('price', Operator::GREATER_THAN_OR_EQUAL, 200)
+    ->limit(2)
+    ->offset(1);
+
+echo $query->test();
+
+// SELECT name, price, brand 
+// FROM data.products 
+// WHERE (
+// 	 brand.code = 'AD' 
+// 	AND name != 'Product B'
+// ) OR (
+// 	 name = 'Product B' 
+// 	AND price >= 200
+// ) 
+// LIMIT 2
+// OFFSET 1
 ```
 
 ## API
