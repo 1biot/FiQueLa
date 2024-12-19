@@ -1,10 +1,11 @@
 # JQL - JSON Query Language
 JQL (JSON Query Language) is a PHP library for easy manipulation of JSON data. It offers SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity, simplicity, and efficiency.
 
-![GitHub Release](https://img.shields.io/github/v/release/1biot/jql)
-![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/jql)
-![GitHub License](https://img.shields.io/github/license/1biot/jql)
+![Packagist Version](https://img.shields.io/packagist/v/1biot/jql)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/jql/ci.yml)
+![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/jql)
+![Packagist License](https://img.shields.io/packagist/l/1biot/jql)
 
 ## Table of Contents
 - [Installation](#installation)
