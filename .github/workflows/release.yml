@@ -1,0 +1,25 @@
+name: Publish to Packagist
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish:
+    name: Publish to Packagist
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Notify Packagist
+      - name: Notify Packagist
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: |
+          curl -X POST https://packagist.org/api/update-package \
+          -H "Authorization: Bearer $PACKAGIST_TOKEN" \
+          -d '{"repository":{"url":"https://github.com/1biot/jql"}}'
