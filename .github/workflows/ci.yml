@@ -17,13 +17,13 @@ jobs:
       - uses: ramsey/composer-install@v3
         with:
           composer-options: "--ignore-platform-reqs --optimize-autoloader"
-          working-directory: "src/share"
+          working-directory: "./"
       - name: "PHP_CodeSniffer"
-        working-directory: "src/share"
+        working-directory: "./"
         run: composer test:phpcs:summary
       - name: "PHPStan"
-        working-directory: "src/share"
+        working-directory: "./"
         run: composer test:phpstan
       - name: "PHPUnit"
-        working-directory: "src/share"
+        working-directory: "./"
         run: composer test:phpunit
