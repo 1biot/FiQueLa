@@ -8,7 +8,7 @@ use JQL\Enum\Sort;
 
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
- * @phpstan-type ConditionValue int|float|string|InArrayList
+ * @phpstan-type ConditionValue null|int|float|string|InArrayList
  * @phpstan-type BaseCondition array{
  *     key: string,
  *     operator: Operator,
@@ -134,7 +134,7 @@ interface Query
      * @return Query Returns the current query instance, allowing for method chaining.
      */
 
-    public function where(string $key, Operator $operator, array|float|int|string $value): Query;
+    public function where(string $key, Operator $operator, null|array|float|int|string $value): Query;
 
     /**
      * Alias for the `where` method.
@@ -154,7 +154,7 @@ interface Query
      * @return Query Returns the current query instance, allowing for method chaining.
      */
 
-    public function and(string $key, Operator $operator, int|float|string|array $value): Query;
+    public function and(string $key, Operator $operator, null|int|float|string|array $value): Query;
 
     /**
      * @param string[]|int[]|float[] $values
@@ -179,7 +179,7 @@ interface Query
     /**
      * @param ConditionValue $value
      */
-    public function or(string $key, Operator $operator, int|float|string|array $value): Query;
+    public function or(string $key, Operator $operator, null|int|float|string|array $value): Query;
 
     public function is(string $key, null|int|float|string $value): Query;
 

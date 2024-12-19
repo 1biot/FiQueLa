@@ -35,7 +35,7 @@ trait Conditions
     /**
      * @param ConditionValue $value
      */
-    public function where(string $key, Operator $operator, array|float|int|string $value): Query
+    public function where(string $key, Operator $operator, null|array|float|int|string $value): Query
     {
         if ($this->couldFlushGroup(LogicalOperator::AND)) {
             $this->flushGroup(); // End previous group
@@ -49,7 +49,7 @@ trait Conditions
     /**
      * @param ConditionValue $value
      */
-    public function and(string $key, Operator $operator, int|float|string|array $value): Query
+    public function and(string $key, Operator $operator, null|int|float|string|array $value): Query
     {
         return $this->where($key, $operator, $value);
     }
@@ -119,7 +119,7 @@ trait Conditions
     /**
      * @param ConditionValue $value
      */
-    public function or(string $key, Operator $operator, int|float|string|array $value): Query
+    public function or(string $key, Operator $operator, null|int|float|string|array $value): Query
     {
         if ($this->couldFlushGroup(LogicalOperator::OR)) {
             $this->flushGroup(); // End previous group
@@ -149,7 +149,7 @@ trait Conditions
         LogicalOperator $type,
         string $key,
         Operator $operator,
-        int|float|string|array $value
+        null|int|float|string|array $value
     ): void {
         if ($this->useGrouping) {
             $this->currentGroup[] = ['key' => $key, 'operator' => $operator, 'value' => $value];
@@ -199,7 +199,7 @@ trait Conditions
     /**
      * @param ConditionValue $operand
      */
-    private function evaluateCondition(mixed $value, Operator $operator, int|float|string|array $operand): bool
+    private function evaluateCondition(mixed $value, Operator $operator, null|int|float|string|array $operand): bool
     {
         return $operator->evaluate($value, $operand);
     }
