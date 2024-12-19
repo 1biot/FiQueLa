@@ -1,0 +1,29 @@
+name: CI
+
+on: [push]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: [ '8.0', '8.1', '8.2', '8.3'' ]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+      - uses: ramsey/composer-install@v3
+        with:
+          composer-options: "--ignore-platform-reqs --optimize-autoloader"
+          working-directory: "src/share"
+      - name: "PHP_CodeSniffer"
+        working-directory: "src/share"
+        run: composer test:phpcs:summary
+      - name: "PHPStan"
+        working-directory: "src/share"
+        run: composer test:phpstan
+      - name: "PHPUnit"
+        working-directory: "src/share"
+        run: composer test:phpunit

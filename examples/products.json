@@ -1,0 +1,33 @@
+{
+  "data": {
+    "products": [
+      {
+        "id": 1,
+        "name": "Product A",
+        "price": 100
+      },
+      {
+        "id": 2,
+        "name": "Product B",
+        "price": 200
+      },
+      {
+        "id": 3,
+        "name": "Product C",
+        "price": 300
+      },
+      {
+        "id": 4,
+        "name": "Product D",
+        "price": 400
+      }
+    ],
+    "paginator": {
+      "totalCount": 3,
+      "page": 1,
+      "pageCount": 1,
+      "itemsOnPage": 3,
+      "itemsPerPage": 20
+    }
+  }
+}

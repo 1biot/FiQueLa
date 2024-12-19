@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ruleset name="JQL Ruleset">
+    <description>JQL PHP_CodeSniffer ruleset.</description>
+
+    <!-- Include standard -->
+    <rule ref="PSR12"/>
+
+    <file>./src</file>
+
+    <!-- Exclude specific rules -->
+    <exclude name="PSR12.Files.FileHeader"/>
+
+    <!-- Exclude specific files or directories -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>
