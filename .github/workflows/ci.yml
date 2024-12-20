@@ -26,4 +26,4 @@ jobs:
         run: composer test:phpstan
       - name: "PHPUnit"
         working-directory: "./"
-        run: composer test:phpunit
+        run: composer test:phpunit -- tests
