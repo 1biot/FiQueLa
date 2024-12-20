@@ -133,8 +133,7 @@ trait Conditions
     /**
      * @return array<Condition|ConditionGroup>
      */
-
-    public function getConditionsArray(): array
+    private function getConditionsArray(): array
     {
         return array_merge(
             $this->conditions,

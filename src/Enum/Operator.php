@@ -12,9 +12,9 @@ enum Operator: string
     case GREATER_THAN_OR_EQUAL = '>=';
     case LESS_THAN = '<';
     case LESS_THAN_OR_EQUAL = '<=';
-    case IN = 'in';
-    case NOT_IN = 'not in';
-    case LIKE = 'like';
+    case IN = 'IN';
+    case NOT_IN = 'NOT IN';
+    case LIKE = 'LIKE';
 
     public function evaluate(mixed $value, mixed $operand): bool
     {

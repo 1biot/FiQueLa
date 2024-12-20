@@ -25,7 +25,7 @@ use JQL\Enum\Sort;
  *     group: BaseCondition[]
  * }
  */
-interface Query
+interface Query extends \Countable
 {
     /**
      * Enable or disable grouping of conditions in a query.

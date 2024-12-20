@@ -37,7 +37,7 @@ trait Select
         return $result;
     }
 
-    public function selectToString(): string
+    private function selectToString(): string
     {
         return 'SELECT ' . ($this->selectedFields === [] ? '*' : implode(', ', $this->selectedFields));
     }

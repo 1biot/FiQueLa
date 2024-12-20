@@ -5,5 +5,7 @@
         displayDetailsOnTestsThatTriggerNotices="true"
         displayDetailsOnTestsThatTriggerWarnings="true"
         displayDetailsOnPhpunitDeprecations="true"
+        cacheResult="false"
+        colors="true"
 >
 </phpunit>

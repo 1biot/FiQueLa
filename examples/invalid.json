@@ -1,0 +1,12 @@
+{
+  "data": {
+    "products": [
+      {
+        "id": 1,
+        "name": "Product A",
+        "price": 100,
+        "brand": {
+          "code": "BRAND-A",
+          "name": "Brand A"
+        }
+      }

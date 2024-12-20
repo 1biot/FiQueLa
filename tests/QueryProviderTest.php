@@ -3,56 +3,21 @@
 namespace JQL;
 
 use JQL\Enum\Operator;
-use JQL\Enum\Sort;
-use JQL\Exceptions\FileNotFoundException;
 use JQL\Exceptions\InvalidArgumentException;
-use JQL\Exceptions\InvalidJson;
 use PHPUnit\Framework\TestCase;
 
-class JsonQueryTest extends TestCase
+class QueryProviderTest extends TestCase
 {
-    private string $jsonFile;
-    private string $jsonArrayFile;
-    private string $invalidJsonString;
-
     private Json $json;
     private Json $jsonArray;
 
     protected function setUp(): void
     {
-        $this->jsonFile = realpath(__DIR__ . '/../examples/products.json');
-        $this->jsonArrayFile = realpath(__DIR__ . '/../examples/products-array.json');
-        $this->invalidJsonString = '{"data": {"products": [invalid json}';
+        $jsonFile = realpath(__DIR__ . '/../examples/products.json');
+        $jsonArrayFile = realpath(__DIR__ . '/../examples/products-array.json');
 
-        $this->json = Json::open($this->jsonFile);
-        $this->jsonArray = Json::open($this->jsonArrayFile);
-    }
-
-    public function testFromWithInvalidPath(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Key 'invalid' not found.");
-
-        $this->json->query()
-            ->from('data.invalid.path')
-        ->fetch();
-    }
-
-    public function testOpenFile(): void
-    {
-        $result = Json::open($this->jsonFile)->query()
-            ->from('data.products')
-            ->fetch();
-
-        $this->assertEquals('Product A', $result['name']);
-    }
-
-    public function testOpenFileNotExisted(): void
-    {
-        $this->expectException(FileNotFoundException::class);
-        $this->expectExceptionMessage("File not found or not readable.");
-
-        Json::open('/path/to/file/not/existed.json');
+        $this->json = Json::open($jsonFile);
+        $this->jsonArray = Json::open($jsonArrayFile);
     }
 
     public function testFetchAll(): void
@@ -125,41 +90,6 @@ class JsonQueryTest extends TestCase
         $sum = $query->sum('price');
 
         $this->assertEquals(900, $sum, 'The sum of prices greater than 100 should be 500.');
-    }
-
-    public function testOrderBy(): void
-    {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->orderBy('price', Sort::DESC);
-
-        $results = iterator_to_array($query->fetchAll());
-
-        $this->assertEquals(4, $results[0]['id']);
-        $this->assertEquals(3, $results[1]['id']);
-        $this->assertEquals(2, $results[2]['id']);
-        $this->assertEquals(1, $results[3]['id']);
-    }
-
-    public function testLimit(): void
-    {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->limit(2);
-
-        $results = iterator_to_array($query->fetchAll());
-
-        $this->assertCount(2, $results);
-        $this->assertEquals(1, $results[0]['id']);
-        $this->assertEquals(2, $results[1]['id']);
-    }
-
-    public function testInvalidJson(): void
-    {
-        $this->expectException(InvalidJson::class);
-        $this->expectExceptionMessage("Invalid JSON string");
-
-        Json::string($this->invalidJsonString);
     }
 
     public function testJsonIsArray(): void
