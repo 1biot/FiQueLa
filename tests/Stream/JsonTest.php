@@ -1,13 +1,10 @@
 <?php
 
-namespace JQL;
+namespace UQL\Stream;
 
-use JQL\Enum\Operator;
-use JQL\Enum\Sort;
-use JQL\Exceptions\FileNotFoundException;
-use JQL\Exceptions\InvalidArgumentException;
-use JQL\Exceptions\InvalidJson;
 use PHPUnit\Framework\TestCase;
+use UQL\Exceptions\FileNotFoundException;
+use UQL\Exceptions\InvalidFormat;
 
 class JsonTest extends TestCase
 {
@@ -17,8 +14,8 @@ class JsonTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->jsonFile = realpath(__DIR__ . '/../examples/products.json');
-        $this->invalidJsonFile = realpath(__DIR__ . '/../examples/invalid.json');
+        $this->jsonFile = realpath(__DIR__ . '/../../examples/data/products.json');
+        $this->invalidJsonFile = realpath(__DIR__ . '/../../examples/data/invalid.json');
         $this->invalidJsonString = '{"data": {"products": [invalid json}';
     }
 
@@ -38,7 +35,7 @@ class JsonTest extends TestCase
 
     public function testOpenInvalidJsonFile(): void
     {
-        $this->expectException(InvalidJson::class);
+        $this->expectException(InvalidFormat::class);
         $this->expectExceptionMessage("Invalid JSON string");
 
         Json::open($this->invalidJsonFile);
@@ -46,7 +43,7 @@ class JsonTest extends TestCase
 
     public function testStringInvalidJson(): void
     {
-        $this->expectException(InvalidJson::class);
+        $this->expectException(InvalidFormat::class);
         $this->expectExceptionMessage("Invalid JSON string");
 
         Json::string($this->invalidJsonString);

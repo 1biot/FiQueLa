@@ -1,12 +1,12 @@
 <?php
 
-namespace JQL\Traits;
+namespace UQL\Traits;
 
-use JQL\Query;
+use UQL\Query\Query;
 
 trait From
 {
-    private ?string $streamSource = null;
+    private ?string $from = null;
 
     /**
      * @param string $query
@@ -14,17 +14,17 @@ trait From
      */
     public function from(string $query): Query
     {
-        $this->streamSource = $query;
+        $this->from = $query;
         return $this;
     }
 
-    private function getStreamSource(): ?string
+    private function getFrom(): ?string
     {
-        return $this->streamSource;
+        return $this->from ?? Query::FROM_ALL;
     }
 
     private function fromToString(): string
     {
-        return "\nFROM " . ($this->streamSource ?? '[json]');
+        return "\n" . Query::FROM . ' ' . ($this->from ?? Query::FROM_ALL);
     }
 }

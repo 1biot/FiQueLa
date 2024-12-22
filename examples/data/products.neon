@@ -1,0 +1,44 @@
+data:
+    products:
+        - id: 1
+          name: "Product 1"
+          description: "Description of product 1"
+          price: 100
+          stock: 10
+          manufacturer: "Manufacturer 1"
+          url: "https://example.com/product-1"
+          categories:
+             - id: 3
+               name: "Category 3"
+             - id: 7
+               name: "Category 7"
+        - id: 2
+          name: "Product 2"
+          description: "Description of product 2"
+          price: 200
+          stock: 20
+          manufacturer: "Manufacturer 2"
+          url: "https://example.com/product-2"
+          categories:
+             - id: 3
+               name: "Category 3"
+             - id: 4
+               name: "Category 4"
+        - id: 3
+          name: "Product 3"
+          description: "Description of product 3"
+          price: 300
+          stock: 30
+          manufacturer: "Manufacturer 3"
+          url: "https://example.com/product-3"
+          categories:
+              - id: 1
+                name: "Category 1"
+              - id: 2
+                name: "Category 2"
+    paginator:
+        totalCount: 3
+        page: 1
+        pageCount: 1
+        itemsOnPage: 3
+        itemsPerPage: 20

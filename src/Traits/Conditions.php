@@ -1,11 +1,12 @@
 <?php
 
-namespace JQL\Traits;
+namespace UQL\Traits;
 
-use JQL\Enum\LogicalOperator;
-use JQL\Enum\Operator;
-use JQL\Helpers\ArrayHelper;
-use JQL\Query;
+use UQL\Enum\LogicalOperator;
+use UQL\Enum\Operator;
+use UQL\Exceptions\InvalidArgumentException;
+use UQL\Helpers\ArrayHelper;
+use UQL\Query\Query;
 
 /**
  * @phpstan-import-type InArrayList from Query
@@ -176,19 +177,53 @@ trait Conditions
 
     /**
      * @param array<string|int, mixed> $item
+     * @param BaseCondition|Condition $condition
+     * @return bool
+     */
+    private function evaluateConditionWithIteration(array $item, array $condition): bool
+    {
+        $key = $condition['key'];
+        $operator = $condition['operator'];
+        $value = $condition['value'];
+
+        // Recognizing iterations using []->key
+        if (preg_match('/(.+)\[\]->(.+)/', $key, $matches)) {
+            $arrayKey = $matches[1]; // For example "categories"
+            $subKey = $matches[2];   // For example "id"
+
+            // Retrieving array values
+            $nestedValues = ArrayHelper::getNestedValue($item, $arrayKey, true);
+
+            if (!is_array($nestedValues)) {
+                throw new InvalidArgumentException(sprintf('Field "%s" is not iterable or does not exist', $arrayKey));
+            }
+
+            $values = array_map(fn($nestedItem) => $nestedItem[$subKey] ?? null, $nestedValues);
+
+            // Evaluating the condition for iterations
+            foreach ($values as $nestedValue) {
+                if ($this->evaluateCondition($nestedValue, $operator, $value)) {
+                    return true; // Condition satisfied for at least one value
+                }
+            }
+            return false; // Condition not satisfied for any value
+        }
+
+        // Standard access to the value
+        $fieldValue = ArrayHelper::getNestedValue($item, $key, true);
+
+        return $this->evaluateCondition($fieldValue, $operator, $value);
+    }
+
+
+    /**
+     * @param array<string|int, mixed> $item
      * @param BaseCondition[] $group
      */
     private function evaluateGroup(array $item, array $group): bool
     {
         foreach ($group as $condition) {
-            $value = ArrayHelper::getNestedValue($item, $condition['key']);
-            if (
-                !$this->evaluateCondition(
-                    $value,
-                    $condition['operator'],
-                    $condition['value']
-                )
-            ) {
+            if (!$this->evaluateConditionWithIteration($item, $condition)) {
                 return false;
             }
         }
@@ -210,7 +245,7 @@ trait Conditions
             return '';
         }
 
-        return sprintf("\nWHERE %s", $this->convertConditions($conditions));
+        return sprintf("\n%s %s", Query::WHERE, $this->convertConditions($conditions));
     }
 
     /**

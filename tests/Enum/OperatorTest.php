@@ -1,8 +1,7 @@
 <?php
 
-namespace Enum;
+namespace UQL\Enum;
 
-use JQL\Enum\Operator;
 use PHPUnit\Framework\TestCase;
 
 class OperatorTest extends TestCase
@@ -83,9 +82,28 @@ class OperatorTest extends TestCase
         $this->assertSame(true, Operator::NOT_IN->evaluate(4, [1, 2, 3]));
     }
 
-    public function testEvaluateLike(): void
+    public function testEvaluateContains(): void
     {
-        $this->assertSame(true, Operator::LIKE->evaluate("string1", "string"));
-        $this->assertSame(false, Operator::LIKE->evaluate("string1", "number"));
+        $this->assertSame(true, Operator::CONTAINS->evaluate("string1", "string"));
+        $this->assertSame(true, Operator::CONTAINS->evaluate("string1", "1"));
+        $this->assertSame(false, Operator::CONTAINS->evaluate("string1", "number"));
+    }
+
+    public function testEvaluateStartsWith(): void
+    {
+        $this->assertSame(true, Operator::STARTS_WITH->evaluate("string1", "str"));
+        $this->assertSame(false, Operator::STARTS_WITH->evaluate("string1", "1"));
+        $this->assertSame(false, Operator::STARTS_WITH->evaluate("string1", "number"));
+        $this->assertSame(true, Operator::STARTS_WITH->evaluate("1string", 1));
+        $this->assertSame(true, Operator::STARTS_WITH->evaluate("1string", "1"));
+    }
+
+    public function testEvaluateEndsWith(): void
+    {
+        $this->assertSame(false, Operator::ENDS_WITH->evaluate("string1", "str"));
+        $this->assertSame(true, Operator::ENDS_WITH->evaluate("string1", "1"));
+        $this->assertSame(false, Operator::ENDS_WITH->evaluate("string1", "number"));
+        $this->assertSame(true, Operator::ENDS_WITH->evaluate("string3", 3));
+        $this->assertSame(true, Operator::ENDS_WITH->evaluate("string3", "3"));
     }
 }

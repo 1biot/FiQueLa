@@ -1,10 +1,10 @@
 <?php
 
-namespace JQL\Traits;
+namespace UQL\Traits;
 
-use JQL\Enum\Operator;
-use JQL\Json;
 use PHPUnit\Framework\TestCase;
+use UQL\Enum\Operator;
+use UQL\Stream\Json;
 
 class ConditionsTest extends TestCase
 {
@@ -12,7 +12,19 @@ class ConditionsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->json = Json::open(realpath(__DIR__ . '/../../examples/products.json'));
+        $this->json = Json::open(realpath(__DIR__ . '/../../examples/data/products.json'));
+    }
+
+    public function testSimpleWhere(): void
+    {
+        $query = $this->json->query()
+            ->from('data.products')
+            ->where('price', Operator::GREATER_THAN, 100);
+
+        $results = iterator_to_array($query->fetchAll());
+
+        $this->assertCount(3, $results);
+        $this->assertEquals(200, $results[0]['price']);
     }
 
     public function testOrIsNull(): void

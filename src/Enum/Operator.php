@@ -1,11 +1,11 @@
 <?php
 
-namespace JQL\Enum;
+namespace UQL\Enum;
 
 enum Operator: string
 {
     case EQUAL = '=';
-    case EQUAL_STRICT = '===';
+    case EQUAL_STRICT = '==';
     case NOT_EQUAL = '!=';
     case NOT_EQUAL_STRICT = '!==';
     case GREATER_THAN = '>';
@@ -13,8 +13,10 @@ enum Operator: string
     case LESS_THAN = '<';
     case LESS_THAN_OR_EQUAL = '<=';
     case IN = 'IN';
-    case NOT_IN = 'NOT IN';
-    case LIKE = 'LIKE';
+    case NOT_IN = 'NOT_IN';
+    case CONTAINS = 'CONTAINS';
+    case STARTS_WITH = 'STARTS_WITH';
+    case ENDS_WITH = 'ENDS_WITH';
 
     public function evaluate(mixed $value, mixed $operand): bool
     {
@@ -29,7 +31,9 @@ enum Operator: string
             self::LESS_THAN_OR_EQUAL => $value <= $operand,
             self::IN => in_array($value, $operand, true),
             self::NOT_IN => !in_array($value, $operand, true),
-            self::LIKE => mb_strpos($value, $operand) !== false,
+            self::CONTAINS => str_contains($value, $operand),
+            self::STARTS_WITH => str_starts_with($value, $operand),
+            self::ENDS_WITH => str_ends_with($value, $operand),
         };
     }
 }

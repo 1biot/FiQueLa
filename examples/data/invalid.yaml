@@ -1,0 +1,14 @@
+products:
+  - id: 1
+    name: Product A
+    price: 100
+    description: "A great product
+  - id: 2
+    name: Product B
+    price: 200
+    categories:
+      - id: CAT-B
+        name: Category B
+      - id: CAT-C
+        name: Category C
+    description: Another great product

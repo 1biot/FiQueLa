@@ -1,5 +1,7 @@
-# JQL - JSON Query Language
-JQL (JSON Query Language) is a PHP library for easy manipulation of JSON data. It offers SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity, simplicity, and efficiency.
+# UniQueL
+UniQueL (Universal Query Language) is a PHP library for easy manipulation of JSON or Yaml or Neon data. It offers
+SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity,
+simplicity, and efficiency.
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/jql)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
@@ -10,40 +12,59 @@ JQL (JSON Query Language) is a PHP library for easy manipulation of JSON data. I
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
-- [API](#api)
-  - [Methods](#enums)
-  - [Enums](#enums)
-  - [Exceptions](#exceptions)
-  - [Traits](#traits)
 - [Examples](#examples)
 
 ## Installation
-Use [Composer](https://getcomposer.org/) to install the JQL.
+Use [Composer](https://getcomposer.org/) to install the UQL.
 
 ```bash
-composer require 1biot/jql
+composer require 1biot/uniquel
 ```
 
 ## Usage
 
-### 1. Loading JSON Data
+### 1. Loading Data
 
+#### JSON
+Native support for JSON data. You can load data from a file or a string. All formats implement the `UQL\Stream\Stream`
+interface and can be used interchangeably.
 ```php
-use JQL\Json;
+// loading of JSON data
+use UQL\Stream\Json;
 
-// Load data from a file
+// from a file
 $json = Json::open('data.json');
 
-// Or load data from a string
+// Or a string
 $json = Json::string(file_get_contents('data.json'));
+```
+#### YAML and NEON
+This file formats are not supported by default. You need to install the necessary libraries.
+
+```bash
+composer require symfony/yaml # for YAML
+composer require nette/neon # for NEON
+```
+
+```php
+// loading of YAML and NEON data
+use UQL\Stream\Yaml;
+use UQL\Stream\Neon;
+
+$yaml = Yaml::open('data.yaml');
+$yaml = Yaml::string(file_get_contents('data.yaml'));
+
+$neon = Neon::open('data.neon');
+$neon = Neon::string(file_get_contents('data.neon'));
 ```
 
 ### 2. Querying Data
 
 ```php
-use JQL\QueryProvider;
+use UQL\Enum\Operator;
+use UQL\Enum\Sort;
 
-$query = $json->query();
+$query = $file->query();
 
 // Define a query
 $results = $query
@@ -51,17 +72,40 @@ $results = $query
     ->select('name, age')
     ->from('users')
     ->where('age', Operator::GREATER_THAN, 18)
-    ->orderBy('name', Sort::ASC)
-    ->fetchAll();
+    ->orderBy('name', Sort::ASC);
+```
 
+### 4. Fetching Data
+
+```php
+$results = $query->fetchAll(); 
 foreach ($results as $user) {
-    echo '#' . $user['id'] . ': ' . $user['name'] . ' (' . $user['age'] . ")\n";
+    echo '#' . $user['id']
+        . ': '
+        . $user['name']
+        . ' (' . $user['age'] . ")\n";
 }
+
+// Output
+// #1: John (20)
+// #2: Jane (25)
+
+// Fetch a single row
+$user = $query->fetch();
+
+// Fetch a single value
+$ages = $query->fetchSingle('age');
+
+// fetch nth row
+$user = $query->fetchNth(2);
+// or
+$user = $query->fetchNth('even');
 ```
 
 ### 3. Aggregate Functions
 
 ```php
+$results = $query->fetchAll();
 $totalAge = $query->sum('age');
 $averageAge = $query->avg('age');
 $count = $query->count();
@@ -74,37 +118,41 @@ $count = $query->count();
 $results = $query
     ->select('name, age')
     ->from('users')
-    ->limit(20, 40)
-    ->fetchAll();
+    ->limit(20, 40);
 
 // or
 
 $results = $query
     ->select('name, age')
     ->from('users')
-    ->limit(20)
     ->offset(40)
-    ->fetchAll();
+    ->limit(20);
 ```
 
 ### 5. SQL
-You can view interpreted SQL query.
+You can view interpreted SQL query. This SQL query is not executable yet but in the future, it will be possible to parse
+sql queries through `sql()` method at `UQL\Stream\Stream` interface.
 
 ```php
-use JQL\Enum\Operator;
+use UQL\Enum\Operator;
 
-$query->select('name, price, brand')
+$query->select('name, price')
+    ->select('brand.name')->as('brand')
     ->from('data.products')
     ->where('brand.code', Operator::EQUAL, 'AD')
     ->and('name', Operator::NOT_EQUAL, 'Product B')
     ->or('name', Operator::EQUAL, 'Product B')
     ->or('price', Operator::GREATER_THAN_OR_EQUAL, 200)
-    ->limit(2)
-    ->offset(1);
+    ->offset(1)
+    ->limit(2);
 
 echo $query->test();
+// Output
 
-// SELECT name, price, brand 
+// SELECT
+// 	 name,
+// 	 price,
+// 	 brand.name AS brand 
 // FROM data.products 
 // WHERE (
 // 	 brand.code = 'AD' 
@@ -113,18 +161,20 @@ echo $query->test();
 // 	 name = 'Product B' 
 // 	AND price >= 200
 // ) 
-// LIMIT 2
 // OFFSET 1
+// LIMIT 2
+
+// in the future
+$sql = <<<SQL
+SELECT
+    name, price, brand.name AS brand
+FROM data.products
+WHERE brand.code = 'AD'
+SQL
+
+$file->sql($sql);
 ```
 
-## API
-
-### Methods
-
-### Enums
-
-### Exceptions
-
-### Traits
-
 ## Examples
+
+Go to [examples](examples) directory for more examples.

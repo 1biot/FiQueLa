@@ -1,10 +1,10 @@
 <?php
 
-namespace JQL;
+namespace UQL\Query;
 
-use JQL\Enum\LogicalOperator;
-use JQL\Enum\Operator;
-use JQL\Enum\Sort;
+use UQL\Enum\LogicalOperator;
+use UQL\Enum\Operator;
+use UQL\Enum\Sort;
 
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
@@ -27,6 +27,16 @@ use JQL\Enum\Sort;
  */
 interface Query extends \Countable
 {
+    public const SELECT_ALL = '*';
+    public const FROM_ALL = self::SELECT_ALL;
+
+    public const SELECT = 'SELECT';
+    public const AS = 'AS';
+    public const FROM = 'FROM';
+    public const WHERE = 'WHERE';
+    public const OFFSET = 'OFFSET';
+    public const LIMIT = 'LIMIT';
+
     /**
      * Enable or disable grouping of conditions in a query.
      *
@@ -42,7 +52,7 @@ interface Query extends \Countable
      *
      * Example without grouping:
      * ```
-     * $query->disableGrouping()
+     * $query->setGrouping(false)
      *       ->where($cond1)->and($cond2)->or($cond3)->or($cond4);
      * // Result: cond1 AND cond2 OR cond3 OR cond4
      * ```
@@ -83,6 +93,48 @@ interface Query extends \Countable
      */
 
     public function select(string $fields): Query;
+
+    /**
+     * Select all fields in the query.
+     *
+     * This method allows you to select all fields in the query, including nested fields.
+     * It is equivalent to using the `SELECT *` SQL statement.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->selectAll();
+     * // Result: SELECT *
+     * ```
+     *
+     * Use this method to select all fields in the query results.
+     */
+    public function selectAll(): Query;
+
+    /**
+     * Alias the last selected field.
+     *
+     * This method allows you to define an alias for the last field selected in the query.
+     * It supports dot notation for selecting nested fields. The alias will be used
+     * as the key in the result array.
+     *
+     * Example with simple fields:
+     *
+     * ```
+     * $query->select('user.id')->as('userId');
+     * // Result: SELECT user.id AS userId
+     * ```
+     *
+     * Example with nested fields:
+     *
+     * ```
+     * $query->select('user.profile.email')->as('email');
+     * // Result: SELECT user.profile.email AS email
+     * ```
+     *
+     * Use this method to customize the field names in your query results.
+     */
+    public function as(string $alias): Query;
 
     /**
      * Specify a specific part of the data to select.

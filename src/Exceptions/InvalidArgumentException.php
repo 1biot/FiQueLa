@@ -1,6 +1,6 @@
 <?php
 
-namespace JQL\Exceptions;
+namespace UQL\Exceptions;
 
 class InvalidArgumentException extends \InvalidArgumentException
 {

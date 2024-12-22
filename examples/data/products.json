@@ -9,7 +9,17 @@
         "brand": {
           "code": "BRAND-A",
           "name": "Brand A"
-        }
+        },
+        "categories": [
+          {
+            "id": "CAT-A",
+            "name": "Category A"
+          },
+          {
+            "id": "CAT-B",
+            "name": "Category B"
+          }
+        ]
       },
       {
         "id": 2,
@@ -19,7 +29,17 @@
         "brand": {
           "code": "BRAND-C",
           "name": "Brand C"
-        }
+        },
+        "categories": [
+          {
+            "id": "CAT-B",
+            "name": "Category B"
+          },
+          {
+            "id": "CAT-C",
+            "name": "Category C"
+          }
+        ]
       },
       {
         "id": 3,
@@ -29,7 +49,17 @@
         "brand": {
           "code": "BRAND-D",
           "name": "Brand D"
-        }
+        },
+        "categories": [
+          {
+            "id": "CAT-C",
+            "name": "Category C"
+          },
+          {
+            "id": "CAT-D",
+            "name": "Category D"
+          }
+        ]
       },
       {
         "id": 4,
@@ -39,7 +69,17 @@
         "brand": {
           "code": "BRAND-B",
           "name": "Brand B"
-        }
+        },
+        "categories": [
+          {
+            "id": "CAT-D",
+            "name": "Category D"
+          },
+          {
+            "id": "CAT-E",
+            "name": "Category E"
+          }
+        ]
       }
     ],
     "paginator": {

@@ -2,6 +2,6 @@
 
 namespace UQL\Exceptions;
 
-class Exception extends \Exception
+class InvalidFormat extends Exception
 {
 }

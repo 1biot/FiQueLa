@@ -1,25 +1,30 @@
 <?php
 
-namespace JQL;
+namespace UQL\Query;
 
 use ArrayIterator;
 use Generator;
-use JQL\Enum\LogicalOperator;
-use JQL\Enum\Sort;
-use JQL\Exceptions\InvalidArgumentException;
-use JQL\Helpers\ArrayHelper;
+use UQL\Enum\LogicalOperator;
+use UQL\Enum\Sort;
+use UQL\Exceptions\InvalidArgumentException;
+use UQL\Helpers\ArrayHelper;
+use UQL\Stream\StreamProvider;
+use UQL\Traits;
 
-final class QueryProvider implements Query
+/**
+ * @phpstan-import-type StreamProviderArrayIterator from StreamProvider
+*/
+final class Provider implements Query, \Stringable
 {
     use Traits\Conditions;
     use Traits\From;
     use Traits\Limit;
     use Traits\Select;
 
-    /** @var ArrayIterator<string|int, mixed> $stream */
-    private ArrayIterator $stream;
+    /** @var StreamProviderArrayIterator $streamData */
+    private ArrayIterator $streamData;
 
-    public function __construct(private Json $json)
+    public function __construct(private readonly StreamProvider $stream)
     {
     }
 
@@ -36,7 +41,7 @@ final class QueryProvider implements Query
 
         /** @var ArrayIterator<int|string, mixed> $iterator */
         $iterator = new ArrayIterator($data);
-        $this->stream = $iterator;
+        $this->streamData = $iterator;
 
         return $this;
     }
@@ -44,13 +49,10 @@ final class QueryProvider implements Query
     public function fetchAll(?string $dto = null): Generator
     {
         $count = 0;
-        $currentOffset = 0; // Number of skipped records
+        $currentOffset = 0; // Number of already skipped records
 
-        if (!isset($this->stream)) {
-            $this->stream = $this->json->getStream($this->getStreamSource());
-        }
-
-        foreach ($this->stream as $item) {
+        $this->applyStreamSource();
+        foreach ($this->streamData as $item) {
             if ($this->filterStream($item)) {
                 // Offset application
                 if ($this->getOffset() !== null && $currentOffset < $this->getOffset()) {
@@ -101,7 +103,6 @@ final class QueryProvider implements Query
         }
     }
 
-
     public function fetch(?string $dto = null): mixed
     {
         foreach ($this->fetchAll($dto) as $item) {
@@ -110,10 +111,14 @@ final class QueryProvider implements Query
         return null;
     }
 
+    public function exists(): bool
+    {
+        return $this->fetch() !== null;
+    }
+
     public function fetchSingle(string $key): mixed
     {
-        $item = $this->fetch();
-        return ArrayHelper::getNestedValue($item, $key);
+        return ArrayHelper::getNestedValue($this->fetch(), $key, false);
     }
 
     public function count(): int
@@ -137,6 +142,11 @@ final class QueryProvider implements Query
 
     public function test(): string
     {
+        return (string) $this;
+    }
+
+    public function __toString(): string
+    {
         $queryParts = [];
 
         // SELECT
@@ -145,10 +155,10 @@ final class QueryProvider implements Query
         $queryParts[] = $this->fromToString();
         // WHERE
         $queryParts[] = $this->conditionsToString();
-        // LIMIT
-        $queryParts[] = $this->limitToString();
         // OFFSET
         $queryParts[] = $this->offsetToString();
+        // LIMIT
+        $queryParts[] = $this->limitToString();
 
         return implode(' ', $queryParts);
     }
@@ -166,13 +176,7 @@ final class QueryProvider implements Query
             if (isset($condition['group'])) {
                 $matches = $this->evaluateGroup($item, $condition['group']);
             } else {
-                $key = $condition['key'] ?? null;
-                $value = $key ? ArrayHelper::getNestedValue($item, $key) : null;
-                $matches = $this->evaluateCondition(
-                    $value,
-                    $condition['operator'],
-                    $condition['value']
-                );
+                $matches = $this->evaluateConditionWithIteration($item, $condition);
             }
 
             if ($condition['type'] === LogicalOperator::AND) {
@@ -183,5 +187,15 @@ final class QueryProvider implements Query
         }
 
         return $result ?? true;
+    }
+
+    private function applyStreamSource(): void
+    {
+        if (!isset($this->streamData)) {
+            $streamSource = $this->getFrom() === self::SELECT_ALL
+                ? null
+                : $this->getFrom();
+            $this->streamData = $this->stream->getStream($streamSource);
+        }
     }
 }

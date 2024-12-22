@@ -1,20 +1,21 @@
 <?php
 
-namespace JQL;
+namespace UQL\Query;
 
-use JQL\Enum\Operator;
-use JQL\Exceptions\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use UQL\Enum\Operator;
+use UQL\Enum\Sort;
+use UQL\Stream\Json;
 
-class QueryProviderTest extends TestCase
+class ProviderTest extends TestCase
 {
     private Json $json;
     private Json $jsonArray;
 
     protected function setUp(): void
     {
-        $jsonFile = realpath(__DIR__ . '/../examples/products.json');
-        $jsonArrayFile = realpath(__DIR__ . '/../examples/products-array.json');
+        $jsonFile = realpath(__DIR__ . '/../../examples/data/products.json');
+        $jsonArrayFile = realpath(__DIR__ . '/../../examples/data/products-array.json');
 
         $this->json = Json::open($jsonFile);
         $this->jsonArray = Json::open($jsonArrayFile);
@@ -30,18 +31,6 @@ class QueryProviderTest extends TestCase
         $this->assertCount(4, $results);
         $this->assertEquals(1, $results[0]['id']);
         $this->assertEquals('Product A', $results[0]['name']);
-    }
-
-    public function testWhereCondition(): void
-    {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->where('price', Operator::GREATER_THAN, 100);
-
-        $results = iterator_to_array($query->fetchAll());
-
-        $this->assertCount(3, $results);
-        $this->assertEquals(200, $results[0]['price']);
     }
 
     public function testFetch(): void
@@ -66,10 +55,22 @@ class QueryProviderTest extends TestCase
         $existedField = $query->fetchSingle('name');
         $this->assertEquals('Product A', $existedField);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage(sprintf('Field "%s" not found', 'price'));
+        $nonSelectedField = $query->fetchSingle('price');
+        $this->assertEquals(null, $nonSelectedField);
+    }
 
-        $query->fetchSingle('price');
+    public function testOrderBy(): void
+    {
+        $query = $this->json->query()
+            ->from('data.products')
+            ->orderBy('price', Sort::DESC);
+
+        $results = iterator_to_array($query->fetchAll());
+
+        $this->assertEquals(4, $results[0]['id']);
+        $this->assertEquals(3, $results[1]['id']);
+        $this->assertEquals(2, $results[2]['id']);
+        $this->assertEquals(1, $results[3]['id']);
     }
 
     public function testCount(): void

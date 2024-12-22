@@ -1,6 +1,6 @@
 {
-  "name": "1biot/jql",
-  "description": "JSON Query Language",
+  "name": "1biot/uniquel",
+  "description": "UniQueL - Universal Query Language for file data file like json, yaml or neon.",
   "version": "1.0.0",
   "type": "library",
   "license": ["MIT"],
@@ -14,12 +14,14 @@
     "phpstan/phpstan-nette": "^1.3",
     "squizlabs/php_codesniffer": "^3.11",
     "phpunit/phpunit": "^10",
-    "tracy/tracy": "^2.10"
+    "tracy/tracy": "^2.10",
+    "nette/neon": "^3.4",
+    "symfony/yaml": "^7.2"
   },
   "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
-      "JQL\\": "./src/"
+      "UQL\\": "./src/"
     }
   },
   "scripts": {

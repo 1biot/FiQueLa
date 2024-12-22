@@ -1,8 +1,8 @@
 <?php
 
-namespace JQL\Traits;
+namespace UQL\Traits;
 
-use JQL\Query;
+use UQL\Query\Query;
 
 trait Limit
 {
@@ -36,11 +36,11 @@ trait Limit
 
     private function limitToString(): string
     {
-        return $this->limit ? "\nLIMIT " . $this->limit : '';
+        return $this->limit ? ("\n" . Query::LIMIT . ' ' . $this->limit) : '';
     }
 
     private function offsetToString(): string
     {
-        return $this->offset ? "\nOFFSET " . $this->offset : '';
+        return $this->offset ? "\n" . Query::OFFSET . ' ' . $this->offset : '';
     }
 }

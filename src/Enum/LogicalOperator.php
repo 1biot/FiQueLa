@@ -1,6 +1,6 @@
 <?php
 
-namespace JQL\Enum;
+namespace UQL\Enum;
 
 enum LogicalOperator: string
 {

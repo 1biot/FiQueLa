@@ -1,10 +1,10 @@
 <?php
 
-namespace JQL\Traits;
+namespace UQL\Traits;
 
-use JQL\Exceptions\InvalidArgumentException;
-use JQL\Json;
 use PHPUnit\Framework\TestCase;
+use UQL\Exceptions\InvalidArgumentException;
+use UQL\Stream\Json;
 
 class SelectTest extends TestCase
 {
@@ -12,7 +12,7 @@ class SelectTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->json = Json::open(realpath(__DIR__ . '/../../examples/products.json'));
+        $this->json = Json::open(realpath(__DIR__ . '/../../examples/data/products.json'));
     }
 
     public function testSimpleSelect(): void
@@ -44,11 +44,33 @@ class SelectTest extends TestCase
 
     public function testUnknownFieldSelect(): void
     {
+        $result = $this->json->query()
+            ->select('id, name, unknown')
+            ->from('data.products')
+            ->fetch();
+
+        $this->assertSame(null, $result['unknown']);
+    }
+
+    public function testAliasField(): void
+    {
+        $result = $this->json->query()
+            ->select('name, price')
+            ->select('brand.name')->as('brand')
+            ->from('data.products')
+            ->fetch();
+
+        self::assertSame('Brand A', $result['brand']);
+    }
+
+    public function testToDuplicateAliasField(): void
+    {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Field "unknown" not found');
+        $this->expectExceptionMessage('Alias "brand" already defined');
 
         $this->json->query()
-            ->select('id, name, unknown')
+            ->select('brand.name')->as('brand')
+            ->select('name')->as('brand')
             ->from('data.products')
             ->fetch();
     }

@@ -1,0 +1,56 @@
+data:
+  products:
+    - id: 1
+      name: "Product A"
+      description: "Product A description"
+      price: 100
+      brand:
+        code: "BRAND-A"
+        name: "Brand A"
+      categories:
+        - id: "CAT-A"
+          name: "Category A"
+        - id: "CAT-B"
+          name: "Category B"
+    - id: 2
+      name: "Product B"
+      description: "Product B description"
+      price: 200
+      brand:
+        code: "BRAND-C"
+        name: "Brand C"
+      categories:
+        - id: "CAT-B"
+          name: "Category B"
+        - id: "CAT-C"
+          name: "Category C"
+    - id: 3
+      name: "Product C"
+      description: "Product C description"
+      price: 300
+      brand:
+        code: "BRAND-D"
+        name: "Brand D"
+      categories:
+        - id: "CAT-C"
+          name: "Category C"
+        - id: "CAT-D"
+          name: "Category D"
+    - id: 4
+      name: "Product D"
+      description: null
+      price: 400
+      brand:
+        code: "BRAND-B"
+        name: "Brand B"
+      categories:
+        - id: "CAT-D"
+          name: "Category D"
+        - id: "CAT-E"
+          name: "Category E"
+  paginator:
+    totalCount: 3
+    page: 1
+    pageCount: 1
+    itemsOnPage: 3
+    itemsPerPage: 20
