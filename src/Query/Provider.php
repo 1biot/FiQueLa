@@ -8,12 +8,22 @@ use UQL\Enum\LogicalOperator;
 use UQL\Enum\Sort;
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Helpers\ArrayHelper;
+use UQL\Stream\ArrayStreamProvider;
+use UQL\Stream\Json;
+use UQL\Stream\Neon;
+use UQL\Stream\Stream;
 use UQL\Stream\StreamProvider;
+use UQL\Stream\Xml;
+use UQL\Stream\XmlProvider;
+use UQL\Stream\Yaml;
 use UQL\Traits;
 
 /**
- * @phpstan-import-type StreamProviderArrayIterator from StreamProvider
-*/
+ * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
+ * @codingStandardsIgnoreStart
+ * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
+ * @codingStandardsIgnoreEnd
+ */
 final class Provider implements Query, \Stringable
 {
     use Traits\Conditions;
@@ -21,11 +31,14 @@ final class Provider implements Query, \Stringable
     use Traits\Limit;
     use Traits\Select;
 
-    /** @var StreamProviderArrayIterator $streamData */
-    private ArrayIterator $streamData;
+    private readonly Xml|Json|Yaml|Neon $stream;
 
-    public function __construct(private readonly StreamProvider $stream)
+    /** @var StreamProviderArrayIterator|\Generator $streamData */
+    private \Generator|ArrayIterator $streamData;
+
+    public function __construct(Xml|Json|Yaml|Neon $stream)
     {
+        $this->stream = $stream;
     }
 
     public function orderBy(string $key, Sort $direction = Sort::ASC): Query

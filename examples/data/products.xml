@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <item id="1" category="A">
+        <name>Item 1</name>
+        <price>100</price>
+        <brand>
+            <code>BRAND-A</code>
+            <name>Brand A</name>
+        </brand>
+    </item>
+    <item id="2" category="B">
+        <name>Item 2</name>
+        <price>200</price>
+        <brand>
+            <code>BRAND-B</code>
+            <name>Brand B</name>
+        </brand>
+    </item>
+</root>

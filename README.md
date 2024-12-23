@@ -1,7 +1,6 @@
 # UniQueL
-UniQueL __/yu-nik-ju-el/__ (Universal Query Language) is a PHP library for easy manipulation of JSON or Yaml or Neon data. It offers
-SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity,
-simplicity, and efficiency.
+
+---
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/jql)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
@@ -9,198 +8,175 @@ simplicity, and efficiency.
 ![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/jql)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/jql)
 
+**UniQueL** __/yu-nik-ju-el/__ (**Universal Query Language**) is a PHP library for seamless manipulation of data in
+**JSON**, **YAML**, **NEON**, and **XML** formats. The library provides an SQL-inspired syntax for querying, filtering,
+and aggregating data. It is designed for simplicity, modularity, and efficiency.
+
+---
+
 ## Table of Contents
+
 - [Features](#features)
 - [Installation](#installation)
-- [Usage](#usage)
+- [Getting Started](#getting-started)
+    - [Supported Formats](#supported-formats)
+    - [Basic Querying](#basic-querying)
+- [Advanced Usage](#advanced-usage)
+    - [Aggregate Functions](#aggregate-functions)
+    - [Pagination and Limit](#pagination-and-limit)
+    - [Interpreted SQL](#interpreted-sql)
+- [Roadmap](#roadmap)
 - [Examples](#examples)
 
+---
+
 ## Features
-- [x] **JSON, YAML, NEON** - Load data from JSON, YAML, or NEON files or strings.
-- [x] **SELECT** - Select columns and their aliases.
-- [x] **FROM** - Define the data source.
-- [x] **WHERE** - Filter data by conditions through many operators like equal, not equal, greater than, etc.
-- [x] **ORDER BY** - Sort data by columns.
-- [x] **LIMIT** - Limit the number of results.
-- [x] **OFFSET** - Skip a number of results.
-- [x] **AGGREGATE FUNCTIONS** - Sum, average, count, etc.
-- [x] **PAGINATION** - Paginate results.
-- [x] **SQL** - View interpreted SQL query.
-- [ ] Provide functions like coalesce, concat, if, etc.
-- [ ] Add support for unlimited nesting of conditions.
-- [ ] **HAVING** - filtering by aliased fields.
-- [ ] Provide SQL parser for query data by sql string
-- [ ] Support for CSV files
-- [ ] **GROUP BY** - I don't know yet if it is necessary.
-- [ ] **DELETE** - Delete data.
-- [ ] **UPDATE** - Update data.
-- [ ] **INSERT** - I don't know yet if it is necessary. Main problem is with consistency of data when you insert
-  uncompleted data. 
+
+- ✅ Support for **JSON**, **YAML**, **NEON**, and **XML** (easily extensible to other formats).
+- ✅ SQL-inspired capabilities:
+    - **SELECT** for selecting fields and aliases.
+    - **WHERE** for filtering with various operators.
+    - **ORDER BY** for sorting.
+    - **LIMIT** and **OFFSET** for pagination and result limits.
+- ✅ Aggregation functions like `SUM`, `AVG`, and `COUNT`.
+- ✅ Support for functions like `COALESCE`, `CONCAT`, and `IF` (in development).
+- ✅ Automatic conversion of queries into SQL-like syntax.
+- 🚀 Unified API across all supported formats. 
+
+---
 
 ## Installation
-Use [Composer](https://getcomposer.org/) to install the UQL.
+
+Install via [Composer](https://getcomposer.org/):
 
 ```bash
 composer require 1biot/uniquel
 ```
 
-## Usage
+---
 
-### 1. Loading Data
+## Getting Started
+
+### Supported Formats
 
 #### JSON
-Native support for JSON data. You can load data from a file or a string. All formats implement the `UQL\Stream\Stream`
-interface and can be used interchangeably.
+Native support for JSON data allows you to load it from files or strings:
+
 ```php
-// loading of JSON data
 use UQL\Stream\Json;
 
-// from a file
+// Load from a file
 $json = Json::open('data.json');
 
-// Or a string
+// Or from a string
 $json = Json::string(file_get_contents('data.json'));
 ```
+
 #### YAML and NEON
-This file formats are not supported by default. You need to install the necessary libraries.
+To use YAML and NEON formats, you need to install the required libraries:
 
 ```bash
-composer require symfony/yaml # for YAML
-composer require nette/neon # for NEON
+composer require symfony/yaml nette/neon
 ```
 
 ```php
-// loading of YAML and NEON data
 use UQL\Stream\Yaml;
 use UQL\Stream\Neon;
 
 $yaml = Yaml::open('data.yaml');
-$yaml = Yaml::string(file_get_contents('data.yaml'));
-
 $neon = Neon::open('data.neon');
-$neon = Neon::string(file_get_contents('data.neon'));
 ```
 
-### 2. Querying Data
+#### XML
+XML requires standard PHP extensions only:
+
+```php
+use UQL\Stream\Xml;
+
+$xml = Xml::open('data.xml');
+```
+
+---
+
+### Basic Querying
 
 ```php
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
 
-$query = $file->query();
+$query = $json->query();
 
-// Define a query
 $results = $query
-    ->select('id')
     ->select('name, age')
     ->from('users')
     ->where('age', Operator::GREATER_THAN, 18)
-    ->orderBy('name', Sort::ASC);
-```
-
-### 4. Fetching Data
-
-```php
-$results = $query
-    ->where('id', Operator::IN, [1, 2])
+    ->orderBy('name', Sort::ASC)
     ->fetchAll();
 
 foreach ($results as $user) {
-    echo '#' . $user['id']
-        . ': '
-        . $user['name']
-        . ' (' . $user['age'] . ")\n";
+    echo "{$user['name']} is {$user['age']} years old.\n";
 }
-
-// Output
-// #1: John (20)
-// #2: Jane (25)
-
-// Fetch a single row
-$user = $query->fetch();
-
-// Fetch a single value
-$ages = $query->fetchSingle('age');
-
-// fetch nth row
-$user = $query->fetchNth(2);
-// or
-$user = $query->fetchNth('even');
 ```
 
-### 3. Aggregate Functions
+---
+
+## Advanced Usage
+
+### Aggregate Functions
 
 ```php
-$results = $query->fetchAll();
 $totalAge = $query->sum('age');
 $averageAge = $query->avg('age');
 $count = $query->count();
 ```
 
-### 4. Pagination and limit
+### Pagination and Limit
 
 ```php
-// 20 results starting from the 40th record
 $results = $query
     ->select('name, age')
     ->from('users')
     ->limit(20, 40);
-
-// or
-
-$results = $query
-    ->select('name, age')
-    ->from('users')
-    ->offset(40)
-    ->limit(20);
 ```
 
-### 5. SQL
-You can view interpreted SQL query. This SQL query is not executable yet but in the future, it will be possible to parse
-sql queries through `sql()` method at `UQL\Stream\Stream` interface.
+### Interpreted SQL
 
 ```php
-use UQL\Enum\Operator;
-
 $query->select('name, price')
-    ->select('brand.name')->as('brand')
-    ->from('data.products')
-    ->where('brand.code', Operator::EQUAL, 'AD')
-    ->and('name', Operator::NOT_EQUAL, 'Product B')
-    ->or('name', Operator::EQUAL, 'Product B')
-    ->or('price', Operator::GREATER_THAN_OR_EQUAL, 200)
-    ->offset(1)
-    ->limit(2);
+    ->from('products')
+    ->where('price', Operator::GREATER_THAN, 100)
+    ->limit(10);
 
 echo $query->test();
-// Output
-
+// Output:
 // SELECT
-// 	 name,
-// 	 price,
-// 	 brand.name AS brand 
-// FROM data.products 
-// WHERE (
-// 	 brand.code = 'AD' 
-// 	AND name != 'Product B'
-// ) OR (
-// 	 name = 'Product B' 
-// 	AND price >= 200
-// ) 
-// OFFSET 1
-// LIMIT 2
-
-// in the future
-$sql = <<<SQL
-SELECT
-    name, price, brand.name AS brand
-FROM data.products
-WHERE brand.code = 'AD'
-SQL
-
-$file->sql($sql);
+//     name,
+//     price
+// FROM products
+// WHERE price > 100
+// LIMIT 10
 ```
+
+---
+
+## Roadmap
+
+This section lists features and improvements planned for future releases:
+
+- [ ] **Support for CSV**: Enable querying data directly from CSV files.
+- [ ] **Functions**: Add advanced functions such as `COALESCE`, `CONCAT`, `IF`, and more.
+- [ ] **HAVING Clause**: Enable filtering by aliases in queries.
+- [ ] **GROUP BY**: Introduce support for grouping data.
+- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in JSON and XML formats.
+- [ ] **SQL Parser**: Parse SQL strings into executable queries for all supported formats.
+- [ ] **Unlimited Condition Nesting**: Enhance condition logic to allow unlimited nesting for complex queries.
+- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
+- [ ] **Integration Tests**: Add comprehensive test coverage for all supported formats.
+
+If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
+
+---
 
 ## Examples
 
-Go to [examples](examples) directory for more examples.
+Check the [examples](examples) directory for more detailed usage examples.

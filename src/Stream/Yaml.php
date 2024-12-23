@@ -6,8 +6,10 @@ use UQL\Exceptions\FileNotFoundException;
 use UQL\Exceptions\InvalidFormat;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml as SymfonyYaml;
+use UQL\Query\Provider;
+use UQL\Query\Query;
 
-class Yaml extends StreamProvider
+class Yaml extends ArrayStreamProvider
 {
     public static function open(string $path): Stream
     {
@@ -39,5 +41,10 @@ class Yaml extends StreamProvider
         } catch (ParseException $e) {
             throw new InvalidFormat("Invalid YAML string: " . $e->getMessage());
         }
+    }
+
+    public function query(): Query
+    {
+        return new Provider($this);
     }
 }

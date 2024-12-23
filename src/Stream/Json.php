@@ -5,8 +5,10 @@ namespace UQL\Stream;
 use ArrayIterator;
 use UQL\Exceptions\FileNotFoundException;
 use UQL\Exceptions\InvalidFormat;
+use UQL\Query\Provider;
+use UQL\Query\Query;
 
-final class Json extends StreamProvider
+final class Json extends ArrayStreamProvider
 {
     /**
      * @throws InvalidFormat
@@ -50,5 +52,10 @@ final class Json extends StreamProvider
 
         $stream = is_array($decoded) ? new ArrayIterator($decoded) : new ArrayIterator([$decoded]);
         return new self($stream);
+    }
+
+    public function query(): Query
+    {
+        return new Provider($this);
     }
 }

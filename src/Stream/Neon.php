@@ -5,8 +5,10 @@ namespace UQL\Stream;
 use UQL\Exceptions\FileNotFoundException;
 use UQL\Exceptions\InvalidFormat;
 use Nette\Neon\Exception;
+use UQL\Query\Provider;
+use UQL\Query\Query;
 
-class Neon extends StreamProvider
+class Neon extends ArrayStreamProvider
 {
     /**
      * @throws FileNotFoundException
@@ -39,5 +41,10 @@ class Neon extends StreamProvider
         } catch (Exception $e) {
             throw new InvalidFormat("Invalid NEON string: " . $e->getMessage());
         }
+    }
+
+    public function query(): Query
+    {
+        return new Provider($this);
     }
 }
