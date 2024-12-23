@@ -1,5 +1,5 @@
 # UniQueL
-UniQueL (Universal Query Language) is a PHP library for easy manipulation of JSON or Yaml or Neon data. It offers
+UniQueL __/yu-nik-ju-el/__ (Universal Query Language) is a PHP library for easy manipulation of JSON or Yaml or Neon data. It offers
 SQL-inspired syntax for querying, filtering, and aggregating data. The library is designed with a focus on modularity,
 simplicity, and efficiency.
 
@@ -10,9 +10,32 @@ simplicity, and efficiency.
 ![Packagist License](https://img.shields.io/packagist/l/1biot/jql)
 
 ## Table of Contents
+- [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Examples](#examples)
+
+## Features
+- [x] **JSON, YAML, NEON** - Load data from JSON, YAML, or NEON files or strings.
+- [x] **SELECT** - Select columns and their aliases.
+- [x] **FROM** - Define the data source.
+- [x] **WHERE** - Filter data by conditions through many operators like equal, not equal, greater than, etc.
+- [x] **ORDER BY** - Sort data by columns.
+- [x] **LIMIT** - Limit the number of results.
+- [x] **OFFSET** - Skip a number of results.
+- [x] **AGGREGATE FUNCTIONS** - Sum, average, count, etc.
+- [x] **PAGINATION** - Paginate results.
+- [x] **SQL** - View interpreted SQL query.
+- [ ] Provide functions like coalesce, concat, if, etc.
+- [ ] Add support for unlimited nesting of conditions.
+- [ ] **HAVING** - filtering by aliased fields.
+- [ ] Provide SQL parser for query data by sql string
+- [ ] Support for CSV files
+- [ ] **GROUP BY** - I don't know yet if it is necessary.
+- [ ] **DELETE** - Delete data.
+- [ ] **UPDATE** - Update data.
+- [ ] **INSERT** - I don't know yet if it is necessary. Main problem is with consistency of data when you insert
+  uncompleted data. 
 
 ## Installation
 Use [Composer](https://getcomposer.org/) to install the UQL.
@@ -78,7 +101,10 @@ $results = $query
 ### 4. Fetching Data
 
 ```php
-$results = $query->fetchAll(); 
+$results = $query
+    ->where('id', Operator::IN, [1, 2])
+    ->fetchAll();
+
 foreach ($results as $user) {
     echo '#' . $user['id']
         . ': '
