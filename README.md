@@ -1,10 +1,10 @@
 # UniQueL
 
-![Packagist Version](https://img.shields.io/packagist/v/1biot/jql)
-![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/jql/ci.yml)
-![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/jql)
-![Packagist License](https://img.shields.io/packagist/l/1biot/jql)
+![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
+![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
+![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
+![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
 
 **UniQueL** __/yu-nik-ju-el/__ (**Universal Query Language**) is a PHP library for seamless manipulation of data in
 **JSON**, **YAML**, **NEON**, and **XML** formats. The library provides an SQL-inspired syntax for querying, filtering,
