@@ -10,8 +10,6 @@
 **JSON**, **YAML**, **NEON**, and **XML** formats. The library provides an SQL-inspired syntax for querying, filtering,
 and aggregating data. It is designed for simplicity, modularity, and efficiency.
 
----
-
 ## Table of Contents
 
 - [Features](#features)
@@ -26,8 +24,6 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
 - [Roadmap](#roadmap)
 - [Examples](#examples)
 
----
-
 ## Features
 
 - ✅ Support for **JSON**, **YAML**, **NEON**, and **XML** (easily extensible to other formats).
@@ -39,9 +35,7 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
 - ✅ Aggregation functions like `SUM`, `AVG`, and `COUNT`.
 - ✅ Support for functions like `COALESCE`, `CONCAT`, and `IF` (in development).
 - ✅ Automatic conversion of queries into SQL-like syntax.
-- 🚀 Unified API across all supported formats. 
-
----
+- 🚀 Unified API across all supported formats.
 
 ## Installation
 
@@ -50,8 +44,6 @@ Install via [Composer](https://getcomposer.org/):
 ```bash
 composer require 1biot/uniquel
 ```
-
----
 
 ## Getting Started
 
@@ -94,8 +86,6 @@ use UQL\Stream\Xml;
 $xml = Xml::open('data.xml');
 ```
 
----
-
 ### Basic Querying
 
 ```php
@@ -115,8 +105,6 @@ foreach ($results as $user) {
     echo "{$user['name']} is {$user['age']} years old.\n";
 }
 ```
-
----
 
 ## Advanced Usage
 
@@ -155,8 +143,6 @@ echo $query->test();
 // LIMIT 10
 ```
 
----
-
 ## Roadmap
 
 This section lists features and improvements planned for future releases:
@@ -172,8 +158,6 @@ This section lists features and improvements planned for future releases:
 - [ ] **Integration Tests**: Add comprehensive test coverage for all supported formats.
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
-
----
 
 ## Examples
 
