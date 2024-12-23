@@ -1,7 +1,5 @@
 # UniQueL
 
----
-
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/jql)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/jql/php)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/jql/ci.yml)
