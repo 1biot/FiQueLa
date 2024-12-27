@@ -257,7 +257,7 @@ FROM root.item
 WHERE
     brand.code == "BRAND-A"
     OR price > 200
-ORDER BY @attributes.id DESC
+ORDER BY name DESC
 SQL;
 
 dump(iterator_to_array($xml->sql($sql)));
