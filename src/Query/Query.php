@@ -9,11 +9,6 @@ use UQL\Enum\Sort;
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
  * @phpstan-type ConditionValue null|int|float|string|InArrayList
- * @phpstan-type BaseCondition array{
- *     key: string,
- *     operator: Operator,
- *     value: ConditionValue
- * }
  * @phpstan-type Condition array{
  *     type: LogicalOperator,
  *     key: string,
@@ -22,7 +17,7 @@ use UQL\Enum\Sort;
  * }
  * @phpstan-type ConditionGroup array{
  *     type: LogicalOperator,
- *     group: BaseCondition[]
+ *     group: Condition[]
  * }
  */
 interface Query extends \Countable
@@ -34,32 +29,9 @@ interface Query extends \Countable
     public const AS = 'AS';
     public const FROM = 'FROM';
     public const WHERE = 'WHERE';
+    public const HAVING = 'HAVING';
     public const OFFSET = 'OFFSET';
     public const LIMIT = 'LIMIT';
-
-    /**
-     * Enable or disable grouping of conditions in a query.
-     *
-     * By default, grouping is enabled. When grouping is enabled, you can create
-     * groups of conditions enclosed in parentheses. If grouping is disabled,
-     * all conditions will be joined without parentheses.
-     *
-     * Example with grouping (default):
-     * ```
-     * $query->where($cond1)->and($cond2)->or($cond3)->or($cond4);
-     * // Result: (cond1 AND cond2) OR (cond3 OR cond4)
-     * ```
-     *
-     * Example without grouping:
-     * ```
-     * $query->setGrouping(false)
-     *       ->where($cond1)->and($cond2)->or($cond3)->or($cond4);
-     * // Result: cond1 AND cond2 OR cond3 OR cond4
-     * ```
-     *
-     * Use this method to toggle grouping behavior as needed.
-     */
-    public function setGrouping(bool $grouping): Query;
 
     /**
      * Specify fields to select in a query.
@@ -185,8 +157,22 @@ interface Query extends \Countable
      * It can be a single value or an array for operators like `IN`.
      * @return Query Returns the current query instance, allowing for method chaining.
      */
-
     public function where(string $key, Operator $operator, null|array|float|int|string $value): Query;
+
+    /**
+     * @param string $key The field name to filter by. Do not support nested fields using dot notation
+     * (e.g., `user.profile.name`).
+     * @param Operator $operator The comparison operator (e.g., `Operator::EQUAL`, `Operator::GREATER_THAN`).
+     * @param ConditionValue $value The value to compare against.
+     * It can be a single value or an array for operators like `IN`.
+     * @return Query Returns the current query instance, allowing for method chaining.
+     */
+    public function having(string $key, Operator $operator, null|array|float|int|string $value): Query;
+
+    public function whereGroup(): Query;
+    public function andGroup(): Query;
+    public function orGroup(): Query;
+    public function endGroup(): Query;
 
     /**
      * Alias for the `where` method.
@@ -250,6 +236,9 @@ interface Query extends \Countable
     public function offset(int $offset): Query;
 
     public function orderBy(string $key, Sort $direction = Sort::ASC): Query;
+    public function sortBy(string $key, Sort $direction = Sort::ASC): Query;
+    public function asc(): Query;
+    public function desc(): Query;
 
     public function fetchAll(?string $dto = null): \Generator;
 

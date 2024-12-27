@@ -4,7 +4,6 @@ namespace UQL\Query;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Enum\Operator;
-use UQL\Enum\Sort;
 use UQL\Stream\Json;
 
 class ProviderTest extends TestCase
@@ -63,7 +62,7 @@ class ProviderTest extends TestCase
     {
         $query = $this->json->query()
             ->from('data.products')
-            ->orderBy('price', Sort::DESC);
+            ->orderBy('price')->desc();
 
         $results = iterator_to_array($query->fetchAll());
 

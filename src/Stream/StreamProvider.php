@@ -2,6 +2,7 @@
 
 namespace UQL\Stream;
 
+use UQL\Parser\Sql;
 use UQL\Query\Query;
 
 abstract class StreamProvider
@@ -9,7 +10,7 @@ abstract class StreamProvider
     abstract public function query(): Query;
 
     /**
-     * Not implemented yet, now it just returns a fetchAll() results from Query/Query instance.
+     * Execute SQL query
      *
      * @param string $sql
      * @return \Generator
@@ -17,7 +18,9 @@ abstract class StreamProvider
     public function sql(string $sql): \Generator
     {
         // parse SQL and return results
-        // return Parser::parse($sql, $this->query())->fetchAll();
-        return $this->query()->fetchAll();
+        $query = (new Sql())
+            ->parse(trim($sql), $this->query());
+
+        return $query->fetchAll();
     }
 }

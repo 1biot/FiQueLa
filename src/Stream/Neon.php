@@ -2,9 +2,9 @@
 
 namespace UQL\Stream;
 
+use Nette\Neon\Exception;
 use UQL\Exceptions\FileNotFoundException;
 use UQL\Exceptions\InvalidFormat;
-use Nette\Neon\Exception;
 use UQL\Query\Provider;
 use UQL\Query\Query;
 

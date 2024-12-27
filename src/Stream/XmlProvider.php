@@ -2,6 +2,7 @@
 
 namespace UQL\Stream;
 
+use UQL\Enum\Type;
 use UQL\Exceptions\InvalidFormat;
 
 /**
@@ -65,14 +66,14 @@ abstract class XmlProvider extends StreamProvider implements Stream
 
         // Convert attributes to an array under the key '@attributes'
         foreach ($element->attributes() as $attributeName => $attributeValue) {
-            $result['@attributes'][$attributeName] = (string) $attributeValue;
+            $result['@attributes'][$attributeName] = Type::matchByString($attributeValue);
         }
 
         // Conversion of attributes with namespaces
         foreach ($element->getNamespaces(true) as $prefix => $namespace) {
             foreach ($element->attributes($namespace) as $attributeName => $attributeValue) {
                 $key = $prefix ? "{$prefix}:{$attributeName}" : $attributeName;
-                $result['@attributes'][$key] = (string) $attributeValue;
+                $result['@attributes'][$key] = Type::matchByString($attributeValue);
             }
         }
 
@@ -86,7 +87,7 @@ abstract class XmlProvider extends StreamProvider implements Stream
                 }
                 $result[$childName][] = $childArray;
             } else {
-                $result[$childName] = $childArray;
+                $result[$childName] = is_string($childArray) ? Type::matchByString($childArray) : $childArray;
             }
         }
 
@@ -109,12 +110,12 @@ abstract class XmlProvider extends StreamProvider implements Stream
         // If the element has no children and attributes, return a simple value
         $value = trim((string) $element);
         if ($value !== '' && empty($result)) {
-            return $value;
+            return Type::matchByString($value);
         }
 
         // If the element has children or attributes but also a text value, add it as 'value'
         if ($value !== '') {
-            $result['value'] = $value;
+            $result['value'] = Type::matchByString($value);
         }
 
         return $result;

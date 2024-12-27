@@ -29,7 +29,7 @@ class ConditionsTest extends TestCase
 
     public function testOrIsNull(): void
     {
-        $query = $this->json->query()->setGrouping(false)
+        $query = $this->json->query()
             ->from('data.products')
             ->where('price', Operator::GREATER_THAN, 200)
             ->orIsNull('description');

@@ -36,4 +36,21 @@ enum Operator: string
             self::ENDS_WITH => str_ends_with($value, $operand),
         };
     }
+
+    public static function isValid(string $operator): bool
+    {
+        return !is_null(self::tryFrom($operator));
+    }
+
+    /**
+     * Get the operator or throw an exception if it's invalid
+     *
+     * @param string $operator
+     * @return self
+     */
+    public static function fromOrFail(string $operator): self
+    {
+        return self::tryFrom($operator)
+            ?? throw new \InvalidArgumentException(sprintf('Unsupported operator: %s', $operator));
+    }
 }

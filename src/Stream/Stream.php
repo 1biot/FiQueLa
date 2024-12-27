@@ -15,9 +15,6 @@ interface Stream
     /** @return self<T> */
     public static function string(string $data): self;
 
-    /** @param T $stream */
-    public function setStream($stream): void;
-
     /** @return T */
     public function getStream(?string $query): mixed;
 

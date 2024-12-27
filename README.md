@@ -17,6 +17,7 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
 - [Getting Started](#getting-started)
     - [Supported Formats](#supported-formats)
     - [Basic Querying](#basic-querying)
+    - [Fetching data](#fetching-data)
 - [Advanced Usage](#advanced-usage)
     - [Aggregate Functions](#aggregate-functions)
     - [Pagination and Limit](#pagination-and-limit)
@@ -27,15 +28,21 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
 ## Features
 
 - ✅ Support for **JSON**, **YAML**, **NEON**, and **XML** (easily extensible to other formats).
+- ✅ SQL - Supports SQL string queries compatible with MySQL syntax.
 - ✅ SQL-inspired capabilities:
     - **SELECT** for selecting fields and aliases.
     - **WHERE** for filtering with various operators.
     - **ORDER BY** for sorting.
+    - **HAVING** for filtering by aliases in queries.
     - **LIMIT** and **OFFSET** for pagination and result limits.
-- ✅ Aggregation functions like `SUM`, `AVG`, and `COUNT`.
-- ✅ Support for functions like `COALESCE`, `CONCAT`, and `IF` (in development).
 - ✅ Automatic conversion of queries into SQL-like syntax.
 - 🚀 Unified API across all supported formats.
+- [ ] **Support for CSV**: Enable querying data directly from CSV files.
+- [ ] **Functions**: Add advanced functions such as `COALESCE`, `CONCAT`, `IF`, and more.
+- [ ] **JOIN**: Implement JOIN operations for querying multiple data sources.
+- [ ] **GROUP BY**: Introduce support for grouping data.
+- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in data sources
+- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 
 ## Installation
 
@@ -106,9 +113,71 @@ foreach ($results as $user) {
 }
 ```
 
+### Fetching data
+
+```php
+use UQL\Enum\Operator;
+
+$query = $yaml->query();
+
+$query->fetchAll(); // to array
+$query->fetch(); // first record
+$query->fetchSingle('field'); // single field from first record
+$query->fetchNth(4); // fetch 4th record
+$query->fetchNth('even'); // fetch nth record with even index
+$query->fetchNth('odd'); // fetch nth record with odd index
+```
+
 ## Advanced Usage
 
+### Sorting functions
+
+```php
+use UQL\Enum\Operator;
+use UQL\Enum\Sort;
+
+$query = $json->query();
+
+$results = $query
+    ->select('name, age')
+    ->from('users')
+    ->where('age', Operator::GREATER_THAN, 18)
+    ->orderBy('name')->asc()
+    ->orderBy('age')->desc()
+    ->fetchAll();
+
+foreach ($results as $user) {
+    echo "{$user['name']} is {$user['age']} years old.\n";
+}
+```
+
+### Use having functions
+
+This is useful when you want to filter by aliases in queries. Filtering not translate any nested values, but WHERE conditions does.
+
+```php
+use UQL\Enum\Operator;
+use UQL\Enum\Sort;
+
+$query = $json->query();
+
+$results = $query
+    ->select('name')->as('fullName')
+    ->select('age')->as('years')
+    ->from('users')
+    ->having('years', Operator::GREATER_THAN, 18)
+    ->orderBy('name')->asc()
+    ->orderBy('age')->desc()
+    ->fetchAll();
+
+foreach ($results as $user) {
+    echo "{$user['name']} is {$user['age']} years old.\n";
+}
+```
+
 ### Aggregate Functions
+
+Aggregate functions runs `fetchAll()` internally.
 
 ```php
 $totalAge = $query->sum('age');
@@ -122,10 +191,13 @@ $count = $query->count();
 $results = $query
     ->select('name, age')
     ->from('users')
-    ->limit(20, 40);
+    ->limit(20)
+    ->offset(40);
 ```
 
-### Interpreted SQL
+### SQL
+
+#### Interpreted SQL
 
 ```php
 $query->select('name, price')
@@ -143,19 +215,67 @@ echo $query->test();
 // LIMIT 10
 ```
 
+#### Using SQL Strings
+
+Parse SQL strings directly into queries for all supported formats. Now work in progress and supports only basics.
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <item id="1" category="A">
+        <name>Item 1</name>
+        <price>100</price>
+        <brand>
+            <code>BRAND-A</code>
+            <name>Brand A</name>
+        </brand>
+    </item>
+    <item id="2" category="B">
+        <name>Item 2</name>
+        <price>200</price>
+        <brand>
+            <code>BRAND-B</code>
+            <name>Brand B</name>
+        </brand>
+    </item>
+    <item id="3" category="C">
+        <name>Item 3</name>
+        <price>300</price>
+        <brand>
+            <code>BRAND-C</code>
+            <name>Brand C</name>
+        </brand>
+    </item>
+</root>
+```
+
+```php
+$sql = <<<SQL
+SELECT
+    name, price
+FROM root.item
+WHERE
+    brand.code == "BRAND-A"
+    OR price > 200
+ORDER BY @attributes.id DESC
+SQL;
+
+dump(iterator_to_array($xml->sql($sql)));
+```
+
+```
+// Output:
+array (2)
+   0 => array (2)
+   |  'name' => 'Item 3'
+   |  'price' => '300'
+   1 => array (2)
+   |  'name' => 'Item 1'
+   |  'price' => '100'
+
+```
+
 ## Roadmap
-
-This section lists features and improvements planned for future releases:
-
-- [ ] **Support for CSV**: Enable querying data directly from CSV files.
-- [ ] **Functions**: Add advanced functions such as `COALESCE`, `CONCAT`, `IF`, and more.
-- [ ] **HAVING Clause**: Enable filtering by aliases in queries.
-- [ ] **GROUP BY**: Introduce support for grouping data.
-- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in JSON and XML formats.
-- [ ] **SQL Parser**: Parse SQL strings into executable queries for all supported formats.
-- [ ] **Unlimited Condition Nesting**: Enhance condition logic to allow unlimited nesting for complex queries.
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
-- [ ] **Integration Tests**: Add comprehensive test coverage for all supported formats.
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
 

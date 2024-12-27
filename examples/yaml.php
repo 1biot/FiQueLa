@@ -1,20 +1,20 @@
 <?php
 
-use JQL\Enum\Operator;
-use JQL\Stream\Yaml;
+use UQL\Enum\Operator;
+use UQL\Stream\Yaml;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $yaml = Yaml::open(__DIR__ . '/data/products.yaml');
 
 $query = $yaml->query();
-$query->setGrouping(false)
-    ->select('name, price')
+$query->select('name, price')
     ->select('brand.name')->as('brand')
     ->from('data.products')
     ->where('brand.code', Operator::EQUAL, 'BRAND-A')
-    ->or('name', Operator::EQUAL, 'Product 2')
-    ->or('price', Operator::GREATER_THAN, 200);
+    ->orGroup()
+        ->where('name', Operator::EQUAL, 'Product 2')
+        ->and('price', Operator::GREATER_THAN, 200);
 
 dump($query->test());
 dump(iterator_to_array($query->fetchAll()));

@@ -11,7 +11,11 @@ $query = $xml->query();
 $query->select('name, price')
     ->select('brand.name')->as('brand')
     ->from('root.item')
-    ->where('price', Operator::GREATER_THAN, 100);
+    ->where('brand.code', Operator::EQUAL_STRICT, "BRAND-A")
+    ->orGroup()
+        ->or('price', Operator::LESS_THAN, 300)
+        ->and('price', Operator::GREATER_THAN_OR_EQUAL, 200)
+    ->endGroup();
 
 dump($query->test());
 dump(iterator_to_array($query->fetchAll()));

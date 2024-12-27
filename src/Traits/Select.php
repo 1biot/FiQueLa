@@ -94,6 +94,21 @@ trait Select
         return $result;
     }
 
+    /**
+     * @return string[]
+     */
+    private function getAliasedFields(): array
+    {
+        $fields = [];
+        foreach ($this->selectedFields as $finalField => $fieldData) {
+            if ($fieldData['alias']) {
+                $fields[] = $finalField;
+            }
+        }
+
+        return $fields;
+    }
+
     private function selectToString(): string
     {
         $return = Query::SELECT . ' ';
@@ -114,6 +129,6 @@ trait Select
             }
         }
 
-        return $return;
+        return trim($return);
     }
 }

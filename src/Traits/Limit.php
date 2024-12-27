@@ -34,6 +34,25 @@ trait Limit
         return $this->offset;
     }
 
+    private function applyLimit(\Generator $data): \Generator
+    {
+        $count = 0;
+        $currentOffset = 0; // Number of already skipped records
+        foreach ($data as $item) {
+            if ($this->getOffset() !== null && $currentOffset < $this->getOffset()) {
+                $currentOffset++;
+                continue;
+            }
+
+            yield $item;
+
+            $count++;
+            if ($this->getLimit() !== null && $count >= $this->getLimit()) {
+                break;
+            }
+        }
+    }
+
     private function limitToString(): string
     {
         return $this->limit ? ("\n" . Query::LIMIT . ' ' . $this->limit) : '';

@@ -25,11 +25,6 @@ class Xml extends XmlProvider
             throw new InvalidFormat("Could not open a file");
         }
 
-        $xmlReader->setParserProperty(\XMLReader::VALIDATE, true);
-        if (!$xmlReader->isValid()) {
-            throw new InvalidFormat("Invalid XML file");
-        }
-
         return new self($xmlReader);
     }
 

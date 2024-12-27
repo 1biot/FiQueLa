@@ -4,17 +4,11 @@ namespace UQL\Query;
 
 use ArrayIterator;
 use Generator;
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Sort;
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Helpers\ArrayHelper;
-use UQL\Stream\ArrayStreamProvider;
 use UQL\Stream\Json;
 use UQL\Stream\Neon;
-use UQL\Stream\Stream;
-use UQL\Stream\StreamProvider;
 use UQL\Stream\Xml;
-use UQL\Stream\XmlProvider;
 use UQL\Stream\Yaml;
 use UQL\Traits;
 
@@ -30,6 +24,7 @@ final class Provider implements Query, \Stringable
     use Traits\From;
     use Traits\Limit;
     use Traits\Select;
+    use Traits\Sortable;
 
     private readonly Xml|Json|Yaml|Neon $stream;
 
@@ -41,51 +36,18 @@ final class Provider implements Query, \Stringable
         $this->stream = $stream;
     }
 
-    public function orderBy(string $key, Sort $direction = Sort::ASC): Query
-    {
-        $data = iterator_to_array($this->fetchAll());
-
-        usort($data, function ($a, $b) use ($key, $direction) {
-            $valA = $a[$key] ?? null;
-            $valB = $b[$key] ?? null;
-            $comparison = $valA <=> $valB;
-            return $direction->value === Sort::ASC->value ? $comparison : -$comparison;
-        });
-
-        /** @var ArrayIterator<int|string, mixed> $iterator */
-        $iterator = new ArrayIterator($data);
-        $this->streamData = $iterator;
-
-        return $this;
-    }
-
     public function fetchAll(?string $dto = null): Generator
     {
-        $count = 0;
-        $currentOffset = 0; // Number of already skipped records
-
-        $this->applyStreamSource();
-        foreach ($this->streamData as $item) {
-            if ($this->filterStream($item)) {
-                // Offset application
-                if ($this->getOffset() !== null && $currentOffset < $this->getOffset()) {
-                    $currentOffset++;
-                    continue;
-                }
-
-                $item = $this->applySelect($item);
-                if ($dto !== null) {
-                    $item = new $dto($item);
-                }
-
-                yield $item;
-
-                $count++;
-                if ($this->getLimit() !== null && $count >= $this->getLimit()) {
-                    break;
-                }
-            }
+        if ($this->orderings !== []) {
+            // we need to sort the data before applying limit
+            return $this->applyLimit(
+                $this->sortData(
+                    $this->getResults($dto, applyLimit: false)
+                )
+            );
         }
+
+        return $this->getResults($dto);
     }
 
     public function fetchNth(int|string $n, ?string $dto = null): Generator
@@ -155,7 +117,7 @@ final class Provider implements Query, \Stringable
 
     public function test(): string
     {
-        return (string) $this;
+        return trim((string) $this);
     }
 
     public function __toString(): string
@@ -167,39 +129,17 @@ final class Provider implements Query, \Stringable
         // FROM
         $queryParts[] = $this->fromToString();
         // WHERE
-        $queryParts[] = $this->conditionsToString();
+        $queryParts[] = $this->conditionsToString('where');
+        // HAVING
+        $queryParts[] = $this->conditionsToString('having');
+        // ORDER BY
+        $queryParts[] = $this->orderByToString();
         // OFFSET
         $queryParts[] = $this->offsetToString();
         // LIMIT
         $queryParts[] = $this->limitToString();
 
-        return implode(' ', $queryParts);
-    }
-
-    /**
-     * @param mixed $item
-     * @return bool
-     */
-    private function filterStream(mixed $item): bool
-    {
-        $this->flushGroup();
-        $result = null;
-
-        foreach ($this->conditions as $condition) {
-            if (isset($condition['group'])) {
-                $matches = $this->evaluateGroup($item, $condition['group']);
-            } else {
-                $matches = $this->evaluateConditionWithIteration($item, $condition);
-            }
-
-            if ($condition['type'] === LogicalOperator::AND) {
-                $result = $result === null ? $matches : $result && $matches;
-            } elseif ($condition['type'] === LogicalOperator::OR) {
-                $result = $result === null ? $matches : $result || $matches;
-            }
-        }
-
-        return $result ?? true;
+        return implode('', $queryParts);
     }
 
     private function applyStreamSource(): void
@@ -209,6 +149,52 @@ final class Provider implements Query, \Stringable
                 ? null
                 : $this->getFrom();
             $this->streamData = $this->stream->getStream($streamSource);
+        }
+    }
+
+    private function getResults(?string $dto = null, bool $applyLimit = true): Generator
+    {
+        $count = 0;
+        $currentOffset = 0; // Number of already skipped records
+
+        $this->applyStreamSource();
+        foreach ($this->streamData as $item) {
+            if (!$this->evaluateWhereConditions($item)) {
+                continue;
+            }
+
+            // Offset application
+            if ($applyLimit && $this->getOffset() !== null && $currentOffset < $this->getOffset()) {
+                $currentOffset++;
+                continue;
+            }
+
+            $resultItem = $this->applySelect($item);
+            if (!$this->evaluateHavingConditions($resultItem, $this->getAliasedFields())) {
+                continue;
+            }
+
+            if ($dto !== null) {
+                $resultItem = new $dto($resultItem);
+            }
+
+            yield $resultItem;
+
+            $count++;
+            if ($applyLimit && $this->getLimit() !== null && $count >= $this->getLimit()) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * @param \Generator $iterator
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function sortData(\Generator $iterator): \Generator
+    {
+        foreach ($this->applySorting($iterator) as $item) {
+            yield $item;
         }
     }
 }

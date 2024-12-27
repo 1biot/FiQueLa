@@ -14,31 +14,14 @@ use UQL\Exceptions;
 abstract class ArrayStreamProvider extends StreamProvider implements Stream
 {
     /**
-     * @var StreamProviderArrayIterator $stream
-     */
-    private \ArrayIterator $stream;
-
-    /**
      * @param StreamProviderArrayIterator $stream
      */
-    protected function __construct(\ArrayIterator $stream)
+    protected function __construct(private \ArrayIterator $stream)
     {
-        $this->setStream($stream);
     }
 
     /**
-     * @param StreamProviderArrayIterator $stream
-     */
-    public function setStream($stream): void
-    {
-        if (!$stream instanceof \ArrayIterator) {
-            throw new \InvalidArgumentException('Expected ArrayIterator');
-        }
-
-        $this->stream = $stream;
-    }
-
-    /**
+     * @param string|null $query
      * @return StreamProviderArrayIterator
      */
     public function getStream(?string $query): \ArrayIterator

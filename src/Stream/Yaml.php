@@ -2,10 +2,10 @@
 
 namespace UQL\Stream;
 
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormat;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml as SymfonyYaml;
+use UQL\Exceptions\FileNotFoundException;
+use UQL\Exceptions\InvalidFormat;
 use UQL\Query\Provider;
 use UQL\Query\Query;
 
