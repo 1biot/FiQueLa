@@ -2,6 +2,7 @@
 
 namespace UQL\Query;
 
+use UQL\Enum\Join;
 use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
@@ -130,6 +131,11 @@ interface Query extends \Countable
      */
 
     public function from(string $query): Query;
+
+    public function join(Query $query, string $alias): Query;
+    public function innerJoin(Query $query, string $alias): Query;
+    public function leftJoin(Query $query, string $alias): Query;
+    public function on(string $leftKey, Operator $operator, string $rightKey): Query;
 
     /**
      * Add a conditional clause to the query.

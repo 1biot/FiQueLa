@@ -19,6 +19,9 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
     - [Basic Querying](#basic-querying)
     - [Fetching data](#fetching-data)
 - [Advanced Usage](#advanced-usage)
+    - [Sorting functions](#sorting-functions)
+    - [Use HAVING](#use-having)
+    - [Joining sources](#joining-sources)
     - [Aggregate Functions](#aggregate-functions)
     - [Pagination and Limit](#pagination-and-limit)
     - [Interpreted SQL](#interpreted-sql)
@@ -31,15 +34,16 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
 - ✅ SQL - Supports SQL string queries compatible with MySQL syntax.
 - ✅ SQL-inspired capabilities:
     - **SELECT** for selecting fields and aliases.
+    - **JOIN** for joining multiple data sources.
     - **WHERE** for filtering with various operators.
     - **ORDER BY** for sorting.
     - **HAVING** for filtering by aliases in queries.
     - **LIMIT** and **OFFSET** for pagination and result limits.
 - ✅ Automatic conversion of queries into SQL-like syntax.
 - 🚀 Unified API across all supported formats.
+- [ ] **JSON Stream Parser**: Use a stream parser for large JSON files.
 - [ ] **Support for CSV**: Enable querying data directly from CSV files.
 - [ ] **Functions**: Add advanced functions such as `COALESCE`, `CONCAT`, `IF`, and more.
-- [ ] **JOIN**: Implement JOIN operations for querying multiple data sources.
 - [ ] **GROUP BY**: Introduce support for grouping data.
 - [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in data sources
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
@@ -151,7 +155,7 @@ foreach ($results as $user) {
 }
 ```
 
-### Use having functions
+### Use HAVING
 
 This is useful when you want to filter by aliases in queries. Filtering not translate any nested values, but WHERE conditions does.
 
@@ -174,6 +178,52 @@ foreach ($results as $user) {
     echo "{$user['name']} is {$user['age']} years old.\n";
 }
 ```
+
+### Joining sources
+
+Joining sources is possible with `leftJoin` and `innerJoin` methods. The following example demonstrates a
+left join between **XML** and **JSON** file.
+
+```php
+use UQL\Enum\Operator;
+use UQL\Stream\Json;
+use UQL\Stream\Xml;
+
+$usersFile = Json::open(__DIR__ . '/data/users.json');
+$ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
+
+$orders = $ordersFile->query()
+    ->select('id')->as('orderId')
+    ->select('user_id')->as('userId')
+    ->select('total_price')->as('totalPrice')
+    ->from('orders.order');
+
+$users = $usersFile->query()
+    ->selectAll()
+    ->from('data.users')
+    ->leftJoin($orders, 'o')
+        ->on('id', Operator::EQUAL, 'userId')
+    ->where('o.totalPrice', Operator::EQUAL_STRICT, null);
+
+dump(iterator_to_array($users->fetchAll()));
+// Output:
+// array (2)
+//    0 => array (3)
+//    |  'id' => 3
+//    |  'name' => 'John Doe 3'
+//    |  'o' => array (3)
+//    |  |  'orderId' => null
+//    |  |  'userId' => null
+//    |  |  'totalPrice' => null
+//    1 => array (3)
+//    |  'id' => 4
+//    |  'name' => 'John Doe 4'
+//    |  'o' => array (3)
+//    |  |  'orderId' => null
+//    |  |  'userId' => null
+//    |  |  'totalPrice' => null
+```
+
 
 ### Aggregate Functions
 

@@ -22,6 +22,7 @@ final class Provider implements Query, \Stringable
 {
     use Traits\Conditions;
     use Traits\From;
+    use Traits\Joinable;
     use Traits\Limit;
     use Traits\Select;
     use Traits\Sortable;
@@ -128,6 +129,8 @@ final class Provider implements Query, \Stringable
         $queryParts[] = $this->selectToString();
         // FROM
         $queryParts[] = $this->fromToString();
+        // JOIN
+        $queryParts[] = $this->joinsToString();
         // WHERE
         $queryParts[] = $this->conditionsToString('where');
         // HAVING
@@ -158,19 +161,20 @@ final class Provider implements Query, \Stringable
         $currentOffset = 0; // Number of already skipped records
 
         $this->applyStreamSource();
+        $this->applyJoinSource();
         foreach ($this->streamData as $item) {
             if (!$this->evaluateWhereConditions($item)) {
+                continue;
+            }
+
+            $resultItem = $this->applySelect($item);
+            if (!$this->evaluateHavingConditions($resultItem, $this->getAliasedFields())) {
                 continue;
             }
 
             // Offset application
             if ($applyLimit && $this->getOffset() !== null && $currentOffset < $this->getOffset()) {
                 $currentOffset++;
-                continue;
-            }
-
-            $resultItem = $this->applySelect($item);
-            if (!$this->evaluateHavingConditions($resultItem, $this->getAliasedFields())) {
                 continue;
             }
 
@@ -196,5 +200,10 @@ final class Provider implements Query, \Stringable
         foreach ($this->applySorting($iterator) as $item) {
             yield $item;
         }
+    }
+
+    private function applyJoinSource(): void
+    {
+        $this->streamData = $this->applyJoins($this->streamData);
     }
 }

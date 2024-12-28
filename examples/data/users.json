@@ -1,0 +1,29 @@
+{
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "name": "John Doe"
+      },
+      {
+        "id": 2,
+        "name": "John Doe 2"
+      },
+      {
+        "id": 3,
+        "name": "John Doe 3"
+      },
+      {
+        "id": 4,
+        "name": "John Doe 4"
+      }
+    ],
+    "paginator": {
+      "totalCount": 3,
+      "page": 1,
+      "pageCount": 1,
+      "itemsOnPage": 3,
+      "itemsPerPage": 20
+    }
+  }
+}
