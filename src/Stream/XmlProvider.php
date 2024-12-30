@@ -10,50 +10,40 @@ use UQL\Exceptions\InvalidFormat;
  */
 abstract class XmlProvider extends StreamProvider implements Stream
 {
-    private ?\Generator $stream = null;
-
-    protected function __construct(private \XMLReader $xmlReader)
+    protected function __construct(private readonly string $xmlFilePath, private readonly ?string $encoding = null)
     {
     }
 
-    /**
-     * @param \Generator $stream
-     */
-    public function setStream($stream): void
+    public function getStream(?string $query): ?\ArrayIterator
     {
-        if (!$stream instanceof \Generator) {
-            throw new \InvalidArgumentException('Expected Generator');
-        }
-
-        $this->stream = $stream;
+        $generator = $this->getStreamGenerator($query);
+        return $generator ? new \ArrayIterator(iterator_to_array($generator)) : null;
     }
 
-    /**
-     * @throws InvalidFormat
-     */
-    public function getStream(?string $query): ?\Generator
+    public function getStreamGenerator(?string $query): ?\Generator
     {
         if ($query === null) {
             return null;
-        } elseif ($this->stream !== null) {
-            return $this->stream;
         }
 
+        $xmlReader = \XMLReader::open($this->xmlFilePath, $this->encoding);
         $depth = substr_count($query, '.');
-        while ($this->xmlReader->read()) {
+        while ($xmlReader->read()) {
             if (
-                $this->xmlReader->nodeType == \XMLReader::ELEMENT
-                && in_array($this->xmlReader->localName, explode('.', $query))
-                && $this->xmlReader->depth === $depth
+                $xmlReader->nodeType == \XMLReader::ELEMENT
+                && in_array($xmlReader->localName, explode('.', $query))
+                && $xmlReader->depth === $depth
             ) {
                 try {
-                    $item = new \SimpleXMLElement($this->xmlReader->readOuterXml(), LIBXML_NOCDATA);
+                    $item = new \SimpleXMLElement($xmlReader->readOuterXml(), LIBXML_NOCDATA);
                     yield $this->itemToArray($item);
                 } catch (\Exception $e) {
-                    throw new InvalidFormat($e->getMessage());
+                    trigger_error($e->getMessage(), E_USER_WARNING);
+                    break;
                 }
             }
         }
+        $xmlReader->close();
     }
 
     /**

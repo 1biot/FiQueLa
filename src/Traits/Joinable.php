@@ -76,20 +76,15 @@ trait Joinable
     /**
      * Applies all defined joins to the dataset.
      *
-     * @param StreamProviderArrayIterator|\Generator $data The primary data to join.
+     * @param \Generator $data The primary data to join.
      * @return StreamProviderArrayIterator|\Generator The joined dataset.
      */
-    private function applyJoins(iterable $data): \ArrayIterator|\Generator
+    private function applyJoins(\Generator $data): \ArrayIterator|\Generator
     {
-        if ($this->joinApplied) {
-            return $data;
-        }
-
         foreach ($this->joins as $join) {
             $data = $this->applyJoin($data, $join);
         }
 
-        $this->joinApplied = true;
         return $data;
     }
 

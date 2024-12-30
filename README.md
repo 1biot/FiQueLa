@@ -1,4 +1,6 @@
-# UniQueL
+# UniQueL - Universal Query Language
+
+> _[yu-nik-ju-el]_
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
@@ -6,9 +8,9 @@
 ![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
 
-**UniQueL** __/yu-nik-ju-el/__ (**Universal Query Language**) is a PHP library for seamless manipulation of data in
+**U**ni**Q**ue**L** is a PHP library for seamless manipulation of data in
 **JSON**, **YAML**, **NEON**, and **XML** formats. The library provides an SQL-inspired syntax for querying, filtering,
-and aggregating data. It is designed for simplicity, modularity, and efficiency.
+joining and aggregating data. It is designed for simplicity, modularity, and efficiency.
 
 ## Table of Contents
 
@@ -24,9 +26,10 @@ and aggregating data. It is designed for simplicity, modularity, and efficiency.
     - [Joining sources](#joining-sources)
     - [Aggregate Functions](#aggregate-functions)
     - [Pagination and Limit](#pagination-and-limit)
-    - [Interpreted SQL](#interpreted-sql)
-- [Roadmap](#roadmap)
+    - [SQL](#sql)
+    - [Inspect queries](#inspect-queries)
 - [Examples](#examples)
+- [Contributions](#contributions)
 
 ## Features
 
@@ -109,7 +112,7 @@ $results = $query
     ->select('name, age')
     ->from('users')
     ->where('age', Operator::GREATER_THAN, 18)
-    ->orderBy('name', Sort::ASC)
+    ->orderBy('name')
     ->fetchAll();
 
 foreach ($results as $user) {
@@ -140,19 +143,13 @@ $query->fetchNth('odd'); // fetch nth record with odd index
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
 
-$query = $json->query();
-
-$results = $query
+$results = $json->query()
     ->select('name, age')
     ->from('users')
     ->where('age', Operator::GREATER_THAN, 18)
     ->orderBy('name')->asc()
     ->orderBy('age')->desc()
     ->fetchAll();
-
-foreach ($results as $user) {
-    echo "{$user['name']} is {$user['age']} years old.\n";
-}
 ```
 
 ### Use HAVING
@@ -175,7 +172,7 @@ $results = $query
     ->fetchAll();
 
 foreach ($results as $user) {
-    echo "{$user['name']} is {$user['age']} years old.\n";
+    echo "{$user['fullName']} is {$user['years']} years old.\n";
 }
 ```
 
@@ -186,6 +183,7 @@ left join between **XML** and **JSON** file.
 
 ```php
 use UQL\Enum\Operator;
+use UQL\Helpers\Debugger;
 use UQL\Stream\Json;
 use UQL\Stream\Xml;
 
@@ -197,6 +195,8 @@ $orders = $ordersFile->query()
     ->select('user_id')->as('userId')
     ->select('total_price')->as('totalPrice')
     ->from('orders.order');
+    
+Debugger::inspectQuery($orders);
 
 $users = $usersFile->query()
     ->selectAll()
@@ -205,25 +205,10 @@ $users = $usersFile->query()
         ->on('id', Operator::EQUAL, 'userId')
     ->where('o.totalPrice', Operator::EQUAL_STRICT, null);
 
-dump(iterator_to_array($users->fetchAll()));
-// Output:
-// array (2)
-//    0 => array (3)
-//    |  'id' => 3
-//    |  'name' => 'John Doe 3'
-//    |  'o' => array (3)
-//    |  |  'orderId' => null
-//    |  |  'userId' => null
-//    |  |  'totalPrice' => null
-//    1 => array (3)
-//    |  'id' => 4
-//    |  'name' => 'John Doe 4'
-//    |  'o' => array (3)
-//    |  |  'orderId' => null
-//    |  |  'userId' => null
-//    |  |  'totalPrice' => null
+Debugger::inspectQuery($users);
 ```
 
+For results try the `composer example:join` command.
 
 ### Aggregate Functions
 
@@ -235,9 +220,15 @@ $averageAge = $query->avg('age');
 $count = $query->count();
 ```
 
-### Pagination and Limit
+### Pagination, Limit and Offset
 
 ```php
+$results = $query
+    ->select('name, age')
+    ->from('users')
+    ->page(2, 20);
+
+// or using limit and offset
 $results = $query
     ->select('name, age')
     ->from('users')
@@ -256,13 +247,16 @@ $query->select('name, price')
     ->limit(10);
 
 echo $query->test();
-// Output:
-// SELECT
-//     name,
-//     price
-// FROM products
-// WHERE price > 100
-// LIMIT 10
+```
+
+```sql
+# Output:
+SELECT
+    name,
+    price
+FROM products
+WHERE price > 100
+LIMIT 10
 ```
 
 #### Using SQL Strings
@@ -310,7 +304,7 @@ WHERE
 ORDER BY name DESC
 SQL;
 
-dump(iterator_to_array($xml->sql($sql)));
+Debugger::dump(iterator_to_array($xml->sql($sql)));
 ```
 
 ```
@@ -322,13 +316,86 @@ array (2)
    1 => array (2)
    |  'name' => 'Item 1'
    |  'price' => '100'
-
 ```
 
-## Roadmap
+### Inspect queries
 
-If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
+You can inspect your query for mor information about execution time, memory usage, SQL query and results.
+
+```php
+use UQL\Helpers\Debugger;
+use UQL\Stream\Xml;
+
+Debugger::start();
+
+$ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
+$query = $ordersFile->query()
+    ->select('id')->as('orderId')
+    ->select('user_id')->as('userId')
+    ->select('total_price')->as('totalPrice')
+    ->from('orders.order');
+
+Debugger::inspectQuery($query);
+
+// or inspect query string which shows different between input SQL and applied SQL
+Debugger::inspectQuerySql(
+    $ordersFile,
+    "SELECT id, user_id, total_price FROM orders.order"
+);
+
+Debugger::finish();
+```
+
+```
+'------------------'
+'### SQL query: ###'
+'------------------'
+>>> SELECT
+>>> 	id AS orderId,
+>>> 	user_id AS userId,
+>>> 	total_price AS totalPrice
+>>> FROM orders.order
+'----------------'
+'### Results: ###'
+'----------------'
+'### Count: 4'
+'------------------'
+'### First row: ###'
+'------------------'
+array (3)
+   'orderId' => 1
+   'userId' => 1
+   'totalPrice' => 100
+
+'------------------------------'
+'Memory usage: 1.8518MB (emalloc)'
+'Memory peak usage: 1.9661MB (emalloc)'
+'Memory usage: 4MB (real)'
+'Memory peak usage: 4MB (real)'
+'------------------------------'
+'Execution time (µs): 6276'
+'Execution time (ms): 6.276'
+'------------------------------'
+'Final execution time (µs): 6296'
+'Final execution time (ms): 6.296'
+```
 
 ## Examples
 
-Check the [examples](examples) directory for more detailed usage examples.
+Check the examples and run them using Composer. All examples uses `\UQL\Helpers\Debugger` and methods `inspectQuery` or
+`inspectQuerySql` to show the results. More information about inspecting are [here](#inspect-queries).
+
+```bash
+composer examples
+# or
+composer example:join
+composer example:neon
+composer example:sql
+composer example:test
+composer example:xml
+composer example:yaml
+```
+
+## Contributions
+
+If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!

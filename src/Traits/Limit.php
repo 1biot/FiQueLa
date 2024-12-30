@@ -24,6 +24,12 @@ trait Limit
         return $this;
     }
 
+    public function page(int $page, int $perPage = Query::PER_PAGE_DEFAULT): Query
+    {
+        return $this->offset(($page - 1) * $perPage)
+            ->limit($perPage);
+    }
+
     private function getLimit(): ?int
     {
         return $this->limit;

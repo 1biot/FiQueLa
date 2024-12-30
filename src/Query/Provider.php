@@ -2,7 +2,6 @@
 
 namespace UQL\Query;
 
-use ArrayIterator;
 use Generator;
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Helpers\ArrayHelper;
@@ -29,9 +28,6 @@ final class Provider implements Query, \Stringable
 
     private readonly Xml|Json|Yaml|Neon $stream;
 
-    /** @var StreamProviderArrayIterator|\Generator $streamData */
-    private \Generator|ArrayIterator $streamData;
-
     public function __construct(Xml|Json|Yaml|Neon $stream)
     {
         $this->stream = $stream;
@@ -42,7 +38,7 @@ final class Provider implements Query, \Stringable
         if ($this->orderings !== []) {
             // we need to sort the data before applying limit
             return $this->applyLimit(
-                $this->sortData(
+                $this->applySorting(
                     $this->getResults($dto, applyLimit: false)
                 )
             );
@@ -145,14 +141,12 @@ final class Provider implements Query, \Stringable
         return implode('', $queryParts);
     }
 
-    private function applyStreamSource(): void
+    private function applyStreamSource(): Generator
     {
-        if (!isset($this->streamData)) {
-            $streamSource = $this->getFrom() === self::SELECT_ALL
-                ? null
-                : $this->getFrom();
-            $this->streamData = $this->stream->getStream($streamSource);
-        }
+        $streamSource = $this->getFrom() === self::SELECT_ALL
+            ? null
+            : $this->getFrom();
+        return $this->stream->getStreamGenerator($streamSource);
     }
 
     private function getResults(?string $dto = null, bool $applyLimit = true): Generator
@@ -160,9 +154,8 @@ final class Provider implements Query, \Stringable
         $count = 0;
         $currentOffset = 0; // Number of already skipped records
 
-        $this->applyStreamSource();
-        $this->applyJoinSource();
-        foreach ($this->streamData as $item) {
+        $stream = $this->applyJoins($this->applyStreamSource());
+        foreach ($stream as $item) {
             if (!$this->evaluateWhereConditions($item)) {
                 continue;
             }
@@ -189,21 +182,5 @@ final class Provider implements Query, \Stringable
                 break;
             }
         }
-    }
-
-    /**
-     * @param \Generator $iterator
-     * @return \Generator<StreamProviderArrayIteratorValue>
-     */
-    private function sortData(\Generator $iterator): \Generator
-    {
-        foreach ($this->applySorting($iterator) as $item) {
-            yield $item;
-        }
-    }
-
-    private function applyJoinSource(): void
-    {
-        $this->streamData = $this->applyJoins($this->streamData);
     }
 }

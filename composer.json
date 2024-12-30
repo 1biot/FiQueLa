@@ -62,6 +62,32 @@
       "@test:phpcs:summary",
       "@test:phpstan:memory-limit-256",
       "@test:phpunit tests"
+    ],
+    "example:join": [
+      "php -f examples/join.php"
+    ],
+    "example:neon": [
+      "php -f examples/neon.php"
+    ],
+    "example:sql": [
+      "php -f examples/sql.php"
+    ],
+    "example:test": [
+      "php -f examples/test.php"
+    ],
+    "example:xml": [
+      "php -f examples/xml.php"
+    ],
+    "example:yaml": [
+      "php -f examples/yaml.php"
+    ],
+    "examples": [
+      "@example:join",
+      "@example:neon",
+      "@example:sql",
+      "@example:test",
+      "@example:xml",
+      "@example:yaml"
     ]
   }
 }

@@ -1,9 +1,10 @@
 <?php
 
+use UQL\Helpers\Debugger;
 use UQL\Stream\Xml;
 use UQL\Stream\Json;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $xml = Xml::open(__DIR__ . '/data/products.xml');
 
@@ -16,11 +17,9 @@ OR price >= 200
 ORDER BY name DESC
 SQL;
 
-$result = iterator_to_array($xml->sql($sql));
-dump($result);
+Debugger::inspectQuerySql($xml, $sql);
 
 $json = Json::open(__DIR__ . '/data/products.json');
-
 $jsonSql = <<<SQL
 SELECT *
 FROM data.products
@@ -30,5 +29,5 @@ WHERE
     OR price > 300
 SQL;
 
-$result = $json->sql($jsonSql);
-dump(iterator_to_array($result));
+Debugger::inspectQuerySql($json, $jsonSql);
+Debugger::finish();

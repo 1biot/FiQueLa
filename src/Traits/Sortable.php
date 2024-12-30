@@ -60,10 +60,14 @@ trait Sortable
 
     /**
      * @param \Generator<StreamProviderArrayIteratorValue> $iterator
-     * @return \ArrayIterator<int, StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applySorting(\Generator $iterator): \ArrayIterator
+    private function applySorting(\Generator $iterator): \Generator
     {
+        if ($this->orderings === []) {
+            return $iterator;
+        }
+
         $data = iterator_to_array($iterator);
         foreach ($this->orderings as $field => $type) {
             switch ($type) {
@@ -91,7 +95,11 @@ trait Sortable
                     throw new InvalidArgumentException(sprintf('Unsupported sort type: %s', $type->value));
             }
         }
-        return new \ArrayIterator($data);
+
+        $stream = new \ArrayIterator($data);
+        foreach ($stream as $item) {
+            yield $item;
+        }
     }
 
     private function orderByToString(): string

@@ -1,9 +1,10 @@
 <?php
 
 use UQL\Enum\Operator;
+use UQL\Helpers\Debugger;
 use UQL\Stream\Yaml;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $yaml = Yaml::open(__DIR__ . '/data/products.yaml');
 
@@ -16,13 +17,12 @@ $query->select('name, price')
         ->where('name', Operator::EQUAL, 'Product 2')
         ->and('price', Operator::GREATER_THAN, 200);
 
-dump($query->test());
-dump(iterator_to_array($query->fetchAll()));
+Debugger::inspectQuery($query);
 
 $query = $yaml->query()
     ->select('totalCount')->as('totalPages')
     ->select('page')->as('actualPage')
     ->from('data.paginator');
 
-dump($query->test());
-dump($query->fetch());
+Debugger::inspectQuery($query);
+Debugger::finish();

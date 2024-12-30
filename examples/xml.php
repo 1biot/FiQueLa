@@ -1,9 +1,10 @@
 <?php
 
 use UQL\Enum\Operator;
+use UQL\Helpers\Debugger;
 use UQL\Stream\Xml;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $xml = Xml::open(__DIR__ . '/data/products.xml');
 
@@ -17,5 +18,5 @@ $query->select('name, price')
         ->and('price', Operator::GREATER_THAN_OR_EQUAL, 200)
     ->endGroup();
 
-dump($query->test());
-dump(iterator_to_array($query->fetchAll()));
+Debugger::inspectQuery($query);
+Debugger::finish();

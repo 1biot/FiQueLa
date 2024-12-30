@@ -1,12 +1,12 @@
 <?php
 
 use UQL\Enum\Operator;
+use UQL\Helpers\Debugger;
 use UQL\Stream\Json;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $json = Json::open(__DIR__ . '/data/products.json');
-
 $query = $json->query();
 $query->select('name, price')
     ->select('brand.name')->as('brand')
@@ -16,7 +16,7 @@ $query->select('name, price')
         ->where('name', Operator::EQUAL, 'Product B')
         ->and('price', Operator::GREATER_THAN, 200);
 
-dump($query->test());
+Debugger::inspectQuery($query);
 
 $query = $json->query();
 $query->select('name, price')
@@ -26,4 +26,5 @@ $query->select('name, price')
     ->and('price', Operator::LESS_THAN_OR_EQUAL, 200)
     ->or('brand.code', Operator::EQUAL, 'BRAND-B');
 
-dump($query->test());
+Debugger::inspectQuery($query);
+Debugger::finish();

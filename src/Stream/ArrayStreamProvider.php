@@ -22,9 +22,9 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
 
     /**
      * @param string|null $query
-     * @return StreamProviderArrayIterator
+     * @return StreamProviderArrayIterator|null
      */
-    public function getStream(?string $query): \ArrayIterator
+    public function getStream(?string $query): ?\ArrayIterator
     {
         $keys = $query !== null ? explode('.', $query) : [];
         $lastKey = array_key_last($keys);
@@ -33,6 +33,14 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
             $stream = $this->applyKeyFilter($stream, $key, ($index === $lastKey));
         }
         return $stream;
+    }
+
+    public function getStreamGenerator(?string $query): ?\Generator
+    {
+        $stream = $this->getStream($query);
+        foreach ($stream as $item) {
+            yield $item;
+        }
     }
 
     /**

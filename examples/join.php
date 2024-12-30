@@ -1,10 +1,11 @@
 <?php
 
 use UQL\Enum\Operator;
+use UQL\Helpers\Debugger;
 use UQL\Stream\Json;
 use UQL\Stream\Xml;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $usersFile = Json::open(__DIR__ . '/data/users.json');
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
@@ -15,16 +16,17 @@ $orders = $ordersFile->query()
     ->select('total_price')->as('totalPrice')
     ->from('orders.order');
 
+Debugger::inspectQuery($orders);
+
 $users = $usersFile->query()
     ->select('id, name')
     ->select('o.orderId')->as('orderId')
     ->select('o.totalPrice')->as('totalPrice')
     ->from('data.users')
-    ->innerJoin($orders, 'o')
+    ->leftJoin($orders, 'o')
         ->on('id', Operator::EQUAL, 'userId')
-    ->having('totalPrice', Operator::GREATER_THAN, 200)
+    ->where('o.totalPrice', Operator::EQUAL_STRICT, null)
     ->orderBy('totalPrice')->desc();
 
-dump($users->test());
-dump($users->count());
-dump(iterator_to_array($users->fetchAll()));
+Debugger::inspectQuery($users);
+Debugger::finish();
