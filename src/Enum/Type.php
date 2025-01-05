@@ -29,7 +29,7 @@ enum Type: string
             self::ARRAY => is_array($value) ? $value : [$value],
             self::OBJECT => is_object($value) ? $value : (object) $value,
             default => throw new InvalidArgumentException(
-                sprintf('Unsupported type: %s', self::matchByValue($value)->value)
+                sprintf('Unsupported type: %s', $type->value)
             )
         };
     }
@@ -66,8 +66,7 @@ enum Type: string
         if (self::isNumeric($value)) {
             $type = self::INTEGER;
             $valueToCast = $value;
-            if (str_contains($value, '.') || str_contains($value, ',')) {
-                $valueToCast = preg_replace('/[ ,]/', '', $value);
+            if (str_contains($valueToCast, '.') || str_contains($valueToCast, ',')) {
                 $valueToCast = str_replace(',', '.', $valueToCast);
                 $type = self::FLOAT;
             }

@@ -1,7 +1,7 @@
 {
   "name": "1biot/uniquel",
   "description": "UniQueL - Universal Query Language for file data file like json, yaml, xml or neon.",
-  "version": "v1.4.2",
+  "version": "v1.5.0",
   "type": "library",
   "license": ["MIT"],
   "require": {
@@ -19,7 +19,8 @@
     "phpunit/phpunit": "^10",
     "tracy/tracy": "^2.10",
     "nette/neon": "^3.4",
-    "symfony/yaml": "^7.2"
+    "symfony/yaml": "^7.2",
+    "league/csv": "^9.20"
   },
   "minimum-stability": "stable",
   "autoload": {
@@ -81,13 +82,17 @@
     "example:yaml": [
       "php -f examples/yaml.php"
     ],
+    "example:csv": [
+      "php -f examples/csv.php"
+    ],
     "examples": [
       "@example:join",
       "@example:neon",
       "@example:sql",
       "@example:test",
       "@example:xml",
-      "@example:yaml"
+      "@example:yaml",
+      "@example:csv"
     ]
   }
 }

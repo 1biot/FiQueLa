@@ -18,7 +18,7 @@ trait From
         return $this;
     }
 
-    private function getFrom(): ?string
+    private function getFrom(): string
     {
         return $this->from ?? Query::FROM_ALL;
     }

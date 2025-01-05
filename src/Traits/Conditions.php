@@ -16,11 +16,13 @@ use UQL\Stream\ArrayStreamProvider;
  * @phpstan-import-type Condition from Query
  * @phpstan-import-type ConditionGroup from Query
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
+ * @phpstan-type ConditionArray array<Condition|ConditionGroup>
+ * @phpstan-type ConditionsArray array{where: ConditionArray, having: ConditionArray}
  */
 trait Conditions
 {
     /**
-     * @var array{where: array<Condition|ConditionGroup>, having: array<Condition|ConditionGroup>}
+     * @var ConditionsArray $contexts
      */
     private array $contexts = [
         'where' => [],

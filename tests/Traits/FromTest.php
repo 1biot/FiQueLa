@@ -3,36 +3,26 @@
 namespace UQL\Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Stream\Json;
+use UQL\Query\Query;
+use UQL\Query\TestProvider;
 
 class FromTest extends TestCase
 {
-    private Json $json;
+    /** @var TestProvider $query */
+    private TestProvider $query;
 
-    protected function setUp(): void
+    public function __construct(string $name)
     {
-        $this->json = Json::open(realpath(__DIR__ . '/../../examples/data/products.json'));
-    }
-
-    public function testFromWithInvalidPath(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Key 'invalid' not found.");
-
-        $this->json->query()
-            ->from('data.invalid.path')
-            ->fetch();
+        parent::__construct($name);
+        $this->query = new TestProvider();
     }
 
     public function testFrom(): void
     {
-        $query = $this->json->query()
-            ->from('data.products');
+        $this->query->from('data.products');
+        $this->assertEquals('data.products', $this->query->getFromSource());
 
-        $result = $query->fetchAll();
-        $count = $query->count();
-
-        self::assertSame(count(iterator_to_array($result)), $count);
+        $this->query->from('*');
+        $this->assertEquals(Query::FROM_ALL, $this->query->getFromSource());
     }
 }

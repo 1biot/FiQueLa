@@ -3,48 +3,213 @@
 namespace UQL\Traits;
 
 use PHPUnit\Framework\TestCase;
+use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
+use UQL\Query\TestProvider;
 use UQL\Stream\Json;
 
 class ConditionsTest extends TestCase
 {
-    private Json $json;
+    /** @var TestProvider $query */
+    private TestProvider $query;
 
-    protected function setUp(): void
+    public function __construct(string $name)
     {
-        $this->json = Json::open(realpath(__DIR__ . '/../../examples/data/products.json'));
+        parent::__construct($name);
+        $this->query = new TestProvider();
     }
 
-    public function testSimpleWhere(): void
+    public function testWhereConditions(): void
     {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->where('price', Operator::GREATER_THAN, 100);
+        $this->query->resetConditions()
+            ->where('id', Operator::EQUAL, 1)
+            ->where('price', Operator::GREATER_THAN, 100)
+            ->where('price', Operator::LESS_THAN, 200)
+            ->and('name', Operator::CONTAINS, 'Product');
 
-        $results = iterator_to_array($query->fetchAll());
-
-        $this->assertCount(3, $results);
-        $this->assertEquals(200, $results[0]['price']);
+        $this->assertEquals([
+            0 => [
+                'operator' => Operator::EQUAL,
+                'value' => 1,
+                'key' => 'id',
+                'type' => LogicalOperator::AND,
+            ],
+            1 => [
+                'operator' => Operator::GREATER_THAN,
+                'value' => 100,
+                'key' => 'price',
+                'type' => LogicalOperator::AND,
+            ],
+            2 => [
+                'operator' => Operator::LESS_THAN,
+                'value' => 200,
+                'key' => 'price',
+                'type' => LogicalOperator::AND,
+            ],
+            3 => [
+                'operator' => Operator::CONTAINS,
+                'value' => 'Product',
+                'key' => 'name',
+                'type' => LogicalOperator::AND,
+            ],
+        ], $this->query->getConditions('where'));
     }
 
-    public function testOrIsNull(): void
+    public function testOrConditions(): void
     {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->where('price', Operator::GREATER_THAN, 200)
-            ->orIsNull('description');
+        $this->query->resetConditions()
+            ->or('id', Operator::EQUAL, 1)
+            ->or('price', Operator::GREATER_THAN, 100)
+            ->or('price', Operator::LESS_THAN, 200)
+            ->or('name', Operator::CONTAINS, 'Product');
 
-        $results = $query->fetchAll();
-        $data = iterator_to_array($results);
-        $count = $query->count();
+        $this->assertEquals([
+            0 => [
+                'operator' => Operator::EQUAL,
+                'value' => 1,
+                'key' => 'id',
+                'type' => LogicalOperator::OR,
+            ],
+            1 => [
+                'operator' => Operator::GREATER_THAN,
+                'value' => 100,
+                'key' => 'price',
+                'type' => LogicalOperator::OR,
+            ],
+            2 => [
+                'operator' => Operator::LESS_THAN,
+                'value' => 200,
+                'key' => 'price',
+                'type' => LogicalOperator::OR,
+            ],
+            3 => [
+                'operator' => Operator::CONTAINS,
+                'value' => 'Product',
+                'key' => 'name',
+                'type' => LogicalOperator::OR,
+            ],
+        ], $this->query->getConditions('where'));
+    }
 
-        $this->assertCount(2, $data);
-        $this->assertCount(2, $query);
-        $this->assertSame($count, count($data));
+    public function testAndOrConditions(): void
+    {
+        $this->query->resetConditions()
+            ->where('id', Operator::EQUAL, 1)
+            ->and('price', Operator::GREATER_THAN, 100)
+            ->or('price', Operator::LESS_THAN, 200)
+            ->and('name', Operator::CONTAINS, 'Product');
 
-        $this->assertEquals(300, $data[0]['price']);
-        $this->assertEquals('Product C', $data[0]['name']);
-        $this->assertEquals(400, $data[1]['price']);
-        $this->assertEquals('Product D', $data[1]['name']);
+        $this->assertEquals([
+            0 => [
+                'operator' => Operator::EQUAL,
+                'value' => 1,
+                'key' => 'id',
+                'type' => LogicalOperator::AND,
+            ],
+            1 => [
+                'operator' => Operator::GREATER_THAN,
+                'value' => 100,
+                'key' => 'price',
+                'type' => LogicalOperator::AND,
+            ],
+            2 => [
+                'operator' => Operator::LESS_THAN,
+                'value' => 200,
+                'key' => 'price',
+                'type' => LogicalOperator::OR,
+            ],
+            3 => [
+                'operator' => Operator::CONTAINS,
+                'value' => 'Product',
+                'key' => 'name',
+                'type' => LogicalOperator::AND,
+            ],
+        ], $this->query->getConditions('where'));
+    }
+
+    public function testWhereConditionsGrouping(): void
+    {
+        $this->query->resetConditions()
+            ->where('id', Operator::EQUAL, 1)
+            ->and('price', Operator::GREATER_THAN, 100)
+            ->andGroup()
+                ->where('price', Operator::LESS_THAN, 200)
+                ->or('name', Operator::CONTAINS, 'Product')
+            ->endGroup();
+
+        $this->assertEquals([
+            0 => [
+                'operator' => Operator::EQUAL,
+                'value' => 1,
+                'key' => 'id',
+                'type' => LogicalOperator::AND,
+            ],
+            1 => [
+                'operator' => Operator::GREATER_THAN,
+                'value' => 100,
+                'key' => 'price',
+                'type' => LogicalOperator::AND,
+            ],
+            2 => [
+                'type' => LogicalOperator::AND,
+                'group' => [
+                    0 => [
+                        'operator' => Operator::LESS_THAN,
+                        'value' => 200,
+                        'key' => 'price',
+                        'type' => LogicalOperator::AND,
+                    ],
+                    1 => [
+                        'operator' => Operator::CONTAINS,
+                        'value' => 'Product',
+                        'key' => 'name',
+                        'type' => LogicalOperator::OR,
+                    ],
+                ],
+            ],
+        ], $this->query->getConditions('where'));
+    }
+
+    public function testOrConditionsGrouping(): void
+    {
+        $this->query->resetConditions()
+            ->where('id', Operator::EQUAL, 1)
+            ->and('price', Operator::GREATER_THAN, 100)
+            ->orGroup()
+                ->where('price', Operator::LESS_THAN, 400)
+                ->and('name', Operator::CONTAINS, 'Product 2')
+            ->endGroup();
+
+        $this->assertEquals([
+            0 => [
+                'operator' => Operator::EQUAL,
+                'value' => 1,
+                'key' => 'id',
+                'type' => LogicalOperator::AND,
+            ],
+            1 => [
+                'operator' => Operator::GREATER_THAN,
+                'value' => 100,
+                'key' => 'price',
+                'type' => LogicalOperator::AND,
+            ],
+            2 => [
+                'type' => LogicalOperator::OR,
+                'group' => [
+                    0 => [
+                        'operator' => Operator::LESS_THAN,
+                        'value' => 400,
+                        'key' => 'price',
+                        'type' => LogicalOperator::AND,
+                    ],
+                    1 => [
+                        'operator' => Operator::CONTAINS,
+                        'value' => 'Product 2',
+                        'key' => 'name',
+                        'type' => LogicalOperator::AND,
+                    ],
+                ],
+            ]
+        ], $this->query->getConditions('where'));
     }
 }

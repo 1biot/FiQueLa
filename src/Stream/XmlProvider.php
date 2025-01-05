@@ -3,15 +3,20 @@
 namespace UQL\Stream;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidFormat;
 
 /**
  * @implements Stream<\Generator>
  */
 abstract class XmlProvider extends StreamProvider implements Stream
 {
-    protected function __construct(private readonly string $xmlFilePath, private readonly ?string $encoding = null)
+    protected function __construct(private readonly string $xmlFilePath, private ?string $encoding = null)
     {
+    }
+
+    public function setEncoding(?string $encoding): self
+    {
+        $this->encoding = $encoding;
+        return $this;
     }
 
     public function getStream(?string $query): ?\ArrayIterator

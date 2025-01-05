@@ -9,7 +9,8 @@ require __DIR__ . '/bootstrap.php';
 $xml = Xml::open(__DIR__ . '/data/products.xml');
 
 $query = $xml->query();
-$query->select('name, price')
+$query->select('@attributes.id')
+    ->select('name, price')
     ->select('brand.name')->as('brand')
     ->from('root.item')
     ->where('brand.code', Operator::EQUAL_STRICT, "BRAND-A")

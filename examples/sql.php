@@ -10,11 +10,11 @@ $xml = Xml::open(__DIR__ . '/data/products.xml');
 
 $sql = <<<SQL
 SELECT
-    name, price, brand
+    @attributes.id AS productId, name, price, brand
 FROM root.item
 WHERE brand.code == "BRAND-A"
 OR price >= 200
-ORDER BY name DESC
+ORDER BY productId DESC
 SQL;
 
 Debugger::inspectQuerySql($xml, $sql);

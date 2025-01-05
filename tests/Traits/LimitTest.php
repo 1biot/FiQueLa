@@ -3,27 +3,39 @@
 namespace UQL\Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Stream\Json;
+use UQL\Query\TestProvider;
 
 class LimitTest extends TestCase
 {
-    private Json $json;
+    /** @var TestProvider $query */
+    private TestProvider $query;
 
-    protected function setUp(): void
+    public function __construct(string $name)
     {
-        $this->json = Json::open(realpath(__DIR__ . '/../../examples/data/products.json'));
+        parent::__construct($name);
+        $this->query = new TestProvider();
     }
 
     public function testLimit(): void
     {
-        $query = $this->json->query()
-            ->from('data.products')
-            ->limit(2);
+        $this->query->limit(2);
+        [$limit, $offset] = $this->query->getLimitAndOffset();
+        $this->assertEquals(2, $limit);
+        $this->assertNull($offset);
 
-        $results = iterator_to_array($query->fetchAll());
+        $this->query->limit(10, 50);
+        [$limit, $offset] = $this->query->getLimitAndOffset();
+        $this->assertEquals(10, $limit);
+        $this->assertEquals(50, $offset);
 
-        $this->assertCount(2, $results);
-        $this->assertEquals(1, $results[0]['id']);
-        $this->assertEquals(2, $results[1]['id']);
+        $this->query->limit(200)->offset(1000);
+        [$limit, $offset] = $this->query->getLimitAndOffset();
+        $this->assertEquals(200, $limit);
+        $this->assertEquals(1000, $offset);
+
+        $this->query->page(8, 20);
+        [$limit, $offset] = $this->query->getLimitAndOffset();
+        $this->assertEquals(20, $limit);
+        $this->assertEquals(140, $offset);
     }
 }

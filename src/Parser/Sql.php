@@ -3,8 +3,9 @@
 namespace UQL\Parser;
 
 use UQL\Enum\LogicalOperator;
+use UQL\Enum\Operator;
 use UQL\Enum\Type;
-use UQL\Helpers\Types;
+use UQL\Exceptions\InvalidArgumentException;
 use UQL\Query\Query;
 use UQL\Enum\Sort;
 
@@ -24,8 +25,7 @@ class Sql implements Parser
 
             switch (strtoupper($token)) {
                 case 'SELECT':
-                    $fields = $this->parseFields();
-                    $query->select($fields);
+                    $this->parseFields($query);
                     break;
 
                 case 'FROM':
@@ -50,20 +50,25 @@ class Sql implements Parser
                     break;
 
                 default:
-                    throw new \InvalidArgumentException("Unexpected token: $token");
+                    throw new InvalidArgumentException("Unexpected token: $token");
             }
         }
 
         return $query;
     }
 
-    private function parseFields(): string
+    private function parseFields(Query $query): void
     {
-        $fields = [];
         while (!$this->isEOF() && strtoupper($this->peekToken()) !== 'FROM') {
-            $fields[] = $this->nextToken();
+            $field = $this->nextToken();
+            if (strtoupper($this->peekToken()) === 'AS') {
+                $this->nextToken();
+                $alias = $this->nextToken();
+                $query->select($field)->as($alias);
+            } elseif ($field !== ',') {
+                $query->select($field);
+            }
         }
-        return implode(' ', $fields);
     }
 
     private function parseConditions(Query $query): void
@@ -88,7 +93,7 @@ class Sql implements Parser
             // Parse a single condition
             $field = $this->nextToken();
             $operator = $this->nextToken();
-            $operator = \UQL\Enum\Operator::fromOrFail($operator);
+            $operator = Operator::fromOrFail($operator);
             $value = Type::matchByString($this->nextToken());
             if ($logicalOperator === LogicalOperator::AND) {
                 $query->and($field, $operator, $value);
@@ -112,7 +117,7 @@ class Sql implements Parser
     {
         $token = $this->nextToken();
         if (strtoupper($token) !== strtoupper($expected)) {
-            throw new \InvalidArgumentException("Expected $expected, got $token");
+            throw new InvalidArgumentException("Expected $expected, got $token");
         }
     }
 

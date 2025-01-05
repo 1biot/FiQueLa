@@ -2,6 +2,7 @@
 
 namespace UQL\Traits;
 
+use UQL\Helpers\ArrayHelper;
 use UQL\Query\Query;
 
 trait Limit
@@ -40,7 +41,10 @@ trait Limit
         return $this->offset;
     }
 
-    private function applyLimit(\Generator $data): \Generator
+    /**
+     * @param class-string|null $dto
+     */
+    private function applyLimit(\Generator $data, ?string $dto = null): \Generator
     {
         $count = 0;
         $currentOffset = 0; // Number of already skipped records
@@ -48,6 +52,10 @@ trait Limit
             if ($this->getOffset() !== null && $currentOffset < $this->getOffset()) {
                 $currentOffset++;
                 continue;
+            }
+
+            if ($dto !== null) {
+                $item = ArrayHelper::mapArrayToObject($item, $dto);
             }
 
             yield $item;

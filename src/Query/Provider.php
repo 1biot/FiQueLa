@@ -5,6 +5,7 @@ namespace UQL\Query;
 use Generator;
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Helpers\ArrayHelper;
+use UQL\Stream\Csv;
 use UQL\Stream\Json;
 use UQL\Stream\Neon;
 use UQL\Stream\Xml;
@@ -26,21 +27,39 @@ final class Provider implements Query, \Stringable
     use Traits\Select;
     use Traits\Sortable;
 
-    private readonly Xml|Json|Yaml|Neon $stream;
+    private readonly Xml|Json|Yaml|Neon|Csv $stream;
 
-    public function __construct(Xml|Json|Yaml|Neon $stream)
+    public function __construct(Xml|Json|Yaml|Neon|Csv $stream)
     {
         $this->stream = $stream;
     }
 
+    private function hasPhase(string $phase): bool
+    {
+        $phaseArray = [];
+        if ($this->joins !== []) {
+            $phaseArray[] = 'join';
+        }
+
+        if ($this->orderings !== []) {
+            $phaseArray[] = 'sort';
+        }
+
+        if ($this->limit !== null || $this->offset !== null) {
+            $phaseArray[] = 'limit';
+        }
+
+        return in_array($phase, $phaseArray, true);
+    }
+
     public function fetchAll(?string $dto = null): Generator
     {
-        if ($this->orderings !== []) {
-            // we need to sort the data before applying limit
+        if ($this->hasPhase('sort')) {
             return $this->applyLimit(
                 $this->applySorting(
-                    $this->getResults($dto, applyLimit: false)
-                )
+                    $this->getResults()
+                ),
+                $dto
             );
         }
 
@@ -112,6 +131,24 @@ final class Provider implements Query, \Stringable
         return round($this->sum($key) / $this->count(), $decimalPlaces);
     }
 
+    public function min(string $key): float
+    {
+        $min = PHP_INT_MAX;
+        foreach ($this->fetchAll() as $item) {
+            $min = min($min, $item[$key] ?? PHP_INT_MAX);
+        }
+        return $min;
+    }
+
+    public function max(string $key): float
+    {
+        $max = PHP_INT_MIN;
+        foreach ($this->fetchAll() as $item) {
+            $max = max($max, $item[$key] ?? PHP_INT_MIN);
+        }
+        return $max;
+    }
+
     public function test(): string
     {
         return trim((string) $this);
@@ -149,12 +186,20 @@ final class Provider implements Query, \Stringable
         return $this->stream->getStreamGenerator($streamSource);
     }
 
-    private function getResults(?string $dto = null, bool $applyLimit = true): Generator
+    /**
+     * @param class-string|null $dto
+     * @return Generator
+     */
+    private function getResults(?string $dto = null): Generator
     {
+        $applyLimit = $this->hasPhase('limit') && !$this->hasPhase('sort');
         $count = 0;
         $currentOffset = 0; // Number of already skipped records
 
-        $stream = $this->applyJoins($this->applyStreamSource());
+        $stream = $this->hasPhase('join')
+            ? $this->applyJoins($this->applyStreamSource())
+            : $this->applyStreamSource();
+
         foreach ($stream as $item) {
             if (!$this->evaluateWhereConditions($item)) {
                 continue;
@@ -171,8 +216,8 @@ final class Provider implements Query, \Stringable
                 continue;
             }
 
-            if ($dto !== null) {
-                $resultItem = new $dto($resultItem);
+            if (!$this->hasPhase('sort') && $dto !== null) {
+                $resultItem = ArrayHelper::mapArrayToObject($resultItem, $dto);
             }
 
             yield $resultItem;

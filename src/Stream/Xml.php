@@ -19,8 +19,6 @@ class Xml extends XmlProvider
             throw new FileNotFoundException("File not found or not readable.");
         }
 
-
-
         return new self($path, $encoding);
     }
 
@@ -38,7 +36,7 @@ class Xml extends XmlProvider
      */
     public static function string(string $data): Stream
     {
-        throw new NotImplemented("Method not implemented.");
+        throw new NotImplemented("Method not yet implemented.");
     }
 
     public function query(): Query

@@ -122,4 +122,44 @@ class ArrayHelper
 
         return $current;
     }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param class-string $className
+     * @return object|array<string, mixed>
+     */
+    public static function mapArrayToObject(array $data, string $className): object|array
+    {
+        try {
+            $reflectionClass = new \ReflectionClass($className);
+
+            $constructor = $reflectionClass->getConstructor();
+            if ($constructor) {
+                $params = $constructor->getParameters();
+
+                $constructorArgs = [];
+                foreach ($params as $param) {
+                    $paramName = $param->getName();
+                    $constructorArgs[] = $data[$paramName] ?? $param->getDefaultValue();
+                }
+
+                return $reflectionClass->newInstanceArgs($constructorArgs);
+            }
+
+            $instance = $reflectionClass->newInstance();
+            foreach ($data as $key => $value) {
+                if ($reflectionClass->hasProperty($key)) {
+                    $property = $reflectionClass->getProperty($key);
+                    if ($property->isPublic()) {
+                        $instance->$key = $value;
+                    }
+                }
+            }
+
+            return $instance;
+        } catch (\ReflectionException $e) {
+            user_error("Cannot map array to object of type $className: " . $e->getMessage(), E_USER_WARNING);
+            return $data;
+        }
+    }
 }
