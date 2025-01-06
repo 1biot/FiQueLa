@@ -65,7 +65,7 @@ class ArrayHelper
     public static function getNestedValue(array $data, string $field, bool $throwOnMissing = true): mixed
     {
         // Special case: iteration or accessing an index with a subsequent key ->key
-        if (preg_match('/^([\w\.]+)\.(\d+)->([\w]+)$/', $field, $matches)) {
+        if (preg_match('/^([\w.]+)\.(\d+)->(\w+)$/', $field, $matches)) {
             $arrayPath = $matches[1];
             $index = (int)$matches[2];
             $subKey = $matches[3];
@@ -92,7 +92,7 @@ class ArrayHelper
         }
 
         // Standard case of iteration `[]->key`
-        if (preg_match('/^([\w\.]+)\[\]->([\w]+)$/', $field, $matches)) {
+        if (preg_match('/^([\w.]+)\[]->(\w+)$/', $field, $matches)) {
             $arrayPath = $matches[1];
             $subKey = $matches[2];
 

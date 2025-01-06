@@ -16,30 +16,30 @@
 **XML**, **CSV**, **JSON**, **YAML** and **NEON** formats. The library provides MySQL-inspired syntax for querying, filtering,
 joining and aggregating data. It is designed for simplicity, modularity, and efficiency.
 
-## Table of Contents
+**Table of Contents:**
 
-- [Features](#features)
-- [Planning Features](#planning-features)
-- [Installation](#installation)
-- [Getting Started](#getting-started)
-    - [Supported Formats](#supported-formats)
-    - [Basic Querying](#basic-querying)
-    - [Operators](#operators)
-    - [Fetching Data](#fetching-data)
-- [Advanced Usage](#advanced-usage)
-    - [Sorting Functions](#sorting-functions)
-    - [Use HAVING Conditions](#use-having-conditions)
-    - [Joining Sources](#joining-sources)
-    - [Functions](#functions)
-    - [Mapping - Data Transfer Objects](#mapping---data-transfer-objects)
-    - [Aggregate Functions](#aggregate-functions)
-    - [Pagination, Limit and Offset](#pagination-limit-and-offset)
-    - [SQL](#sql)
-    - [Inspect Queries](#inspect-queries)
-- [Examples](#examples)
-- [Contributions](#contributions)
+- 1 - [Features](#1-features)
+- 2 - [Planning Features](#2-planning-features)
+- 3 - [Installation](#3-installation)
+- 4 - [Getting Started](#4-getting-started)
+  - 4.1 - [Supported Formats](#41-supported-formats)
+  - 4.2 - [Basic Querying](#42-basic-querying)
+  - 4.3 - [Operators](#43-operators)
+  - 4.4 - [Fetching Data](#44-fetching-data)
+- 5 - [Advanced Usage](#5-advanced-usage)
+  - 5.1 - [Sorting Functions](#51-sorting-functions)
+  - 5.2 - [Use HAVING Conditions](#52-use-having-conditions)
+  - 5.3 - [Joining Sources](#53-joining-sources)
+  - 5.4 - [Functions](#54-functions)
+  - 5.5 - [Mapping - Data Transfer Objects](#55-mapping---data-transfer-objects)
+  - 5.6 - [Aggregate Functions](#56-aggregate-functions)
+  - 5.7 - [Pagination, Limit and Offset](#57-pagination-limit-and-offset)
+  - 5.8 - [SQL](#58-sql)
+  - 5.9 - [Inspect Queries](#59-inspect-queries)
+- 6 - [Examples](#6-examples)
+- 7 - [Contributions](#7-contributions)
 
-## Features
+## 1. Features
 
 - ✅ Support for **XML**, **CSV**, **JSON**, **YAML** and **NEON** (easily extensible to other formats).
 - ✅ SQL-inspired capabilities:
@@ -52,7 +52,7 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
 - ✅ Operators for filtering data:
   - **==**, **!==**, **=**, **!=**
   - **>**, **<**, **>=**, **<=**
-  - and [more](#operators) ... 💪
+  - and [more](#43-operators) ... 💪
 - ✅ Data Transfer Objects (DTO)
 - ✅ Advance selecting functions for nested data.
   - **COALESCE** for selecting first non-null value.
@@ -68,18 +68,19 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
   - more functions will arrive soon... 🚅
 - 🚀 Unified API across all supported formats.
 - ⚠️ SQL - Supports SQL string queries inspired with MySQL syntax. Syntax does not support yet all SQL fluent features.
-- ⚠️ Automatic conversion of queries into SQL-like syntax. It is not fully compatible with SQL parser yet
+- ⚠️ Automatic conversion of queries into SQL-like syntax. It is not fully compatible yet with SQL parser
 
-## Planning Features
+## 2. Planning Features
 
 - [ ] **JSON Stream Parser**: Use a stream parser for large JSON files.
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
+- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **U**ni**Q**ue**L**.
 - [ ] **GROUP BY**: Introduce support for grouping data.
 - [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage.
 
-## Installation
+## 3. Installation
 
 Install via [Composer](https://getcomposer.org/):
 
@@ -87,12 +88,13 @@ Install via [Composer](https://getcomposer.org/):
 composer require 1biot/uniquel
 ```
 
-## Getting Started
+## 4. Getting Started
 
-### Supported Formats
+### 4.1. Supported Formats
 
 #### XML
-XML requires standard PHP extensions only:
+
+XML requires standard PHP extensions only (`libxml`, `simplexml` and `xmlreader`):
 
 ```php
 use UQL\Stream\Xml;
@@ -102,6 +104,7 @@ $xml->setEncoding('windows-1250');
 ```
 
 #### CSV
+
 CSV requires `league/csv` package:
 
 ```bash
@@ -118,6 +121,7 @@ $csv = Csv::open('data.xml')
 ```
 
 #### JSON
+
 Native support for JSON data allows you to load it from files or strings:
 
 ```php
@@ -131,6 +135,7 @@ $json = Json::string(file_get_contents('data.json'));
 ```
 
 #### YAML and NEON
+
 To use YAML and NEON formats, you need to install the required libraries:
 
 ```bash
@@ -145,7 +150,7 @@ $yaml = Yaml::open('data.yaml');
 $neon = Neon::open('data.neon');
 ```
 
-### Basic Querying
+### 4.2. Basic Querying
 
 ```php
 use UQL\Enum\Operator;
@@ -165,7 +170,7 @@ foreach ($results as $user) {
 }
 ```
 
-### Operators
+### 4.3. Operators
 
 #### EQUAL (STRICT)
 
@@ -226,7 +231,7 @@ $query->where('name', Operator::STARTS_WITH, 'John');  // John%
 $query->where('name', Operator::ENDS_WITH, 'John');  // %John
 ```
 
-### Fetching Data
+### 4.4. Fetching Data
 
 ```php
 $query = $csv->query();
@@ -239,9 +244,9 @@ $query->fetchNth('even'); // fetch nth record with even index
 $query->fetchNth('odd'); // fetch nth record with odd index
 ```
 
-## Advanced Usage
+## 5. Advanced Usage
 
-### Sorting functions
+### 5.1. Sorting functions
 
 ```php
 use UQL\Enum\Operator;
@@ -255,7 +260,7 @@ $results = $json->query()
     ->fetchAll();
 ```
 
-### Use HAVING Conditions
+### 5.2. Use HAVING Conditions
 
 This is useful when you want to filter by aliases in queries. Filtering not translate any nested values, but WHERE conditions does.
 
@@ -278,7 +283,7 @@ foreach ($results as $user) {
 }
 ```
 
-### Joining Sources
+### 5.3. Joining Sources
 
 Joining sources is possible with `leftJoin` and `innerJoin` methods. The following example demonstrates a
 left join between **XML** and **JSON** file.
@@ -312,18 +317,21 @@ Debugger::inspectQuery($users);
 
 For results try the `composer example:join` command.
 
-### Functions
+### 5.4 Functions
 
 Functions are useful for manipulating data in queries. You can use them in `select` method.
 
 #### Hashing functions
 
 **sha1**: SHA1 algorithm for hashing
+
 ```php
 $query->sha1('name')
     ->as('hash'); // SELECT SHA1(name) AS hash
 ```
+
 **md5**: MD5 algorithm for hashing
+
 ```php
 $query->md5('name')
     ->as('hash'); // SELECT MD5(name) AS hash
@@ -332,100 +340,135 @@ $query->md5('name')
 #### Array functions
 
 **explode**: split string to array
+
 ```php
 $delimiter = '|';
 $query->explode('Partner_Article', $delimiter)
     ->as('related') // SELECT EXPLODE("|", Partner_Article) AS related
 ```
+
 Or alias to explode is `split()`. This example shows default delimiter `,`.
+
 ```php
 $query->split('Partner_Article')
     ->as('related') // SELECT EXPLODE(",", Partner_Article) AS related
 ```
 
 **implode**: join array to string
+
 ```php
 $query->implode('categories[]->id', '|')
     ->as('catString'); // SELECT IMPLODE("|", categories[]->id) AS catString
 ```
+
 Or alias to implode is `glue()`. This example shows default delimiter `,`.
+
 ```php
 $query->glue('categories[]->id')
     ->as('catString'); // SELECT IMPLODE(",", categories[]->id) AS catString
 ```
+
 #### String functions
+
 **upper**: Convert string to upper case
+
 ```php
 $query->upper('name')
     ->as('upperName') // SELECT UPPER(name) AS upperName
 ```
+
 **lower**: Convert string to lower case
+
 ```php
 $query->lower('name')->as('lowerName') // SELECT LOWER(name) AS lowerName
 ```
+
 **length**: Get length of string
+
 ```php
 $query->length('name')
     ->as('length') // SELECT LENGTH(name) AS length
 ```
+
 **concat**: Concatenate values
+
 ```php
 $query->concat('ArticleNr', 'CatalogNr')
     ->as('concatenateString'); // SELECT CONCAT(ArticleNr, CatalogNr) AS concatenateString
 ```
+
 **concatWS**: Concatenate values with separator
+
 ```php
 // Concatenate values with separator
 $query->concatWS('/', 'ArticleNr', 'CatalogNr')
     ->as('concatenateString'); // SELECT CONCAT_WS("/", ArticleNr, CatalogNr) AS concatenateString
 ```
+
 **coalesce**: Coalesce values (first non-null value)
+
 ```php
 $query->coalesce('whatever', 'ArticleNr')
     ->as('coalesceString'); // SELECT COALESCE(ArticleNr, whatever) AS coalesceString
 ```
+
 **coalesceNotEmpty**: Coalesce values when not empty (first non-empty value)
+
 ```php
 $query->coalesceNotEmpty('whatever', 'ArticleNr')
     ->as('coalesceString'); // SELECT COALESCE_NE(whatever, ArticleNr) AS coalesceString
 ```
+
 **reverse**: Reverse string
+
 ```php
 $query->reverse('name')
     ->as('reversedName'); // SELECT REVERSE(name) AS reversedName
 ```
+
 #### Numeric functions
+
 **round**: Round number
+
 ```php
 $query->round('price')
     ->as('roundedPrice') // SELECT ROUND(price, 0) AS roundedPrice
 ```
+
 Or you can specify precision
+
 ```php
 $query->round('price', 2)
     ->as('roundedPrice') // SELECT ROUND(price, 2) AS roundedPrice
 ```
+
 **floor**: Round number down
+
 ```php
 $query->floor('price')
     ->as('floorPrice') // SELECT FLOOR(price) AS floorPrice
 ```
+
 **ceil**: Round number up
+
 ```php
 $query->ceil('price')
     ->as('ceilPrice') // SELECT CEIL(price) AS ceilPrice
 ```
+
 **mod**: Modulo operation, when divisor is zero then exception is thrown
+
 ```php
 $query->modulo('price', 2)
     ->as('modPrice') // SELECT MOD(price, 2) AS modPrice
 ```
 
-### Mapping - Data Transfer Objects
+### 5.5. Mapping - Data Transfer Objects
 
 You can map your results to Data Transfer Objects (**DTO**) with `$dto` property when using fetch functions.
 
 Example with anonymous DTO object:
+
 ```php
 use UQL\Enum\Operator;
 use UQL\Helpers\Debugger;
@@ -451,6 +494,7 @@ $dto = new class {
 
 Debugger::dump($query->fetch($dto::class));
 ```
+
 ```
 // Output:
 class@anonymous #753
@@ -467,6 +511,7 @@ class@anonymous #753
 ```
 
 You can use DTO classes as well:
+
 ```php
 class ProductDto
 {
@@ -492,7 +537,7 @@ class CategoryDto implements \Stringable
 
 ```
 
-### Aggregate Functions
+### 5.6. Aggregate Functions
 
 Aggregate functions runs `fetchAll()` internally.
 
@@ -504,7 +549,7 @@ $averageAge = $query->avg('age');
 $totalPrice = $query->sum('price');
 ```
 
-### Pagination, Limit and Offset
+### 5.7. Pagination, Limit and Offset
 
 ```php
 $results = $query
@@ -520,7 +565,7 @@ $results = $query
     ->offset(40);
 ```
 
-### SQL
+### 5.8. SQL
 
 #### Interpreted SQL
 
@@ -602,7 +647,7 @@ array (2)
    |  'price' => '100'
 ```
 
-### Inspect Queries
+### 5.9. Inspect Queries
 
 You can inspect your query for mor information about execution time, memory usage, SQL query and results.
 
@@ -678,10 +723,10 @@ Debugger::inspectQuerySql(
 ...
 ```
 
-## Examples
+## 6. Examples
 
 Check the examples and run them using Composer. All examples uses `\UQL\Helpers\Debugger` and methods `inspectQuery` or
-`inspectQuerySql` to show the results. More information about inspecting are [here](#inspect-queries).
+`inspectQuerySql` to show the results. More information about inspecting are [here](#59-inspect-queries).
 
 ```bash
 composer examples
@@ -695,6 +740,15 @@ composer example:xml
 composer example:yaml
 ```
 
-## Contributions
+## 7. Contributions
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
+
+**How to contribute:**
+- Fork the repository
+- Create a new branch
+- Make your changes
+- Create a pull request
+- All tests must pass
+- Wait for approval
+- 🚀
