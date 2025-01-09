@@ -6,6 +6,25 @@ use UQL\Exceptions\InvalidArgumentException;
 
 trait NestedArrayAccessor
 {
+    /**
+     * Accesses a nested value from an array based on a dot-separated path.
+     * Supports advanced syntax for iterating over arrays and extracting specific keys:
+     * - Standard dot notation: `key.subkey`
+     * - Array index access: `key.subkey.0`
+     * - Array iteration with key extraction: `key.subkey[]->subkey`
+     * - Array index with key extraction: `key.subkey.0->subkey`
+     *
+     * @param array<string|int, mixed> $data The array to retrieve the value from.
+     * @param string $field The dot-separated path to the desired value.
+     *                      Examples:
+     *                      - `a.b.c` retrieves `['a']['b']['c']`.
+     *                      - `a.e[]->z` retrieves all `z` keys from array `['a']['e']`.
+     *                      - `a.e.0->z` retrieves the `z` key from the first element of array `['a']['e']`.
+     * @param bool $throwOnMissing If true, throws an exception when the path does not exist.
+     *                              Defaults to false, returning null for invalid paths.
+     * @return mixed The value at the specified path, or null if the path does not exist and $throwOnMissing is false.
+     * @throws InvalidArgumentException If a required key or index is missing and $throwOnMissing is true.
+     */
     public function accessNestedValue(array $data, string $field, bool $throwOnMissing = true): mixed
     {
         // Special case: iteration or accessing an index with a subsequent key ->key

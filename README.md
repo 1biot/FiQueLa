@@ -200,35 +200,39 @@ foreach ($results->fetchAll() as $user) {
 #### EQUAL (STRICT)
 
 ```php
-$query->where('age', Operator::EQUAL, 18);
-$query->where('age', Operator::EQUAL, "18"); // same results
+// doesn't matter if the value is string or integer
+$query->where('age', Operator::EQUAL, 18); // WHERE age = 18
+$query->where('age', Operator::EQUAL, "18"); // WHERE age = "18"
 
-$query->where('age', Operator::EQUAL_STRICT, 18);
-$query->where('age', Operator::EQUAL_STRICT, "18"); // it is not the same
+// this is strict comparison
+$query->where('age', Operator::EQUAL_STRICT, 18); // WHERE age == 18
+$query->where('age', Operator::EQUAL_STRICT, "18"); // WHERE age == "18"
 ```
 
 #### NOT EQUAL (STRICT)
 
 ```php
-$query->where('age', Operator::NOT_EQUAL, 18);
-$query->where('age', Operator::NOT_EQUAL, "18"); // same results
+// doesn't matter if the value is string or integer
+$query->where('age', Operator::NOT_EQUAL, 18); // WHERE age != 18
+$query->and('age', Operator::NOT_EQUAL, "18"); // WHERE age != "18"
 
-$query->where('age', Operator::NOT_EQUAL_STRICT, 18);
-$query->where('age', Operator::NOT_EQUAL_STRICT, "18"); // it is not the same
+// this is strict comparison
+$query->where('age', Operator::NOT_EQUAL_STRICT, 18); // WHERE age !== 18
+$query->and('age', Operator::NOT_EQUAL_STRICT, "18"); // WHERE age !== "18"
 ```
 
 #### GREATER THAN (OR EQUAL)
 
 ```php
-$query->where('age', Operator::GREATER_THAN, 18);
-$query->where('age', Operator::GREATER_THAN_OR_EQUAL, 18);
+$query->where('age', Operator::GREATER_THAN, 18); // WHERE age > 18
+$query->where('age', Operator::GREATER_THAN_OR_EQUAL, 18); // WHERE age >= 18
 ```
 
 #### LESS THAN (OR EQUAL)
 
 ```php
-$query->where('age', Operator::LESS_THAN, 18);
-$query->where('age', Operator::LESS_THAN_OR_EQUAL, 18);
+$query->where('age', Operator::LESS_THAN, 18); // WHERE age < 18
+$query->where('age', Operator::LESS_THAN_OR_EQUAL, 18); // WHERE age <= 18
 ```
 
 #### (NOT) IN
