@@ -2,7 +2,7 @@
 
 require __DIR__ . '/bootstrap.php';
 
-use UQL\Helpers\Debugger;
+use UQL\Query\Debugger;
 use UQL\Stream\Csv;
 
 $utf8 = Csv::open(__DIR__ . '/data/products-utf-8.csv')

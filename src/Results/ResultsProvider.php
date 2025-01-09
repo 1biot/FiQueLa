@@ -4,7 +4,7 @@ namespace UQL\Results;
 
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Functions;
-use UQL\Helpers\ArrayHelper;
+use UQL\Traits\Helpers\NestedArrayAccessor;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from Stream
@@ -12,13 +12,14 @@ use UQL\Helpers\ArrayHelper;
  */
 abstract class ResultsProvider implements Results, \IteratorAggregate
 {
+    use NestedArrayAccessor;
+
     public function fetchAll(?string $dto = null): \Generator
     {
         foreach ($this->getIterator() as $resultItem) {
-            if ($dto !== null) {
-                $resultItem = ArrayHelper::mapArrayToObject($resultItem, $dto);
-            }
-            yield $resultItem;
+            yield $dto !== null
+                ? $this->mapArrayToObject($resultItem, $dto)
+                : $resultItem;
         }
     }
 
@@ -65,7 +66,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
     public function fetchSingle(string $key): mixed
     {
-        return ArrayHelper::getNestedValue($this->fetch(), $key, false);
+        return $this->accessNestedValue($this->fetch(), $key, false);
     }
 
     public function count(): int
@@ -100,5 +101,45 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     public function getProxy(): Proxy
     {
         return new Proxy(iterator_to_array($this->getIterator()));
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param class-string $className
+     * @return object|array<string, mixed>
+     */
+    private function mapArrayToObject(array $data, string $className): object|array
+    {
+        try {
+            $reflectionClass = new \ReflectionClass($className);
+
+            $constructor = $reflectionClass->getConstructor();
+            if ($constructor) {
+                $params = $constructor->getParameters();
+
+                $constructorArgs = [];
+                foreach ($params as $param) {
+                    $paramName = $param->getName();
+                    $constructorArgs[] = $data[$paramName] ?? $param->getDefaultValue();
+                }
+
+                return $reflectionClass->newInstanceArgs($constructorArgs);
+            }
+
+            $instance = $reflectionClass->newInstance();
+            foreach ($data as $key => $value) {
+                if ($reflectionClass->hasProperty($key)) {
+                    $property = $reflectionClass->getProperty($key);
+                    if ($property->isPublic()) {
+                        $instance->$key = $value;
+                    }
+                }
+            }
+
+            return $instance;
+        } catch (\ReflectionException $e) {
+            user_error("Cannot map array to object of type $className: " . $e->getMessage(), E_USER_WARNING);
+            return $data;
+        }
     }
 }

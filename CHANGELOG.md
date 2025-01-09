@@ -13,6 +13,10 @@
 ### Changed
 - Changed fetching the results. Interface `UQL\Query\Query` removed fetching methods and replaced by `execute()` method instead returns `UQL\Result\ResultProvider` object that implements fetching methods
 - Refactored tests for better testing
+- Helpers are refactored as traits
+  - `UQL\Helpers\ArrayHelper` moved to `UQL\Traits\Helpers\NestedArrayAccessor`
+  - `UQL\Helpers\StringHelper` moved to `UQL\Traits\Helpers\StringOperations`
+- `UQL\Helpers\Debugger` moved to `UQL\Query\Debugger` and edits single line output
 
 ### Fixed
 - Fixed issue with conditions grouping in `WHERE` clause

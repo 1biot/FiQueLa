@@ -1,8 +1,8 @@
 <?php
 
-use UQL\Helpers\Debugger;
-use UQL\Stream\Xml;
+use UQL\Query\Debugger;
 use UQL\Stream\Json;
+use UQL\Stream\Xml;
 
 require __DIR__ . '/bootstrap.php';
 

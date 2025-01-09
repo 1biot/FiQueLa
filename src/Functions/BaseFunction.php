@@ -2,19 +2,17 @@
 
 namespace UQL\Functions;
 
-use UQL\Helpers\ArrayHelper;
-use UQL\Helpers\StringHelper;
 use UQL\Stream\ArrayStreamProvider;
+use UQL\Traits\Helpers\NestedArrayAccessor;
+use UQL\Traits\Helpers\StringOperations;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
 abstract class BaseFunction implements Invokable, \Stringable
 {
-    public function isAggregate(): bool
-    {
-        return false;
-    }
+    use StringOperations;
+    use NestedArrayAccessor;
 
     public function getName(): string
     {
@@ -23,7 +21,7 @@ abstract class BaseFunction implements Invokable, \Stringable
             throw new \RuntimeException('Cannot split class name');
         }
 
-        return StringHelper::camelCaseToUpperSnakeCase(end($array));
+        return $this->camelCaseToUpperSnakeCase(end($array));
     }
 
     /**
@@ -32,6 +30,6 @@ abstract class BaseFunction implements Invokable, \Stringable
      */
     protected function getFieldValue(string $field, array $item, array $resultItem): mixed
     {
-        return ArrayHelper::getNestedValue($item, $field, false) ?? $resultItem[$field] ?? null;
+        return $this->accessNestedValue($item, $field, false) ?? $resultItem[$field] ?? null;
     }
 }

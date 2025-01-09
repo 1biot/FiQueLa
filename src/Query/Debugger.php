@@ -1,9 +1,8 @@
 <?php
 
-namespace UQL\Helpers;
+namespace UQL\Query;
 
 use UQL\Parser\Sql;
-use UQL\Query\Query;
 use UQL\Results\Proxy;
 use UQL\Results\ResultsProvider;
 use UQL\Stream\Json;
@@ -183,7 +182,7 @@ class Debugger
 
     private static function echoLine(string $text, int $beginCharRepeat = 1): void
     {
-        self::dump(sprintf('%s %s', str_repeat('>', $beginCharRepeat), $text));
+        echo sprintf('%s %s', str_repeat('>', $beginCharRepeat), $text) . PHP_EOL;
     }
 
     private static function queryToOutput(string $query): void

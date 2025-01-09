@@ -9,7 +9,6 @@ use UQL\Enum\Sort;
 use UQL\Exceptions\InvalidArgumentException;
 use UQL\Functions\AggregateFunction;
 use UQL\Functions\BaseFunction;
-use UQL\Helpers\ArrayHelper;
 use UQL\Query\Query;
 use UQL\Stream\Csv;
 use UQL\Stream\Json;
@@ -17,6 +16,7 @@ use UQL\Stream\JsonStream;
 use UQL\Stream\Neon;
 use UQL\Stream\Xml;
 use UQL\Stream\Yaml;
+use UQL\Traits\Helpers\NestedArrayAccessor;
 use UQL\Traits\Joinable;
 use UQL\Traits\Select;
 
@@ -33,6 +33,8 @@ use UQL\Traits\Select;
  */
 class Stream extends ResultsProvider
 {
+    use NestedArrayAccessor;
+
     /**
      * @param array<string, SelectedField> $selectedFields
      * @param array<Condition|ConditionGroup> $where
@@ -262,7 +264,7 @@ class Stream extends ResultsProvider
 
                 $groupResult = $this->evaluateCondition(
                     $nestingValues
-                        ? ArrayHelper::getNestedValue($item, $condition['key'])
+                        ? $this->accessNestedValue($item, $condition['key'])
                         : $item[$condition['key']]
                         ?? throw new InvalidArgumentException(sprintf("Field '%s' not found.", $condition['key'])),
                     $condition['operator'],
@@ -310,7 +312,7 @@ class Stream extends ResultsProvider
                 continue;
             }
 
-            $result[$fieldName] = ArrayHelper::getNestedValue(
+            $result[$fieldName] = $this->accessNestedValue(
                 $item,
                 $fieldData['alias'] ? $fieldData['originField'] : $finalField,
                 false

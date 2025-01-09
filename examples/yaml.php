@@ -1,7 +1,7 @@
 <?php
 
 use UQL\Enum\Operator;
-use UQL\Helpers\Debugger;
+use UQL\Query\Debugger;
 use UQL\Stream\Yaml;
 
 require __DIR__ . '/bootstrap.php';

@@ -2,15 +2,16 @@
 
 namespace UQL\Functions;
 
-use UQL\Helpers\ArrayHelper;
-use UQL\Helpers\StringHelper;
 use UQL\Stream\ArrayStreamProvider;
+use UQL\Traits\Helpers\StringOperations;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
 abstract class AggregateFunction implements InvokableAggregate, \Stringable
 {
+    use StringOperations;
+
     public function getName(): string
     {
         $array = preg_split('/\\\/', $this::class);
@@ -18,7 +19,7 @@ abstract class AggregateFunction implements InvokableAggregate, \Stringable
             throw new \RuntimeException('Cannot split class name');
         }
 
-        return StringHelper::camelCaseToUpperSnakeCase(end($array));
+        return $this->camelCaseToUpperSnakeCase(end($array));
     }
 
     /**

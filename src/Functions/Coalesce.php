@@ -12,7 +12,7 @@ class Coalesce extends MultipleFieldsFunction
     {
         foreach ($this->fields as $field) {
             $field = trim($field);
-            $value = $this->getFieldValue($field, $item, $resultItem) ?? $field;
+            $value = $this->getFieldValue($field, $item, $resultItem);
             if ($value !== null) {
                 return $value;
             }

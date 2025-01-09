@@ -8,8 +8,8 @@
 ![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
 
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_91-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_366-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_94-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_378-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
 **U**ni**Q**ue**L** is a PHP library for seamless manipulation of data in
@@ -47,6 +47,7 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
   - 5.8 - [Inspect Queries and Benchmarking](#58-inspect-queries-and-benchmarking)
     - 5.8.1 - [Inspect Queries](#581-inspect-queries) 
     - 5.8.2 - [Benchmarking](#582-benchmarking)
+    - 5.8.3 - [Final results](#583-final-results)
 - 6 - [Examples](#6-examples)
 - 7 - [Contributions](#7-contributions)
 
@@ -433,10 +434,7 @@ Joining sources is possible with `leftJoin` and `innerJoin` methods. The followi
 left join between **XML** and **JSON** file.
 
 ```php
-use UQL\Enum\Operator;
-use UQL\Helpers\Debugger;
-use UQL\Stream\Json;
-use UQL\Stream\Xml;
+use UQL\Enum\Operator;use UQL\Query\Debugger;use UQL\Stream\Json;use UQL\Stream\Xml;
 
 $usersFile = Json::open(__DIR__ . '/data/users.json');
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
@@ -723,8 +721,7 @@ You can map your results to Data Transfer Objects (**DTO**) with `$dto` property
 Example with anonymous DTO object:
 
 ```php
-use UQL\Enum\Operator;
-use UQL\Helpers\Debugger;
+use UQL\Enum\Operator;use UQL\Query\Debugger;
 
 $query = $this->json->query()
     ->select('id, name, price')
@@ -818,8 +815,8 @@ $query = JsonStream::open(__DIR__ . '/data/products.tmp')->query();
 $query->selectAll()
     ->select('brand.code')->as('brandCode')
     ->groupConcat('id', '/')->as('products')
-    ->groupSum('price')->as('totalPrice')
-    ->groupCount('productId')->as('productCount')
+    ->sum('price')->as('totalPrice')
+    ->count('productId')->as('productCount')
     ->from('data.products')
     ->where('price', Operator::LESS_THAN, 300)
     ->or('price', Operator::GREATER_THAN, 400)
@@ -915,14 +912,26 @@ fully compatible with SQL strings.
 
 ### 5.8. Inspect Queries and Benchmarking
 
+If you want use inspecting and benchmarking queries, you need to use `UQL\Query\Debugger` class. Dumping variables and
+cli output require `tracy/tracy` package if you are not using it, you can install it by:
+
+```bash
+composer require --dev tracy/tracy
+```
+
+Start debugger at the beginning of your script.
+
+```php
+use UQL\Query\Debugger;
+
+Debugger::start();
+```
+
 ### 5.8.1. Inspect Queries
 You can inspect your query for mor information about execution time, memory usage, SQL query and results.
 
 ```php
-use UQL\Helpers\Debugger;
 use UQL\Stream\Xml;
-
-Debugger::start();
 
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
 $query = $ordersFile->query()
@@ -932,8 +941,6 @@ $query = $ordersFile->query()
     ->from('orders.order');
 
 Debugger::inspectQuery($query);
-
-Debugger::end();
 ```
 
 Or inspect query string which shows different between input SQL and applied SQL
@@ -950,7 +957,6 @@ Debugger::inspectQuerySql(
 You can benchmark your queries and test their performance through the number of iterations.
 
 ```php
-use UQL\Helpers\Debugger;
 use UQL\Stream\Xml;
 
 $query = Xml::open(__DIR__ . '/data/orders.xml')->query()
@@ -959,8 +965,23 @@ $query = Xml::open(__DIR__ . '/data/orders.xml')->query()
     ->select('total_price')->as('totalPrice')
     ->from('orders.order')
 
-Debugger::start();
 Debugger::benchmarkQuery($query, 1000);
+```
+
+### 5.8.3. Final results
+
+```php
+Debugger::end();
+die();
+```
+
+Will output final results like this:
+
+```
+'=============================='
+>> Final execution time (s): 2.019434
+>> Final execution time (ms): 2019.434
+>> Final execution time (µs): 2019434
 ```
 
 For more information about inspecting queries and benchmarking, see the [examples](#6-examples)
@@ -996,7 +1017,7 @@ Runs `composer example:join` and output will look like this:
 '================'
 '*** Results: ***'
 '================'
-'> Count: 4'
+> Count: 4
 '=================='
 '*** First row: ***'
 '=================='
@@ -1006,12 +1027,12 @@ array (3)
    'totalPrice' => 100
 
 '------------------------------'
-'> Memory usage: 2.0085MB (emalloc)'
-'> Memory peak usage: 2.0725MB (emalloc)'
+> Memory usage: 2.0059MB (emalloc)
+> Memory peak usage: 2.0712MB (emalloc)
 '------------------------------'
-'> Execution time (s): 0.006779'
-'> Execution time (ms): 6.779'
-'> Execution time (µs): 6779'
+> Execution time (s): 0.019864
+> Execution time (ms): 19.864
+> Execution time (µs): 19864
 '=================='
 '*** SQL query: ***'
 '=================='
@@ -1034,7 +1055,7 @@ array (3)
 '================'
 '*** Results: ***'
 '================'
-'> Count: 5'
+> Count: 5
 '=================='
 '*** First row: ***'
 '=================='
@@ -1045,16 +1066,16 @@ array (4)
    'totalPrice' => 600
 
 '------------------------------'
-'> Memory usage: 2.0278MB (emalloc)'
-'> Memory peak usage: 2.0725MB (emalloc)'
+> Memory usage: 2.0259MB (emalloc)
+> Memory peak usage: 2.0712MB (emalloc)
 '------------------------------'
-'> Execution time (s): 0.00233'
-'> Execution time (ms): 2.33'
-'> Execution time (µs): 2330'
+> Execution time (s): 0.00319
+> Execution time (ms): 3.19
+> Execution time (µs): 3190
 '========================'
 '*** Benchmark Query: ***'
 '========================'
-'> 10 000 iterations'
+> 10 000 iterations
 '=================='
 '*** SQL query: ***'
 '=================='
@@ -1077,33 +1098,33 @@ array (4)
 '========================='
 '*** STREAM BENCHMARK: ***'
 '========================='
-'> Size (KB): 2.63'
-'> Count: 5'
-'> Iterated results: 50 000'
+> Size (KB): 2.57
+> Count: 5
+> Iterated results: 50 000
 '------------------------------'
-'> Memory usage: 2.0279MB (emalloc)'
-'> Memory peak usage: 2.0725MB (emalloc)'
+> Memory usage: 2.0259MB (emalloc)
+> Memory peak usage: 2.0712MB (emalloc)
 '------------------------------'
-'> Execution time (s): 2.016064'
-'> Execution time (ms): 2016.064'
-'> Execution time (µs): 2016064'
+> Execution time (s): 2.028502
+> Execution time (ms): 2028.502
+> Execution time (µs): 2028502
 '========================'
 '*** PROXY BENCHMARK: ***'
 '========================'
-'> Size (KB): 0.58'
-'> Count: 5'
-'> Iterated results: 50 000'
+> Size (KB): 0.56
+> Count: 5
+> Iterated results: 50 000
 '------------------------------'
-'> Memory usage: 2.0299MB (emalloc)'
-'> Memory peak usage: 2.0725MB (emalloc)'
+> Memory usage: 2.028MB (emalloc)
+> Memory peak usage: 2.0712MB (emalloc)
 '------------------------------'
-'> Execution time (s): 0.003376'
-'> Execution time (ms): 3.376'
-'> Execution time (µs): 3376'
+> Execution time (s): 0.003005
+> Execution time (ms): 3.005
+> Execution time (µs): 3005
 '=============================='
-'>> Final execution time (s): 2.028676'
-'>> Final execution time (ms): 2028.676'
-'>> Final execution time (µs): 2028676'
+>> Final execution time (s): 2.054598
+>> Final execution time (ms): 2054.598
+>> Final execution time (µs): 2054598
 ```
 
 ## 7. Contributions
