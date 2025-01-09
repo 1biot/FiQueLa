@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Query;
+namespace Query;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Enum\Operator;
@@ -26,11 +26,12 @@ class ProviderTest extends TestCase
         $query = $this->json->query()
             ->from('data.products');
 
-        $results = iterator_to_array($query->fetchAll());
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
 
-        $this->assertCount(4, $results);
-        $this->assertEquals(1, $results[0]['id']);
-        $this->assertEquals('Product A', $results[0]['name']);
+        $this->assertCount(5, $data);
+        $this->assertEquals(1, $data[0]['id']);
+        $this->assertEquals('Product A', $data[0]['name']);
     }
 
     public function testFetch(): void
@@ -39,10 +40,11 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->where('id', Operator::EQUAL, 2);
 
-        $result = $query->fetch();
+        $results = $query->execute();
+        $data = $results->fetch();
 
-        $this->assertNotNull($result);
-        $this->assertEquals('Product B', $result['name']);
+        $this->assertNotNull($data);
+        $this->assertEquals('Product B', $data['name']);
     }
 
     public function testFetchSingle(): void
@@ -52,10 +54,12 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->where('price', Operator::EQUAL, 100);
 
-        $existedField = $query->fetchSingle('name');
+        $results = $query->execute();
+        $existedField = $results->fetchSingle('name');
+
         $this->assertEquals('Product A', $existedField);
 
-        $nonSelectedField = $query->fetchSingle('price');
+        $nonSelectedField = $results->fetchSingle('price');
         $this->assertEquals(null, $nonSelectedField);
     }
 
@@ -65,12 +69,26 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->orderBy('price')->desc();
 
-        $results = iterator_to_array($query->fetchAll());
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
 
-        $this->assertEquals(4, $results[0]['id']);
-        $this->assertEquals(3, $results[1]['id']);
-        $this->assertEquals(2, $results[2]['id']);
-        $this->assertEquals(1, $results[3]['id']);
+        $this->assertEquals(4, $data[0]['id']);
+        $this->assertEquals(5, $data[1]['id']);
+        $this->assertEquals(3, $data[2]['id']);
+        $this->assertEquals(2, $data[3]['id']);
+        $this->assertEquals(1, $data[4]['id']);
+
+        $query->orderBy('name')->desc();
+
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
+
+
+        $this->assertEquals(5, $data[0]['id']);
+        $this->assertEquals(4, $data[1]['id']);
+        $this->assertEquals(3, $data[2]['id']);
+        $this->assertEquals(2, $data[3]['id']);
+        $this->assertEquals(1, $data[4]['id']);
     }
 
     public function testCount(): void
@@ -79,7 +97,7 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->where('price', Operator::LESS_THAN, 300);
 
-        $this->assertEquals(2, $query->count());
+        $this->assertEquals(2, $query->execute()->count());
     }
 
     public function testSum(): void
@@ -88,9 +106,9 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->where('price', Operator::GREATER_THAN, 100);
 
-        $sum = $query->sum('price');
+        $sum = $query->execute()->sum('price');
 
-        $this->assertEquals(900, $sum, 'The sum of prices greater than 100 should be 500.');
+        $this->assertEquals(1300, $sum, 'The sum of prices greater than 100 should be 500.');
     }
 
     public function testJsonIsArray(): void
@@ -98,15 +116,16 @@ class ProviderTest extends TestCase
         $query = $this->jsonArray->query()
             ->where('price', Operator::GREATER_THAN, 100);
 
-        $results = iterator_to_array($query->fetchAll());
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
 
-        $this->assertCount(3, $results);
-        $this->assertEquals(200, $results[0]['price']);
-        $this->assertEquals('Product B', $results[0]['name']);
-        $this->assertEquals(300, $results[1]['price']);
-        $this->assertEquals('Product C', $results[1]['name']);
-        $this->assertEquals(400, $results[2]['price']);
-        $this->assertEquals('Product D', $results[2]['name']);
+        $this->assertCount(3, $data);
+        $this->assertEquals(200, $data[0]['price']);
+        $this->assertEquals('Product B', $data[0]['name']);
+        $this->assertEquals(300, $data[1]['price']);
+        $this->assertEquals('Product C', $data[1]['name']);
+        $this->assertEquals(400, $data[2]['price']);
+        $this->assertEquals('Product D', $data[2]['name']);
     }
 
     public function testUnknownFieldSelect(): void
@@ -114,6 +133,7 @@ class ProviderTest extends TestCase
         $result = $this->json->query()
             ->select('id, name, unknown')
             ->from('data.products')
+            ->execute()
             ->fetch();
 
         $this->assertSame(null, $result['unknown']);
@@ -125,11 +145,12 @@ class ProviderTest extends TestCase
             ->from('data.products')
             ->limit(2);
 
-        $results = iterator_to_array($query->fetchAll());
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
 
-        $this->assertCount(2, $results);
-        $this->assertEquals(1, $results[0]['id']);
-        $this->assertEquals(2, $results[1]['id']);
+        $this->assertCount(2, $data);
+        $this->assertEquals(1, $data[0]['id']);
+        $this->assertEquals(2, $data[1]['id']);
     }
 
     public function testFromWithInvalidPath(): void
@@ -139,6 +160,7 @@ class ProviderTest extends TestCase
 
         $this->json->query()
             ->from('data.invalid.path')
+            ->execute()
             ->fetch();
     }
 
@@ -149,12 +171,13 @@ class ProviderTest extends TestCase
             ->where('price', Operator::GREATER_THAN, 200)
             ->orIsNull('description');
 
-        $results = $query->fetchAll();
-        $data = iterator_to_array($results);
-        $count = $query->count();
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
 
-        $this->assertCount(2, $data);
-        $this->assertCount(2, $query);
+        $count = $results->count();
+
+        $this->assertCount(3, $data);
+        $this->assertCount(3, $results);
         $this->assertSame($count, count($data));
 
         $this->assertEquals(300, $data[0]['price']);
@@ -182,19 +205,20 @@ class ProviderTest extends TestCase
             public array $categoryIds;
         };
 
-        $results = iterator_to_array($query->fetchAll($dto::class));
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll($dto::class));
 
-        $this->assertCount(2, $results);
-        $this->assertInstanceOf($dto::class, $results[0]);
-        $this->assertInstanceOf($dto::class, $results[1]);
+        $this->assertCount(3, $data);
+        $this->assertInstanceOf($dto::class, $data[0]);
+        $this->assertInstanceOf($dto::class, $data[1]);
 
-        $this->assertEquals('Brand D', $results[0]->brand);
-        $this->assertEquals('Brand B', $results[1]->brand);
+        $this->assertEquals('Brand D', $data[0]->brand);
+        $this->assertEquals('Brand B', $data[1]->brand);
 
-        $this->assertIsList($results[0]->categories);
-        $this->assertIsList($results[1]->categories);
+        $this->assertIsList($data[0]->categories);
+        $this->assertIsList($data[1]->categories);
 
-        $this->assertIsList($results[0]->categoryIds);
-        $this->assertIsList($results[1]->categoryIds);
+        $this->assertIsList($data[0]->categoryIds);
+        $this->assertIsList($data[1]->categoryIds);
     }
 }

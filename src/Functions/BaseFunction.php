@@ -11,6 +11,11 @@ use UQL\Stream\ArrayStreamProvider;
  */
 abstract class BaseFunction implements Invokable, \Stringable
 {
+    public function isAggregate(): bool
+    {
+        return false;
+    }
+
     public function getName(): string
     {
         $array = preg_split('/\\\/', $this::class);

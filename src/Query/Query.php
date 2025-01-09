@@ -5,6 +5,7 @@ namespace UQL\Query;
 use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
+use UQL\Results\ResultsProvider;
 
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
@@ -20,7 +21,7 @@ use UQL\Enum\Sort;
  *     group: Condition[]
  * }
  */
-interface Query extends \Countable
+interface Query
 {
     public const SELECT_ALL = '*';
     public const FROM_ALL = self::SELECT_ALL;
@@ -464,9 +465,32 @@ interface Query extends \Countable
     public function orIsNull(string $key): Query;
     public function orIsNotNull(string $key): Query;
 
-    public function offset(int $offset): Query;
-    public function limit(int $limit, ?int $offset = null): Query;
-    public function page(int $page, int $perPage = self::PER_PAGE_DEFAULT): Query;
+    /**
+     * Specify the fields to group by in the query.
+     *
+     * This method allows you to group the results of the query by one or more fields.
+     * You can specify multiple fields to group by, and the results will be grouped
+     * by the unique combinations of those fields.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->groupBy('category');
+     * // Result: GROUP BY category
+     *
+     * $query->groupBy('category', 'brand');
+     * // Result: GROUP BY category, brand
+     * ```
+     *
+     * Use this method to group the results of the query by one or more fields.
+     */
+    public function groupBy(string ...$fields): Query;
+    public function count(?string $field = null): Query;
+    public function sum(string $key): Query;
+    public function avg(string $key): Query;
+    public function min(string $key): Query;
+    public function max(string $key): Query;
+    public function groupConcat(string $field, string $separator = ','): Query;
 
     public function orderBy(string $key, Sort $direction = Sort::ASC): Query;
     public function sortBy(string $key, Sort $direction = Sort::ASC): Query;
@@ -475,16 +499,11 @@ interface Query extends \Countable
     public function natural(): Query;
     public function shuffle(): Query;
 
-    public function fetchAll(?string $dto = null): \Generator;
-    public function fetchNth(int|string $n, ?string $dto = null): \Generator;
-    public function fetch(?string $dto = null): mixed;
-    public function fetchSingle(string $key): mixed;
+    public function offset(int $offset): Query;
+    public function limit(int $limit, ?int $offset = null): Query;
+    public function page(int $page, int $perPage = self::PER_PAGE_DEFAULT): Query;
 
-    public function count(): int;
-    public function sum(string $key): float;
-    public function avg(string $key, int $decimalPlaces = 2): float;
-    public function min(string $key): float;
-    public function max(string $key): float;
+    public function execute(): ResultsProvider;
 
     public function test(): string;
 }

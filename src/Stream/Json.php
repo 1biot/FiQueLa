@@ -4,14 +4,14 @@ namespace UQL\Stream;
 
 use ArrayIterator;
 use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormat;
+use UQL\Exceptions\InvalidFormatException;
 use UQL\Query\Provider;
 use UQL\Query\Query;
 
 final class Json extends ArrayStreamProvider
 {
     /**
-     * @throws InvalidFormat
+     * @throws InvalidFormatException
      * @throws FileNotFoundException
      */
     public static function open(string $path): self
@@ -35,7 +35,7 @@ final class Json extends ArrayStreamProvider
     }
 
     /**
-     * @throws InvalidFormat
+     * @throws InvalidFormatException
      */
     public static function string(string $data): self
     {
@@ -47,7 +47,7 @@ final class Json extends ArrayStreamProvider
 
         $decoded = json_decode($data, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new InvalidFormat("Invalid JSON string: " . json_last_error_msg());
+            throw new InvalidFormatException("Invalid JSON string: " . json_last_error_msg());
         }
 
         $stream = is_array($decoded) ? new ArrayIterator($decoded) : new ArrayIterator([$decoded]);
@@ -57,5 +57,10 @@ final class Json extends ArrayStreamProvider
     public function query(): Query
     {
         return new Provider($this);
+    }
+
+    public function provideSource(): string
+    {
+        return '[json://memory]';
     }
 }

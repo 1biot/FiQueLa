@@ -8,10 +8,6 @@ trait From
 {
     private ?string $from = null;
 
-    /**
-     * @param string $query
-     * @return Query
-     */
     public function from(string $query): Query
     {
         $this->from = $query;
@@ -23,8 +19,13 @@ trait From
         return $this->from ?? Query::FROM_ALL;
     }
 
-    private function fromToString(): string
+    private function fromToString(string $source): string
     {
-        return "\n" . Query::FROM . ' ' . ($this->from ?? Query::FROM_ALL);
+        return sprintf(
+            PHP_EOL . "%s %s%s",
+            Query::FROM,
+            $source === '' ? '' : ($source . '.'),
+            $this->from ?? Query::FROM_ALL
+        );
     }
 }

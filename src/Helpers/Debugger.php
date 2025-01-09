@@ -4,7 +4,10 @@ namespace UQL\Helpers;
 
 use UQL\Parser\Sql;
 use UQL\Query\Query;
+use UQL\Results\Proxy;
+use UQL\Results\ResultsProvider;
 use UQL\Stream\Json;
+use UQL\Stream\JsonStream;
 use UQL\Stream\Neon;
 use UQL\Stream\Xml;
 use UQL\Stream\Yaml;
@@ -20,48 +23,44 @@ class Debugger
         }
     }
 
-    public static function end(): void
+    public static function split(): void
     {
         if (!defined('DEBUGGER_START')) {
             return;
         }
 
-        self::dump('------------------------------');
-        self::debug();
-        self::dump('------------------------------');
+        self::memoryDebug();
+
         $start = constant('DEBUGGER_START');
         $end = microtime(true);
+        $lastSplitTime = self::$lastSplitTime ?? $start;
 
-        $splitTime = $end - $start - (self::$lastSplitTime ?? 0);
-        self::$lastSplitTime = $end - $start;
-        $units = ['ms', 's'];
-        $time = round(($splitTime - floor($splitTime)) * 1e6); // µs
-        self::dump('Execution time (µs): ' . $time);
-        foreach ($units as $unit) {
-            if ($time < 1000) {
-                break;
-            }
+        $time = round(($end - $lastSplitTime) * 1e6); // µs
+        self::echoLineNameValue('Execution time (s)', $time / 1000 / 1000);
+        self::echoLineNameValue('Execution time (ms)', $time / 1000);
+        self::echoLineNameValue('Execution time (µs)', $time);
 
-            $time /= 1000;
-            self::dump(sprintf('Execution time (%s): %s', $unit, $time));
-        }
+        self::$lastSplitTime = $end;
     }
 
-    public static function finish(): void
+    public static function end(): void
     {
-        self::dump('------------------------------');
+        self::dump('==============================');
         $start = constant('DEBUGGER_START');
         $end = microtime(true);
-        $splitTime = $end - $start;
-        self::dump('Final execution time (µs): ' . round(($splitTime - floor($splitTime)) * 1e6));
-        self::dump('Final execution time (ms): ' . round(($splitTime - floor($splitTime)) * 1e6 / 1000));
+
+        $time = round(($end - $start) * 1e6); // µs
+        self::echoLineNameValue('Final execution time (s)', $time / 1000 / 1000, 2);
+        self::echoLineNameValue('Final execution time (ms)', $time / 1000, 2);
+        self::echoLineNameValue('Final execution time (µs)', $time, 2);
     }
 
     public static function memoryUsage(bool $realUsage = false): void
     {
-        self::dump(
+        self::echoLineNameValue(
+            'Memory usage',
             sprintf(
-                'Memory usage: %sMB (%s)',
+                '%sMB (%s)',
                 round(memory_get_usage($realUsage) / 1024 / 1024, 4),
                 $realUsage ? 'real' : 'emalloc'
             )
@@ -70,21 +69,22 @@ class Debugger
 
     public static function memoryPeakUsage(bool $realUsage = false): void
     {
-        self::dump(
+        self::echoLineNameValue(
+            'Memory peak usage',
             sprintf(
-                'Memory peak usage: %sMB (%s)',
+                '%sMB (%s)',
                 round(memory_get_peak_usage($realUsage) / 1024 / 1024, 4),
                 $realUsage ? 'real' : 'emalloc'
             )
         );
     }
 
-    public static function debug(): void
+    public static function memoryDebug(): void
     {
+        self::dump('------------------------------');
         self::memoryUsage();
         self::memoryPeakUsage();
-        self::memoryUsage(true);
-        self::memoryPeakUsage(true);
+        self::dump('------------------------------');
     }
 
     public static function dump(mixed $var): void
@@ -92,43 +92,102 @@ class Debugger
         dump($var);
     }
 
-    public static function inspectQuery(Query $query, bool $results = false): void
+    public static function inspectQuery(Query $query, bool $listResults = false): void
     {
-        self::dump('------------------');
-        self::dump('### SQL query: ###');
-        self::dump('------------------');
+        self::echoSection('SQL query');
         self::queryToOutput($query->test());
-        self::dump('----------------');
-        self::dump('### Results: ###');
-        self::dump('----------------');
-        self::dump(sprintf('### Count: %s', $query->count()));
-        self::dump('------------------');
-        self::dump('### First row: ###');
-        self::dump('------------------');
-        self::dump($query->fetch());
-        if ($results) {
+
+        $results = $query->execute();
+        self::echoSection('Results');
+        self::echoLineNameValue('Count', $results->count());
+        if ($listResults) {
             self::dump('------------------');
-            self::dump(iterator_to_array($query->fetchAll()));
+            self::dump(iterator_to_array($results->fetchAll()));
+        } else {
+            self::echoSection('First row');
+            self::dump($results->fetch());
         }
 
-        self::end();
+        self::split();
     }
 
-    public static function inspectQuerySql(Xml|Json|Neon|Yaml $stream, string $sql): void
+    public static function inspectQuerySql(Xml|Json|JsonStream|Neon|Yaml $stream, string $sql): Query
     {
-        self::dump('---------------------------');
-        self::dump('### Original SQL query: ###');
-        self::dump('---------------------------');
+        self::echoSection('Original SQL query');
         self::queryToOutput($sql);
 
         $query = (new Sql())
             ->parse(trim($sql), $stream->query());
 
         self::inspectQuery($query);
+        return $query;
+    }
+
+    public static function benchmarkQuery(Query $query, int $iterations = 2500): void
+    {
+        self::echoSection('Benchmark Query');
+        self::echoLine(sprintf('%s iterations', number_format($iterations, 0, ',', ' ')));
+
+        self::echoSection('SQL query');
+        self::queryToOutput($query->test());
+
+        self::benchmarkStream($query, $iterations);
+        self::benchmarkProxy($query, $iterations);
+    }
+
+    private static function benchmarkStream(Query $query, int $iterations = 2500): void
+    {
+        $results = $query->execute();
+        self::echoSection('STREAM BENCHMARK');
+        self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
+        self::echoLineNameValue('Count', $results->count());
+
+        self::iterateResults($results, $iterations);
+        self::split();
+    }
+
+    private static function benchmarkProxy(Query $query, int $iterations = 2500): void
+    {
+        $results = $query->execute()->getProxy();
+        self::echoSection('PROXY BENCHMARK');
+        self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
+        self::echoLineNameValue('Count', $results->count());
+
+        self::iterateResults($results, $iterations);
+        self::split();
+    }
+
+    private static function iterateResults(ResultsProvider|Proxy $results, int $iterations = 2500): void
+    {
+        $counter = 0;
+        for ($i = 0; $i < $iterations; $i++) {
+            foreach ($results->getIterator() as $row) {
+                $counter++;
+            }
+        }
+        self::echoLineNameValue('Iterated results', number_format($counter, 0, ',', ' '));
+    }
+
+    private static function echoSection(string $text): void
+    {
+        $text = '*** ' . $text . ': ***';
+        self::dump(str_repeat('=', strlen($text)));
+        self::dump($text);
+        self::dump(str_repeat('=', strlen($text)));
+    }
+
+    private static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
+    {
+        self::echoLine(sprintf('%s: %s', $name, $value), $beginCharRepeat);
+    }
+
+    private static function echoLine(string $text, int $beginCharRepeat = 1): void
+    {
+        self::dump(sprintf('%s %s', str_repeat('>', $beginCharRepeat), $text));
     }
 
     private static function queryToOutput(string $query): void
     {
-        echo '>>> ' . str_replace("\n", "\n>>> ", $query) . PHP_EOL;
+        echo '>> ' . str_replace(PHP_EOL, PHP_EOL . '>> ', $query) . PHP_EOL;
     }
 }

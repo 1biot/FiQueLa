@@ -9,7 +9,7 @@ final class Concat extends ConcatWS
         parent::__construct('', ...$fields);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s(%s)',

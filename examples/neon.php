@@ -17,6 +17,7 @@ $query = $neon->query()
     ->or('price', Operator::GREATER_THAN, 200);
 
 Debugger::inspectQuery($query);
+Debugger::benchmarkQuery($query);
 
 $query = $neon->query()
     ->select('totalCount')->as('totalPages')
@@ -24,4 +25,6 @@ $query = $neon->query()
     ->from('data.paginator');
 
 Debugger::inspectQuery($query);
-Debugger::finish();
+Debugger::benchmarkQuery($query);
+
+Debugger::end();

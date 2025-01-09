@@ -1,8 +1,9 @@
 <?php
 
-namespace UQL\Enum;
+namespace Enum;
 
 use PHPUnit\Framework\TestCase;
+use UQL\Enum\Operator;
 
 class OperatorTest extends TestCase
 {

@@ -33,6 +33,16 @@ final class Mod extends SingleFieldFunction
             );
         }
 
-        return $value % $this->divisor;
+        return fmod($value, $this->divisor);
+    }
+
+    public function __toString(): string
+    {
+        return sprintf(
+            '%s(%s, %s)',
+            $this->getName(),
+            $this->field,
+            $this->divisor
+        );
     }
 }

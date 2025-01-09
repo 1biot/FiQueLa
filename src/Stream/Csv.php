@@ -3,7 +3,7 @@
 namespace UQL\Stream;
 
 use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\NotImplemented;
+use UQL\Exceptions\NotImplementedException;
 use UQL\Query\Provider;
 use UQL\Query\Query;
 
@@ -19,11 +19,11 @@ class Csv extends CsvProvider
     }
 
     /**
-     * @throws NotImplemented
+     * @throws NotImplementedException
      */
     public static function string(string $data): Stream
     {
-        throw new NotImplemented("Method not yet implemented.");
+        throw new NotImplementedException("Method not yet implemented.");
     }
 
     /**

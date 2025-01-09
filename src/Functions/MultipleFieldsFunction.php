@@ -12,7 +12,7 @@ abstract class MultipleFieldsFunction extends BaseFunction
         $this->fields = $fields;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s(%s)',

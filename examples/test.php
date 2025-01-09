@@ -17,6 +17,7 @@ $query->select('name, price')
         ->and('price', Operator::GREATER_THAN, 200);
 
 Debugger::inspectQuery($query);
+Debugger::benchmarkQuery($query);
 
 $query = $json->query();
 $query->select('name, price')
@@ -27,4 +28,6 @@ $query->select('name, price')
     ->or('brand.code', Operator::EQUAL, 'BRAND-B');
 
 Debugger::inspectQuery($query);
-Debugger::finish();
+Debugger::benchmarkQuery($query);
+
+Debugger::end();

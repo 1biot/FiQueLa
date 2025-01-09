@@ -115,4 +115,30 @@ abstract class XmlProvider extends StreamProvider implements Stream
 
         return $result;
     }
+
+    public function getXmlFilePath(): string
+    {
+        return $this->xmlFilePath;
+    }
+
+    public function getEncoding(): ?string
+    {
+        return $this->encoding;
+    }
+
+    public function provideSource(): string
+    {
+        $source = '';
+        if ($this->xmlFilePath !== '') {
+            if (pathinfo($this->xmlFilePath, PATHINFO_EXTENSION) !== 'xml') {
+                $source .= 'csv://';
+            }
+            $source .= basename($this->xmlFilePath);
+            $source = sprintf('[%s]', $source);
+            if ($this->encoding !== null && $this->encoding !== '') {
+                $source .= "({$this->encoding})";
+            }
+        }
+        return $source;
+    }
 }

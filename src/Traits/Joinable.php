@@ -2,17 +2,23 @@
 
 namespace UQL\Traits;
 
-use UQL\Enum\Join;
-use UQL\Enum\Operator;
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Query\Provider;
+use UQL\Enum;
+use UQL\Exceptions;
 use UQL\Query\Query;
+use UQL\Stream\ArrayStreamProvider;
 
 /**
- * @phpstan-import-type StreamProviderArrayIterator from Provider
- * @phpstan-import-type StreamProviderArrayIteratorValue from Provider
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
+ * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  * @codingStandardsIgnoreStart
- * @phpstan-type JoinAbleArray array{type: Join, table: Query, alias: string, leftKey: ?string, operator: ?Operator, rightKey: ?string}
+ * @phpstan-type JoinAbleArray array{
+ *     type: Enum\Join,
+ *     table: Query,
+ *     alias: string,
+ *     leftKey: ?string,
+ *     operator: ?Enum\Operator,
+ *     rightKey: ?string
+ * }
  * @codingStandardsIgnoreEnd
 */
 trait Joinable
@@ -32,21 +38,21 @@ trait Joinable
 
     public function innerJoin(Query $query, string $alias): Query
     {
-        $this->addJoin($query, Join::INNER, $alias);
+        $this->addJoin($query, Enum\Join::INNER, $alias);
         return $this;
     }
 
     public function leftJoin(Query $query, string $alias): Query
     {
-        $this->addJoin($query, Join::LEFT, $alias);
+        $this->addJoin($query, Enum\Join::LEFT, $alias);
         return $this;
     }
 
-    public function on(string $leftKey, Operator $operator, string $rightKey): Query
+    public function on(string $leftKey, Enum\Operator $operator, string $rightKey): Query
     {
         $joinKey = array_key_last($this->joins);
         if ($joinKey === null) {
-            throw new InvalidArgumentException('Cannot use alias without a field');
+            throw new Exceptions\JoinException('Cannot use "ON" condition without a join');
         }
 
         $join = &$this->joins[$joinKey];
@@ -57,10 +63,10 @@ trait Joinable
         return $this;
     }
 
-    private function addJoin(Query $query, Join $type, string $alias): void
+    private function addJoin(Query $query, Enum\Join $type, string $alias): void
     {
         if ($alias === '') {
-            throw new InvalidArgumentException('Alias cannot be empty');
+            throw new Exceptions\JoinException('Set alias for join');
         }
 
         $this->joins[] = [
@@ -74,79 +80,7 @@ trait Joinable
     }
 
     /**
-     * Applies all defined joins to the dataset.
-     *
-     * @param \Generator $data The primary data to join.
-     * @return StreamProviderArrayIterator|\Generator The joined dataset.
-     */
-    private function applyJoins(\Generator $data): \ArrayIterator|\Generator
-    {
-        foreach ($this->joins as $join) {
-            $data = $this->applyJoin($data, $join);
-        }
-
-        return $data;
-    }
-
-    /**
-     * Applies a single join to the dataset.
-     *
-     * @param StreamProviderArrayIterator|\Generator $leftData The left dataset.
-     * @param JoinAbleArray $join The join to apply.
-     * @return StreamProviderArrayIterator The resulting dataset after the join.
-     */
-    private function applyJoin(iterable $leftData, array $join): \ArrayIterator
-    {
-        $rightData = iterator_to_array($join['table']->fetchAll());
-        $alias = $join['alias'];
-        $leftKey = $join['leftKey'];
-        $rightKey = $join['rightKey'];
-        $operator = $join['operator'] ?? Operator::EQUAL;
-        $type = $join['type'];
-
-        // Build a hashmap for the right table
-        $hashmap = [];
-        foreach ($rightData as $row) {
-            $key = $row[$rightKey] ?? null;
-            if ($key !== null) {
-                $hashmap[$key][] = $row;
-            }
-        }
-
-        $result = [];
-        foreach ($leftData as $leftRow) {
-            $leftKeyValue = $leftRow[$leftKey] ?? null;
-
-            if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
-                // Handle matches (n * n)
-                foreach ($hashmap[$leftKeyValue] as $rightRow) {
-                    /** @var StreamProviderArrayIteratorValue $joinedRow */
-                    $joinedRow = $alias
-                        ? array_merge($leftRow, [$alias => $rightRow])
-                        : array_merge($leftRow, $rightRow);
-
-                    if ($operator->evaluate($leftKeyValue, $rightRow[$rightKey] ?? null)) {
-                        $result[] = $joinedRow;
-                    }
-                }
-            } elseif ($type === Join::LEFT) {
-                // Handle LEFT JOIN (no match)
-                $nullRow = array_fill_keys(array_keys($rightData[0] ?? []), null);
-                /** @var StreamProviderArrayIteratorValue $joinedRow */
-                $joinedRow = $alias
-                    ? array_merge($leftRow, [$alias => $nullRow])
-                    : array_merge($leftRow, $nullRow);
-
-                $result[] = $joinedRow;
-            }
-        }
-
-        return new \ArrayIterator($result);
-    }
-
-    /**
      * Generates a SQL-like string for all defined joins.
-     *
      * @return string The SQL-like representation of joins.
      */
     private function joinsToString(): string
@@ -154,14 +88,17 @@ trait Joinable
         $joinStrings = [];
 
         foreach ($this->joins as $join) {
-            $tableString = sprintf("\n(\n%s\n)", $join['table']->test());
+            $tableString = sprintf(
+                PHP_EOL . '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
+                str_replace(PHP_EOL, PHP_EOL . "\t", $join['table']->test())
+            );
             $alias = $join['alias'] ? ' AS ' . $join['alias'] : '';
             $condition = $join['leftKey'] && $join['rightKey']
                 ? sprintf('%s %s %s', $join['leftKey'], $join['operator']->value, $join['rightKey'])
                 : '[No Condition]';
 
             $joinStrings[] = sprintf(
-                "\n%s %s%s ON %s",
+                PHP_EOL . "%s %s%s ON %s",
                 strtoupper($join['type']->value),
                 $tableString,
                 $alias,

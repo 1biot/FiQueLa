@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Traits;
+namespace Traits;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Enum\Operator;
@@ -36,9 +36,9 @@ class JoinableTest extends TestCase
             ->having('totalPrice', Operator::GREATER_THAN, 200)
             ->orderBy('totalPrice')->desc();
 
-        $result = $query->fetchAll();
-        $count = $query->count();
+        $results = $query->execute();
+        $count = $results->count();
 
-        self::assertSame(count(iterator_to_array($result)), $count);
+        self::assertSame(count(iterator_to_array($results->fetchAll())), $count);
     }
 }

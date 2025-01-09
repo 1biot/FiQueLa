@@ -3,8 +3,8 @@
 namespace UQL\Stream;
 
 use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormat;
-use UQL\Exceptions\NotImplemented;
+use UQL\Exceptions\InvalidFormatException;
+use UQL\Exceptions\NotImplementedException;
 use UQL\Query\Provider;
 use UQL\Query\Query;
 
@@ -24,7 +24,6 @@ class Xml extends XmlProvider
 
     /**
      * @throws FileNotFoundException
-     * @throws InvalidFormat
      */
     public static function open(string $path): self
     {
@@ -32,11 +31,11 @@ class Xml extends XmlProvider
     }
 
     /**
-     * @throws NotImplemented
+     * @throws NotImplementedException
      */
     public static function string(string $data): Stream
     {
-        throw new NotImplemented("Method not yet implemented.");
+        throw new NotImplementedException("Method not yet implemented.");
     }
 
     public function query(): Query

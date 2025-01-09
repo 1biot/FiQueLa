@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Traits;
+namespace Traits;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Query\Query;

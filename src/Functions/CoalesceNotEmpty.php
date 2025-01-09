@@ -21,7 +21,7 @@ final class CoalesceNotEmpty extends Coalesce
         return '';
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             'COALESCE_NE(%s)',

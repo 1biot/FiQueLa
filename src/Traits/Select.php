@@ -2,13 +2,14 @@
 
 namespace UQL\Traits;
 
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions;
 use UQL\Functions;
-use UQL\Helpers\ArrayHelper;
 use UQL\Query\Query;
 
 /**
- * @phpstan-type SelectedField array{originField: string, alias: bool, function: ?Functions\BaseFunction}
+ * @codingStandardsIgnoreStart
+ * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Functions\BaseFunction|Functions\AggregateFunction}
+ * @codingStandardsIgnoreEnd
  * @phpstan-type SelectedFields array<string, SelectedField>
  */
 trait Select
@@ -32,7 +33,7 @@ trait Select
             }
 
             if (isset($this->selectedFields[$field])) {
-                throw new \InvalidArgumentException(sprintf('Field "%s" already defined', $field));
+                throw new Exceptions\SelectException(sprintf('Field "%s" already defined', $field));
             }
 
             $this->addField($field);
@@ -44,16 +45,16 @@ trait Select
     public function as(string $alias): Query
     {
         if ($alias === '') {
-            throw new InvalidArgumentException('Alias cannot be empty');
+            throw new Exceptions\AliasException('Alias cannot be empty');
         }
 
         $select = array_key_last($this->selectedFields);
         if ($select === null) {
-            throw new InvalidArgumentException('Cannot use alias without a field');
+            throw new Exceptions\AliasException('Cannot use alias without any "SELECT" field');
         } elseif ($this->selectedFields[$select]['alias']) {
-            throw new InvalidArgumentException('Cannot use alias repeatedly');
+            throw new Exceptions\AliasException('Cannot use alias repeatedly');
         } elseif (isset($this->selectedFields[$alias])) {
-            throw new InvalidArgumentException(sprintf('Alias "%s" already defined', $alias));
+            throw new Exceptions\AliasException(sprintf('Alias "%s" already defined', $alias));
         }
 
         $function = $this->selectedFields[$select]['function'] ?? null;
@@ -153,7 +154,37 @@ trait Select
         return $this->addFieldFunction(new Functions\Mod($field, $divisor));
     }
 
-    private function addFieldFunction(Functions\BaseFunction $function): Query
+    public function count(?string $field = null): Query
+    {
+        return $this->addFieldFunction(new Functions\Count($field));
+    }
+
+    public function sum(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\Sum($field));
+    }
+
+    public function groupConcat(string $field, string $separator = ','): Query
+    {
+        return $this->addFieldFunction(new Functions\GroupConcat($field, $separator));
+    }
+
+    public function min(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\Min($field));
+    }
+
+    public function avg(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\Avg($field));
+    }
+
+    public function max(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\Max($field));
+    }
+
+    private function addFieldFunction(Functions\BaseFunction|Functions\AggregateFunction $function): Query
     {
         $this->addField(
             (string) $function,
@@ -163,8 +194,11 @@ trait Select
         return $this;
     }
 
-    private function addField(string $field, ?string $alias = null, ?Functions\BaseFunction $function = null): Query
-    {
+    private function addField(
+        string $field,
+        ?string $alias = null,
+        null|Functions\BaseFunction|Functions\AggregateFunction $function = null
+    ): Query {
         $this->selectedFields[$alias ?? $field] = [
             'originField' => $field,
             'alias' => $alias !== null,
@@ -172,49 +206,6 @@ trait Select
         ];
 
         return $this;
-    }
-
-    /**
-     * @param array<string|int, mixed> $item
-     * @return array<string|int, mixed>
-     */
-    private function applySelect(array $item): array
-    {
-        if ($this->selectedFields === []) {
-            return $item;
-        }
-
-        $result = [];
-        foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = $finalField;
-            if ($fieldData['function'] !== null) {
-                $result[$fieldName] = $fieldData['function']($item, $result);
-                continue;
-            }
-
-            $result[$fieldName] = ArrayHelper::getNestedValue(
-                $item,
-                $fieldData['alias'] ? $fieldData['originField'] : $finalField,
-                false
-            );
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return string[]
-     */
-    private function getAliasedFields(): array
-    {
-        $fields = [];
-        foreach ($this->selectedFields as $finalField => $fieldData) {
-            if ($fieldData['alias']) {
-                $fields[] = $finalField;
-            }
-        }
-
-        return $fields;
     }
 
     private function selectToString(): string
@@ -227,7 +218,7 @@ trait Select
         $count = count($this->selectedFields) - 1;
         $counter = 0;
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $return .= "\n\t" . $fieldData['originField'];
+            $return .= PHP_EOL . "\t" . $fieldData['originField'];
             if ($fieldData['alias']) {
                 $return .= ' ' . Query::AS . ' ' . $finalField;
             }

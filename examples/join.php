@@ -25,8 +25,9 @@ $users = $usersFile->query()
     ->from('data.users')
     ->leftJoin($orders, 'o')
         ->on('id', Operator::EQUAL, 'userId')
-    ->where('o.totalPrice', Operator::EQUAL_STRICT, null)
+    ->groupBy('orderId')
     ->orderBy('totalPrice')->desc();
 
 Debugger::inspectQuery($users);
-Debugger::finish();
+Debugger::benchmarkQuery($users, 10000);
+Debugger::end();

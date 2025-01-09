@@ -18,6 +18,7 @@ $query->select('name, price')
         ->and('price', Operator::GREATER_THAN, 200);
 
 Debugger::inspectQuery($query);
+Debugger::benchmarkQuery($query);
 
 $query = $yaml->query()
     ->select('totalCount')->as('totalPages')
@@ -25,4 +26,6 @@ $query = $yaml->query()
     ->from('data.paginator');
 
 Debugger::inspectQuery($query);
-Debugger::finish();
+Debugger::benchmarkQuery($query);
+
+Debugger::end();

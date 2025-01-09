@@ -2,7 +2,6 @@
 
 namespace UQL\Traits;
 
-use UQL\Helpers\ArrayHelper;
 use UQL\Query\Query;
 
 trait Limit
@@ -41,39 +40,13 @@ trait Limit
         return $this->offset;
     }
 
-    /**
-     * @param class-string|null $dto
-     */
-    private function applyLimit(\Generator $data, ?string $dto = null): \Generator
-    {
-        $count = 0;
-        $currentOffset = 0; // Number of already skipped records
-        foreach ($data as $item) {
-            if ($this->getOffset() !== null && $currentOffset < $this->getOffset()) {
-                $currentOffset++;
-                continue;
-            }
-
-            if ($dto !== null) {
-                $item = ArrayHelper::mapArrayToObject($item, $dto);
-            }
-
-            yield $item;
-
-            $count++;
-            if ($this->getLimit() !== null && $count >= $this->getLimit()) {
-                break;
-            }
-        }
-    }
-
     private function limitToString(): string
     {
-        return $this->limit ? ("\n" . Query::LIMIT . ' ' . $this->limit) : '';
+        return $this->limit ? (PHP_EOL . Query::LIMIT . ' ' . $this->limit) : '';
     }
 
     private function offsetToString(): string
     {
-        return $this->offset ? "\n" . Query::OFFSET . ' ' . $this->offset : '';
+        return $this->offset ? PHP_EOL .  Query::OFFSET . ' ' . $this->offset : '';
     }
 }

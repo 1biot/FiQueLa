@@ -20,4 +20,6 @@ $query->select('@attributes.id')
     ->endGroup();
 
 Debugger::inspectQuery($query);
-Debugger::finish();
+Debugger::benchmarkQuery($query);
+
+Debugger::end();

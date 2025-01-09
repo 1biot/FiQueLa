@@ -14,7 +14,7 @@ abstract class SingleFieldFunction extends BaseFunction
     {
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s(%s)',

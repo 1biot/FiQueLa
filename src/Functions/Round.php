@@ -37,7 +37,7 @@ final class Round extends SingleFieldFunction
         return round($value, $this->precision);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s(%s, %d)',

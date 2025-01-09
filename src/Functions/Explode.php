@@ -28,7 +28,7 @@ class Explode extends SingleFieldFunction
         return explode($this->separator, $value);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s("%s", %s)',

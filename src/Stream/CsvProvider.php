@@ -93,4 +93,25 @@ abstract class CsvProvider extends StreamProvider implements Stream
     {
         return $this->delimiter;
     }
+
+    public function getCsvFilePath(): string
+    {
+        return $this->csvFilePath;
+    }
+
+    public function provideSource(): string
+    {
+        $source = '';
+        if ($this->csvFilePath !== '') {
+            if (pathinfo($this->csvFilePath, PATHINFO_EXTENSION) !== 'csv') {
+                $source .= 'csv://';
+            }
+            $source .= basename($this->csvFilePath);
+            $source = sprintf('[%s]', $source);
+            if ($this->inputEncoding !== null && $this->inputEncoding !== '') {
+                $source .= "({$this->inputEncoding})";
+            }
+        }
+        return $source;
+    }
 }

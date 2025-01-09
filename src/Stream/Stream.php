@@ -3,6 +3,7 @@
 namespace UQL\Stream;
 
 use UQL\Query\Query;
+use UQL\Results\Results;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
@@ -22,8 +23,9 @@ interface Stream
      */
     public function getStream(?string $query): ?\ArrayIterator;
     public function getStreamGenerator(?string $query): ?\Generator;
+    public function provideSource(): string;
 
     public function query(): Query;
 
-    public function sql(string $sql): \Generator;
+    public function sql(string $sql): Results;
 }

@@ -1,8 +1,9 @@
 <?php
 
-namespace UQL\Helpers;
+namespace Helpers;
 
 use PHPUnit\Framework\TestCase;
+use UQL\Helpers\ArrayHelper;
 
 class ArrayHelperTest extends TestCase
 {

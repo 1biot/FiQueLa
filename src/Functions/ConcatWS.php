@@ -22,7 +22,7 @@ class ConcatWS extends MultipleFieldsFunction
         return implode($this->separator, $result);
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf(
             '%s("%s", %s)',

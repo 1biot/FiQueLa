@@ -17,7 +17,8 @@ OR price >= 200
 ORDER BY productId DESC
 SQL;
 
-Debugger::inspectQuerySql($xml, $sql);
+$query = Debugger::inspectQuerySql($xml, $sql);
+Debugger::benchmarkQuery($query);
 
 $json = Json::open(__DIR__ . '/data/products.json');
 $jsonSql = <<<SQL
@@ -29,5 +30,7 @@ WHERE
     OR price > 300
 SQL;
 
-Debugger::inspectQuerySql($json, $jsonSql);
-Debugger::finish();
+$query = Debugger::inspectQuerySql($json, $jsonSql);
+Debugger::benchmarkQuery($query);
+
+Debugger::end();

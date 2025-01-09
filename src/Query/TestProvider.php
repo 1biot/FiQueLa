@@ -3,8 +3,10 @@
 namespace UQL\Query;
 
 use UQL\Exceptions\InvalidArgumentException;
+use UQL\Results\Proxy;
 use UQL\Traits\Conditions;
 use UQL\Traits\From;
+use UQL\Traits\Groupable;
 use UQL\Traits\Joinable;
 use UQL\Traits\Limit;
 use UQL\Traits\Select;
@@ -19,6 +21,7 @@ class TestProvider implements Query
 {
     use Select;
     use From;
+    use Groupable;
     use Joinable;
     use Conditions;
     use Sortable;
@@ -63,53 +66,13 @@ class TestProvider implements Query
         return $this;
     }
 
-    public function fetchAll(?string $dto = null): \Generator
+    public function execute(): Proxy
     {
-        yield [];
-    }
-
-    public function fetchNth(int|string $n, ?string $dto = null): \Generator
-    {
-        yield [];
-    }
-
-    public function fetch(?string $dto = null): mixed
-    {
-        return $dto ? new \stdClass() : [];
-    }
-
-    public function fetchSingle(string $key): mixed
-    {
-        return null;
-    }
-
-    public function sum(string $key): float
-    {
-        return 0;
-    }
-
-    public function avg(string $key, int $decimalPlaces = 2): float
-    {
-        return 0;
+        return new Proxy([]);
     }
 
     public function test(): string
     {
         return '';
-    }
-
-    public function count(): int
-    {
-        return 0;
-    }
-
-    public function min(string $key): float
-    {
-        return 0;
-    }
-
-    public function max(string $key): float
-    {
-        return 0;
     }
 }

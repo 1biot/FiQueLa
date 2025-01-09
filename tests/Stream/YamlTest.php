@@ -1,10 +1,11 @@
 <?php
 
-namespace UQL\Stream;
+namespace Stream;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormat;
+use UQL\Exceptions\InvalidFormatException;
+use UQL\Stream\Yaml;
 
 class YamlTest extends TestCase
 {
@@ -35,7 +36,7 @@ class YamlTest extends TestCase
 
     public function testOpenInvalidJsonFile(): void
     {
-        $this->expectException(InvalidFormat::class);
+        $this->expectException(InvalidFormatException::class);
         $this->expectExceptionMessage("Invalid YAML string");
 
         Yaml::open($this->invalidYamlFile);
@@ -43,7 +44,7 @@ class YamlTest extends TestCase
 
     public function testStringInvalidJson(): void
     {
-        $this->expectException(InvalidFormat::class);
+        $this->expectException(InvalidFormatException::class);
         $this->expectExceptionMessage("Invalid YAML string");
 
         Yaml::string($this->invalidYamlString);

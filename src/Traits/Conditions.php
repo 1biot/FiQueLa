@@ -2,11 +2,8 @@
 
 namespace UQL\Traits;
 
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Operator;
-use UQL\Exceptions\InvalidArgumentException;
-use LogicException;
-use UQL\Helpers\ArrayHelper;
+use UQL\Enum;
+use UQL\Exceptions;
 use UQL\Query\Query;
 use UQL\Stream\ArrayStreamProvider;
 
@@ -34,39 +31,33 @@ trait Conditions
      */
     private string $currentContext = 'where';
 
-    /** @var ConditionGroup|null $currentGroup */
+    /** @var null|ConditionGroup $currentGroup */
     private ?array $currentGroup = null;
 
     /**
-     * @var LogicalOperator|null Actual logical operator for actual group context
+     * @var Enum\LogicalOperator|null Actual logical operator for actual group context
      */
-    private ?LogicalOperator $currentOperator = null;
+    private ?Enum\LogicalOperator $currentOperator = null;
 
     /** @var bool $havingGroupExists */
     private bool $havingGroupExists = false;
 
     /**
      * Switch context to WHERE and optionally add condition
-     * @param string|null $key Field name
-     * @param Operator|null $operator Operator
-     * @param mixed $value Comparison value
      */
-    public function where(?string $key = null, ?Operator $operator = null, mixed $value = null): Query
+    public function where(?string $key = null, ?Enum\Operator $operator = null, mixed $value = null): Query
     {
         $this->currentContext = 'where';
         if ($key !== null && $operator !== null) {
-            $this->addCondition(LogicalOperator::AND, $key, $operator, $value);
+            $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         }
         return $this;
     }
 
     /**
      * Switch context to HAVING and optionally add condition
-     * @param string|null $key Field name
-     * @param Operator|null $operator Operator
-     * @param mixed $value Comparison value
      */
-    public function having(?string $key = null, ?Operator $operator = null, mixed $value = null): Query
+    public function having(?string $key = null, ?Enum\Operator $operator = null, mixed $value = null): Query
     {
         $this->currentContext = 'having';
 
@@ -76,7 +67,7 @@ trait Conditions
         }
 
         if ($key !== null && $operator !== null) {
-            $this->addCondition(LogicalOperator::AND, $key, $operator, $value);
+            $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         }
 
         return $this;
@@ -84,56 +75,50 @@ trait Conditions
 
     /**
      * Add AND condition to current context
-     * @param string $key Field name
-     * @param Operator $operator Operator
-     * @param mixed $value Comparison value
      */
-    public function and(string $key, Operator $operator, mixed $value): Query
+    public function and(string $key, Enum\Operator $operator, mixed $value): Query
     {
-        $this->addCondition(LogicalOperator::AND, $key, $operator, $value);
+        $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         return $this;
     }
 
     /**
      * Add OR condition to current context
-     * @param string $key Field name
-     * @param Operator $operator Operator
-     * @param mixed $value Comparison value
      */
-    public function or(string $key, Operator $operator, mixed $value): Query
+    public function or(string $key, Enum\Operator $operator, mixed $value): Query
     {
-        $this->addCondition(LogicalOperator::OR, $key, $operator, $value);
+        $this->addCondition(Enum\LogicalOperator::OR, $key, $operator, $value);
         return $this;
     }
 
     public function is(string $key, null|int|float|string $value): Query
     {
-        return $this->and($key, Operator::EQUAL, $value);
+        return $this->and($key, Enum\Operator::EQUAL, $value);
     }
 
     public function orIs(string $key, null|int|float|string $value): Query
     {
-        return $this->or($key, Operator::EQUAL, $value);
+        return $this->or($key, Enum\Operator::EQUAL, $value);
     }
 
     public function isNull(string $key): Query
     {
-        return $this->and($key, Operator::EQUAL_STRICT, null);
+        return $this->and($key, Enum\Operator::EQUAL_STRICT, null);
     }
 
     public function orIsNull(string $key): Query
     {
-        return $this->or($key, Operator::EQUAL_STRICT, null);
+        return $this->or($key, Enum\Operator::EQUAL_STRICT, null);
     }
 
     public function isNotNull(string $key): Query
     {
-        return $this->and($key, Operator::NOT_EQUAL_STRICT, null);
+        return $this->and($key, Enum\Operator::NOT_EQUAL_STRICT, null);
     }
 
     public function orIsNotNull(string $key): Query
     {
-        return $this->or($key, Operator::NOT_EQUAL_STRICT, null);
+        return $this->or($key, Enum\Operator::NOT_EQUAL_STRICT, null);
     }
 
     /**
@@ -141,7 +126,7 @@ trait Conditions
      */
     public function in(string $key, array $values): Query
     {
-        return $this->and($key, Operator::IN, $values);
+        return $this->and($key, Enum\Operator::IN, $values);
     }
 
     /**
@@ -149,7 +134,7 @@ trait Conditions
      */
     public function orIn(string $key, array $values): Query
     {
-        return $this->or($key, Operator::IN, $values);
+        return $this->or($key, Enum\Operator::IN, $values);
     }
 
     /**
@@ -157,7 +142,7 @@ trait Conditions
      */
     public function notIn(string $key, array $values): Query
     {
-        return $this->and($key, Operator::NOT_IN, $values);
+        return $this->and($key, Enum\Operator::NOT_IN, $values);
     }
 
     /**
@@ -165,7 +150,7 @@ trait Conditions
      */
     public function orNotIn(string $key, array $values): Query
     {
-        return $this->or($key, Operator::NOT_IN, $values);
+        return $this->or($key, Enum\Operator::NOT_IN, $values);
     }
 
     public function whereGroup(): Query
@@ -175,13 +160,13 @@ trait Conditions
 
     public function orGroup(): Query
     {
-        $this->currentOperator = LogicalOperator::OR;
+        $this->currentOperator = Enum\LogicalOperator::OR;
         return $this->group();
     }
 
     public function andGroup(): Query
     {
-        $this->currentOperator = LogicalOperator::AND;
+        $this->currentOperator = Enum\LogicalOperator::AND;
         return $this->group();
     }
 
@@ -191,11 +176,11 @@ trait Conditions
     public function group(): Query
     {
         if ($this->currentContext === 'having' && $this->havingGroupExists) {
-            throw new LogicException('Only one group is allowed in HAVING context.');
+            throw new \LogicException('Only one group is allowed in HAVING context.');
         }
 
         $group = [
-            'type' => $this->currentOperator ?? LogicalOperator::AND,
+            'type' => $this->currentOperator ?? Enum\LogicalOperator::AND,
             'group' => [],
         ];
 
@@ -207,7 +192,7 @@ trait Conditions
             $this->currentGroup = &$group;
         }
 
-        $this->currentOperator = LogicalOperator::AND;
+        $this->currentOperator = Enum\LogicalOperator::AND;
         return $this;
     }
 
@@ -217,11 +202,11 @@ trait Conditions
     public function endGroup(): Query
     {
         if ($this->currentContext === 'having' && !$this->havingGroupExists) {
-            throw new LogicException('No active group to end in HAVING context.');
+            throw new \LogicException('No active group to end in HAVING context.');
         }
 
         if ($this->currentGroup === null) {
-            throw new InvalidArgumentException('No active group to end.');
+            throw new Exceptions\InvalidArgumentException('No active group to end.');
         }
 
         // we find a parent group, if exists
@@ -246,15 +231,10 @@ trait Conditions
         return $this;
     }
 
-
     /**
      * Add condition to the actual group context
-     * @param LogicalOperator $type Typ of logical operator (AND/OR)
-     * @param string $key Field name
-     * @param Operator $operator Operator
-     * @param mixed $value Comparison value
      */
-    private function addCondition(LogicalOperator $type, string $key, Operator $operator, mixed $value): void
+    private function addCondition(Enum\LogicalOperator $type, string $key, Enum\Operator $operator, mixed $value): void
     {
         $condition = [
             'key' => $key,
@@ -270,97 +250,10 @@ trait Conditions
         }
     }
 
-    /**
-     * @param StreamProviderArrayIteratorValue $item
-     */
-    private function evaluateWhereConditions(array $item): bool
-    {
-        return $this->evaluateConditions('where', $item, true);
-    }
-
-    /**
-     * @param StreamProviderArrayIteratorValue $item
-     * @param string[] $allowedFields
-     */
-    private function evaluateHavingConditions(array $item, array $allowedFields = []): bool
-    {
-        $proxyItem = [];
-        foreach ($allowedFields as $allowedField) {
-            if (!isset($item[$allowedField])) {
-                continue;
-            }
-            $proxyItem[$allowedField] = $item[$allowedField];
-        }
-        return $this->evaluateConditions('having', $proxyItem, false);
-    }
-
-    /**
-     * @param StreamProviderArrayIteratorValue $item
-     */
-    private function evaluateConditions(string $context, array $item, bool $nestingValues): bool
-    {
-        if (!isset($this->contexts[$context])) {
-            throw new InvalidArgumentException("Unknown context: $context");
-        }
-
-        if (empty($this->contexts[$context])) {
-            return true;
-        }
-
-        return $this->evaluateGroup($item, $this->contexts[$context], $nestingValues);
-    }
-
-    /**
-     * Evaluate group of conditions
-     * @param StreamProviderArrayIteratorValue $item
-     * @param array<Condition|ConditionGroup> $conditions
-     * @return bool
-     */
-    private function evaluateGroup(array $item, array $conditions, bool $nestingValues): bool
-    {
-        $result = null;
-        foreach ($conditions as $condition) {
-            if (isset($condition['group'])) {
-                // Recursive evaluate of nested group
-                $groupResult = $this->evaluateGroup($item, $condition['group'], $nestingValues);
-            } else {
-                // Evaluate of simple condition
-                $groupResult = $this->evaluateCondition(
-                    $nestingValues
-                        ? ArrayHelper::getNestedValue($item, $condition['key'])
-                        : $item[$condition['key']]
-                            ?? throw new InvalidArgumentException(sprintf("Field '%s' not found.", $condition['key'])),
-                    $condition['operator'],
-                    $condition['value']
-                );
-            }
-
-            if ($condition['type'] === LogicalOperator::AND) {
-                $result = $result === null ? $groupResult : $result && $groupResult;
-            } elseif ($condition['type'] === LogicalOperator::OR) {
-                $result = $result === null ? $groupResult : $result || $groupResult;
-            }
-        }
-
-        return $result ?? true; // When we have no more conditions, returns true
-    }
-
-    /**
-     * Evaluate of simple condition
-     * @param mixed $value Concrete value
-     * @param Operator $operator Operator
-     * @param mixed $operand Comparison value
-     * @return bool
-     */
-    private function evaluateCondition(mixed $value, Operator $operator, mixed $operand): bool
-    {
-        return $operator->evaluate($value, $operand);
-    }
-
     private function conditionsToString(string $context): string
     {
         if (!isset($this->contexts[$context])) {
-            throw new InvalidArgumentException("Unknown context: $context");
+            throw new Exceptions\InvalidArgumentException("Unknown context: $context");
         }
 
         if (empty($this->contexts[$context])) {
@@ -369,7 +262,7 @@ trait Conditions
 
         return rtrim(
             sprintf(
-                "\n%s%s",
+                PHP_EOL . "%s%s",
                 $context === "where" ? Query::WHERE : Query::HAVING,
                 $this->convertConditions($this->contexts[$context])
             )
@@ -378,21 +271,32 @@ trait Conditions
 
     /**
      * Converts conditions to an SQL-like string.
-     * @param array<Condition|ConditionGroup> $conditions
-     * @return string
+     * @param ConditionArray $conditions
      */
-    private function convertConditions(array $conditions): string
+    private function convertConditions(array $conditions, ?int $depth = null): string
     {
+        $depth = $depth ?? 1;
         $parts = [];
         foreach ($conditions as $index => $condition) {
             if (isset($condition['group'])) {
-                $groupString = '(' . $this->convertConditions($condition['group']) . ')' . PHP_EOL;
-                $parts[] = ($index > 0 ? $condition['type']->value . ' ' : '') . $groupString;
+                $groupConditionTypeString = (
+                $index > 0
+                    ? PHP_EOL . str_repeat("\t", $depth) . "{$condition['type']->value}" . ' '
+                    : ''
+                );
+                $groupConditionTypeString .= '(';
+                $groupConditionTypeString .= $this->convertConditions($condition['group'], $depth + 1);
+                $groupConditionTypeString .= PHP_EOL . str_repeat("\t", $depth) . ')' . PHP_EOL;
+
+                $parts[] = $groupConditionTypeString;
             } else {
                 $key = $condition['key'];
                 $operator = $condition['operator']->value;
                 $value = is_string($condition['value']) ? "'{$condition['value']}'" : $condition['value'];
-                $parts[] = "\n\t" . ($index > 0 ? $condition['type']->value . ' ' : '') . "{$key} {$operator} {$value}";
+                $simpleConditionString = PHP_EOL . str_repeat("\t", $depth);
+                $simpleConditionString .= ($index > 0 ? $condition['type']->value . ' ' : '');
+                $simpleConditionString .= "$key $operator $value";
+                $parts[] = $simpleConditionString;
             }
         }
 
