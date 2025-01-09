@@ -3,7 +3,6 @@
 namespace Functions;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\InvalidArgumentException;
 use UQL\Functions\Coalesce;
 
 class CoalesceTest extends TestCase

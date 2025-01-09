@@ -3,7 +3,6 @@
 namespace UQL\Functions;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
 
 class GroupConcat extends SingleFieldAggregateFunction
 {

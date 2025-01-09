@@ -17,7 +17,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     public function fetchAll(?string $dto = null): \Generator
     {
         foreach ($this->getIterator() as $resultItem) {
-            yield $dto !== null
+            yield $dto !== null && class_exists($dto)
                 ? $this->mapArrayToObject($resultItem, $dto)
                 : $resultItem;
         }
@@ -104,9 +104,9 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param StreamProviderArrayIteratorValue $data
      * @param class-string $className
-     * @return object|array<string, mixed>
+     * @return object|StreamProviderArrayIteratorValue
      */
     private function mapArrayToObject(array $data, string $className): object|array
     {
@@ -128,11 +128,15 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
             $instance = $reflectionClass->newInstance();
             foreach ($data as $key => $value) {
-                if ($reflectionClass->hasProperty($key)) {
-                    $property = $reflectionClass->getProperty($key);
-                    if ($property->isPublic()) {
-                        $instance->$key = $value;
-                    }
+                if (!is_string($key)) {
+                    continue;
+                } elseif (!$reflectionClass->hasProperty($key)) {
+                    continue;
+                }
+
+                $property = $reflectionClass->getProperty($key);
+                if ($property->isPublic()) {
+                    $instance->$key = $value;
                 }
             }
 

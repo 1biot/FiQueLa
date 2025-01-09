@@ -3,7 +3,7 @@
 namespace UQL\Functions;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 class Sum extends SingleFieldAggregateFunction
 {
@@ -16,7 +16,7 @@ class Sum extends SingleFieldAggregateFunction
             }
 
             if (!is_numeric($value)) {
-                throw new InvalidArgumentException(
+                throw new UnexpectedValueException(
                     sprintf(
                         'Field "%s" value is not numeric: %s',
                         $this->field,

@@ -21,7 +21,8 @@ abstract class BaseFunction implements Invokable, \Stringable
             throw new \RuntimeException('Cannot split class name');
         }
 
-        return $this->camelCaseToUpperSnakeCase(end($array));
+        $functionName = end($array);
+        return $this->camelCaseToUpperSnakeCase($functionName === false ? '' : $functionName);
     }
 
     /**

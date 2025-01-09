@@ -3,7 +3,7 @@
 namespace UQL\Functions;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 final class Round extends SingleFieldFunction
 {
@@ -14,7 +14,7 @@ final class Round extends SingleFieldFunction
 
     /**
      * @inheritDoc
-     * @throws InvalidArgumentException
+     * @throws UnexpectedValueException
      * @return float|int
      */
     public function __invoke(array $item, array $resultItem): mixed
@@ -24,8 +24,8 @@ final class Round extends SingleFieldFunction
             $value = Type::matchByString($value);
         }
 
-        if (!is_numeric($value)) {
-            throw new InvalidArgumentException(
+        if (!is_numeric($value) && is_string($value)) {
+            throw new UnexpectedValueException(
                 sprintf(
                     'Field "%s" value is not numeric: %s',
                     $this->field,

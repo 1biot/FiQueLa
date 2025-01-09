@@ -2,7 +2,6 @@
 
 namespace UQL\Stream;
 
-use League\Csv\Bom;
 use League\Csv\CharsetConverter;
 use League\Csv\Exception;
 use League\Csv\InvalidArgument;
@@ -74,9 +73,7 @@ abstract class CsvProvider extends StreamProvider implements Stream
         $encoder->inputEncoding('ASCII');
         $encoder->outputEncoding('UTF-8');
 
-        foreach ($csv->getRecords() as $row) {
-            yield $row;
-        }
+        yield from $csv->getRecords();
     }
 
     public function isUseHeader(): bool

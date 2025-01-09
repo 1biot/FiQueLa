@@ -2,7 +2,7 @@
 
 namespace UQL\Functions;
 
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 class Implode extends SingleFieldFunction
 {
@@ -13,14 +13,14 @@ class Implode extends SingleFieldFunction
 
     /**
      * @inheritDoc
-     * @throws InvalidArgumentException
+     * @throws UnexpectedValueException
      * @return string
      */
     public function __invoke(array $item, array $resultItem): mixed
     {
         $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
         if (!is_array($value)) {
-            throw new InvalidArgumentException(sprintf('Field "%s" is not an array', $this->field));
+            throw new UnexpectedValueException(sprintf('Field "%s" is not an array', $this->field));
         }
 
         return implode($this->separator, $value);

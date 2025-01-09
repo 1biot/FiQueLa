@@ -3,6 +3,7 @@
 namespace UQL\Stream;
 
 use UQL\Enum\Type;
+use UQL\Exceptions\InvalidArgumentException;
 
 /**
  * @implements Stream<\Generator>
@@ -32,6 +33,10 @@ abstract class XmlProvider extends StreamProvider implements Stream
         }
 
         $xmlReader = \XMLReader::open($this->xmlFilePath, $this->encoding);
+        if (!$xmlReader) {
+            throw new InvalidArgumentException('Unable to open XML file.');
+        }
+
         $depth = substr_count($query, '.');
         while ($xmlReader->read()) {
             if (

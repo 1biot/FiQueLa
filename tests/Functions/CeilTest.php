@@ -4,6 +4,7 @@ namespace Functions;
 
 use PHPUnit\Framework\TestCase;
 use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 use UQL\Functions\Ceil;
 
 class CeilTest extends TestCase
@@ -21,7 +22,7 @@ class CeilTest extends TestCase
 
     public function testCeilWithStrings(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UnexpectedValueException::class);
         $ceil = new Ceil('name');
         $ceil([
             'name' => 'Product A',
@@ -30,7 +31,7 @@ class CeilTest extends TestCase
 
     public function testCeilWithEmptyValue(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UnexpectedValueException::class);
         $ceil = new Ceil('price');
         $ceil([
             'price' => '',
@@ -39,7 +40,7 @@ class CeilTest extends TestCase
 
     public function testCeilWithNullValue(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UnexpectedValueException::class);
         $ceil = new Ceil('price');
         $ceil([
             'price' => null,

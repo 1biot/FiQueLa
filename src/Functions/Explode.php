@@ -2,7 +2,7 @@
 
 namespace UQL\Functions;
 
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 class Explode extends SingleFieldFunction
 {
@@ -13,16 +13,18 @@ class Explode extends SingleFieldFunction
 
     /**
      * @inheritDoc
-     * @throws InvalidArgumentException
+     * @throws UnexpectedValueException
      * @return string[]
      */
     public function __invoke(array $item, array $resultItem): mixed
     {
         $value = $this->getFieldValue($this->field, $item, $resultItem) ?? null;
         if (!is_string($value) && $value !== null) {
-            throw new InvalidArgumentException(sprintf('Field "%s" is not a string', $this->field));
+            throw new UnexpectedValueException(sprintf('Field "%s" is not a string', $this->field));
         } elseif ($value === null) {
             return [];
+        } elseif ($this->separator === '') {
+            return str_split($value);
         }
 
         return explode($this->separator, $value);

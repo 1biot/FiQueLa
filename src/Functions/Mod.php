@@ -3,14 +3,14 @@
 namespace UQL\Functions;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 final class Mod extends SingleFieldFunction
 {
     public function __construct(string $field, private readonly int $divisor)
     {
         if ($this->divisor === 0) {
-            throw new InvalidArgumentException('Divisor cannot be zero');
+            throw new UnexpectedValueException('Divisor cannot be zero');
         }
 
         parent::__construct($field);
@@ -23,8 +23,8 @@ final class Mod extends SingleFieldFunction
             $value = Type::matchByString($value);
         }
 
-        if (!is_numeric($value)) {
-            throw new InvalidArgumentException(
+        if (!is_numeric($value) && is_string($value)) {
+            throw new UnexpectedValueException(
                 sprintf(
                     'Field "%s" value is not numeric: %s',
                     $this->field,

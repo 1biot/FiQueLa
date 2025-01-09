@@ -3,7 +3,7 @@
 namespace UQL\Functions;
 
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 
 final class Floor extends SingleFieldFunction
 {
@@ -18,8 +18,8 @@ final class Floor extends SingleFieldFunction
             $value = Type::matchByString($value);
         }
 
-        if (!is_numeric($value)) {
-            throw new InvalidArgumentException(
+        if (!is_numeric($value) && is_string($value)) {
+            throw new UnexpectedValueException(
                 sprintf(
                     'Field "%s" value is not numeric: %s',
                     $this->field,
@@ -27,6 +27,7 @@ final class Floor extends SingleFieldFunction
                 )
             );
         }
+
         return floor($value);
     }
 }

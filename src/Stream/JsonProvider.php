@@ -39,9 +39,7 @@ abstract class JsonProvider extends StreamProvider implements Stream
             throw new \UQL\Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
         }
 
-        foreach ($items as $data) {
-            yield $data;
-        }
+        yield from $items;
     }
 
     private function convertDotNotationToJsonPointer(string $dotNotation): string

@@ -3,7 +3,7 @@
 namespace Functions;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 use UQL\Functions\Avg;
 
 class AvgTest extends TestCase
@@ -27,7 +27,7 @@ class AvgTest extends TestCase
 
     public function testAvgWithStrings(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UnexpectedValueException::class);
         $avg = new Avg('name');
         $avg(
             [

@@ -261,12 +261,11 @@ class Stream extends ResultsProvider
                 $groupResult = $this->evaluateGroup($item, $condition['group'], $nestingValues);
             } else {
                 // Evaluate of simple condition
-
                 $groupResult = $this->evaluateCondition(
                     $nestingValues
                         ? $this->accessNestedValue($item, $condition['key'])
                         : $item[$condition['key']]
-                        ?? throw new InvalidArgumentException(sprintf("Field '%s' not found.", $condition['key'])),
+                            ?? throw new InvalidArgumentException(sprintf("Field '%s' not found.", $condition['key'])),
                     $condition['operator'],
                     $condition['value']
                 );
