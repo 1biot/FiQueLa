@@ -2,6 +2,8 @@
 
 namespace UQL\Enum;
 
+use UQL\Exceptions\InvalidArgumentException;
+
 enum Operator: string
 {
     case EQUAL = '=';
@@ -37,11 +39,6 @@ enum Operator: string
         };
     }
 
-    public static function isValid(string $operator): bool
-    {
-        return !is_null(self::tryFrom($operator));
-    }
-
     /**
      * Get the operator or throw an exception if it's invalid
      *
@@ -51,6 +48,6 @@ enum Operator: string
     public static function fromOrFail(string $operator): self
     {
         return self::tryFrom($operator)
-            ?? throw new \InvalidArgumentException(sprintf('Unsupported operator: %s', $operator));
+            ?? throw new InvalidArgumentException(sprintf('Unsupported operator: %s', $operator));
     }
 }

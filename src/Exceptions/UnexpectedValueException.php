@@ -2,6 +2,6 @@
 
 namespace UQL\Exceptions;
 
-class UnexpectedValueException extends \UnexpectedValueException
+class UnexpectedValueException extends Exception
 {
 }

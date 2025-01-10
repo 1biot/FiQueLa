@@ -13,8 +13,8 @@ $windows1250 = Csv::open(__DIR__ . '/data/products-w-1250.csv')
     ->setDelimiter(';')
     ->useHeader(true);
 
-$query = $windows1250->query();
-$query->select('ean')
+$query = $windows1250->query()
+    ->select('ean')
     ->select('defaultCategory')
     ->explode('defaultCategory', ' > ')->as('categoryArray')
     ->select('price')

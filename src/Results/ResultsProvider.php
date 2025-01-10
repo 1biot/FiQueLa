@@ -64,6 +64,9 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         return $this->fetch() !== null;
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function fetchSingle(string $key): mixed
     {
         return $this->accessNestedValue($this->fetch(), $key, false);
@@ -76,31 +79,26 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
     public function sum(string $key): float
     {
-        $sum = new Functions\Sum($key);
+        $sum = new Functions\Aggregate\Sum($key);
         return $sum(iterator_to_array($this->fetchAll()));
     }
 
     public function avg(string $key, int $decimalPlaces = 2): float
     {
-        $avg = new Functions\Avg($key);
+        $avg = new Functions\Aggregate\Avg($key);
         return round($avg(iterator_to_array($this->fetchAll())), $decimalPlaces);
     }
 
     public function min(string $key): float
     {
-        $min = new Functions\Min($key);
+        $min = new Functions\Aggregate\Min($key);
         return $min(iterator_to_array($this->fetchAll()));
     }
 
     public function max(string $key): float
     {
-        $max = new Functions\Max($key);
+        $max = new Functions\Aggregate\Max($key);
         return $max(iterator_to_array($this->fetchAll()));
-    }
-
-    public function getProxy(): Proxy
-    {
-        return new Proxy(iterator_to_array($this->getIterator()));
     }
 
     /**

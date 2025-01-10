@@ -1,0 +1,23 @@
+<?php
+
+namespace UQL\Functions\String;
+
+use UQL\Enum\Type;
+use UQL\Functions\Core\SingleFieldFunction;
+
+final class Upper extends SingleFieldFunction
+{
+    /**
+     * @inheritDoc
+     * @return string
+     */
+    public function __invoke(array $item, array $resultItem): mixed
+    {
+        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        if (!is_string($value)) {
+            $value = Type::castValue($value, Type::STRING);
+        }
+
+        return mb_strtoupper($value);
+    }
+}

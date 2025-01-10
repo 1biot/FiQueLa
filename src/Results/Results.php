@@ -10,7 +10,6 @@ interface Results extends \Countable
     public function fetchNth(int|string $n, ?string $dto = null): \Generator;
     public function exists(): bool;
 
-    public function count(): int;
     public function sum(string $key): float;
     public function avg(string $key, int $decimalPlaces = 2): float;
     public function min(string $key): float;

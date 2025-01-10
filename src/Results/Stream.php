@@ -2,13 +2,18 @@
 
 namespace UQL\Results;
 
+use League\Csv\Exception;
+use League\Csv\InvalidArgument;
+use League\Csv\UnavailableFeature;
+use League\Csv\UnavailableStream;
 use UQL\Enum\Join;
 use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
 use UQL\Exceptions\InvalidArgumentException;
-use UQL\Functions\AggregateFunction;
-use UQL\Functions\BaseFunction;
+use UQL\Functions\Core\AggregateFunction;
+use UQL\Functions\Core\BaseFunction;
+use UQL\Functions\Core\NoFieldFunction;
 use UQL\Query\Query;
 use UQL\Stream\Csv;
 use UQL\Stream\Json;
@@ -77,6 +82,13 @@ class Stream extends ResultsProvider
         return $fields;
     }
 
+    /**
+     * @throws UnavailableStream
+     * @throws InvalidArgument
+     * @throws InvalidArgumentException
+     * @throws UnavailableFeature
+     * @throws Exception
+     */
     private function applyStreamSource(): \Generator
     {
         $streamSource = $this->from === Query::SELECT_ALL
@@ -108,7 +120,7 @@ class Stream extends ResultsProvider
      */
     private function applyJoin(iterable $leftData, array $join): \ArrayIterator
     {
-        $rightData = iterator_to_array($join['table']->execute()->getProxy()->getIterator());
+        $rightData = iterator_to_array($join['table']->execute()->getIterator());
         $alias = $join['alias'];
         $leftKey = $join['leftKey'];
         $rightKey = $join['rightKey'];
@@ -296,6 +308,7 @@ class Stream extends ResultsProvider
     /**
      * @param array<string|int, mixed> $item
      * @return array<string|int, mixed>
+     * @throws InvalidArgumentException
      */
     private function applySelect(array $item): array
     {
@@ -308,6 +321,9 @@ class Stream extends ResultsProvider
             $fieldName = $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
+                continue;
+            } elseif ($fieldData['function'] instanceof NoFieldFunction) {
+                $result[$fieldName] = $fieldData['function']();
                 continue;
             }
 

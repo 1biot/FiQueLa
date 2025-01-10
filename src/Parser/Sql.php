@@ -5,7 +5,7 @@ namespace UQL\Parser;
 use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
 use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use UQL\Exceptions\UnexpectedValueException;
 use UQL\Query\Query;
 use UQL\Enum\Sort;
 
@@ -15,6 +15,9 @@ class Sql implements Parser
     private array $tokens = [];
     private int $position = 0;
 
+    /**
+     * @throws UnexpectedValueException
+     */
     public function parse(string $sql, Query $query): Query
     {
         $this->tokens = (new SqlLexer())->tokenize($sql);
@@ -50,7 +53,7 @@ class Sql implements Parser
                     break;
 
                 default:
-                    throw new InvalidArgumentException("Unexpected token: $token");
+                    throw new UnexpectedValueException("Unexpected token: $token");
             }
         }
 
@@ -113,11 +116,14 @@ class Sql implements Parser
         return $this->tokens[$this->position] ?? '';
     }
 
+    /**
+     * @throws UnexpectedValueException
+     */
     private function expect(string $expected): void
     {
         $token = $this->nextToken();
         if (strtoupper($token) !== strtoupper($expected)) {
-            throw new InvalidArgumentException("Expected $expected, got $token");
+            throw new UnexpectedValueException("Expected $expected, got $token");
         }
     }
 

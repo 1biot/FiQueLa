@@ -8,8 +8,8 @@
 ![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
 
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_94-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_378-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_107-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_399-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
 **U**ni**Q**ue**L** is a PHP library for seamless manipulation of data in
@@ -34,11 +34,11 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
   - 5.2 - [Use HAVING Conditions](#52-use-having-conditions)
   - 5.3 - [Joining Sources](#53-joining-sources)
   - 5.4 - [Functions](#54-functions)
-    - 5.4.1 - [Hashing Functions](#541-hashing-functions)
-    - 5.4.2 - [Array Functions](#542-array-functions)
-    - 5.4.3 - [String Functions](#543-string-functions)
-    - 5.4.4 - [Numeric Functions](#544-numeric-functions)
-    - 5.4.5 - [Aggregate Functions](#545-aggregate-functions)
+    - 5.4.1 - [Aggregate Functions](#541-aggregate-functions)
+    - 5.4.2 - [Hashing Functions](#542-hashing-functions)
+    - 5.4.3 - [Math Functions](#543-math-functions)
+    - 5.4.4 - [String Functions](#544-string-functions)
+    - 5.4.5 - [Utils Functions](#545-utils-functions)
   - 5.5 - [Mapping - Data Transfer Objects](#55-mapping---data-transfer-objects)
   - 5.6 - [Pagination, Limit and Offset](#56-pagination-limit-and-offset)
   - 5.7 - [SQL](#57-sql)
@@ -475,186 +475,7 @@ $json->query()
     ->round('sellPrice', 2)->as('roundedPrice');
 ```
 
-#### 5.4.1. Hashing functions
-
-**sha1(**_string_`$field`**):**`Query`
-
-SHA1 algorithm for hashing
-
-```php
-$query->sha1('name')
-    ->as('hash'); // SELECT SHA1(name) AS hash
-```
-
-**md5(**_string_`$field`**):**`Query`
-
-MD5 algorithm for hashing
-
-```php
-$query->md5('name')
-    ->as('hash'); // SELECT MD5(name) AS hash
-```
-
-#### 5.4.2. Array functions
-
-**explode(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
-
-**split(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
-
-split string to array
-
-```php
-$delimiter = '|';
-$query->explode('Partner_Article', $delimiter)
-    ->as('related') // SELECT EXPLODE("|", Partner_Article) AS related
-```
-
-Or alias to explode is `split()`. This example shows default delimiter `,`.
-
-```php
-$query->split('Partner_Article')
-    ->as('related') // SELECT EXPLODE(",", Partner_Article) AS related
-```
-
-**implode(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
-
-**glue(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
-
-Join array to string
-
-```php
-$query->implode('categories[]->id', '|')
-    ->as('catString'); // SELECT IMPLODE("|", categories[]->id) AS catString
-```
-
-Or alias to implode is `glue()`. This example shows default delimiter `,`.
-
-```php
-$query->glue('categories[]->id')
-    ->as('catString'); // SELECT IMPLODE(",", categories[]->id) AS catString
-```
-
-#### 5.4.3. String functions
-
-**upper(**_string_`$field`**):**`Query`
-
-Convert string to upper case
-
-```php
-$query->upper('name')
-    ->as('upperName') // SELECT UPPER(name) AS upperName
-```
-
-**lower(**_string_`$field`**):**`Query`
-
-Convert string to lower case
-
-```php
-$query->lower('name')->as('lowerName') // SELECT LOWER(name) AS lowerName
-```
-
-**length(**_string_`$field`**):**`Query`
-
-Get length of string
-
-```php
-$query->length('name')
-    ->as('length') // SELECT LENGTH(name) AS length
-```
-
-**concat(**_string_`...$fields`**):**`Query`
-
-Concatenate values with no separator.
-
-```php
-$query->concat('ArticleNr', 'CatalogNr')
-    ->as('concatenateString'); // SELECT CONCAT(ArticleNr, CatalogNr) AS concatenateString
-```
-
-**concatWS(**_string_`$separator`**,** _string_`...$fields`**):**`Query`
-
-Concatenate values with separator
-
-```php
-// Concatenate values with separator
-$query->concatWS('/', 'ArticleNr', 'CatalogNr')
-    ->as('concatenateString'); // SELECT CONCAT_WS("/", ArticleNr, CatalogNr) AS concatenateString
-```
-
-
-**coalesce(**_string_`...$fields`**)**`: Query`
-
-Coalesce values (first non-null value)
-
-```php
-$query->coalesce('whatever', 'ArticleNr')
-    ->as('coalesceString'); // SELECT COALESCE(ArticleNr, whatever) AS coalesceString
-```
-
-**coalesceNotEmpty(**_string_`...$fields`**)**`: Query`
-
-Coalesce values when not empty (first non-empty value)
-
-```php
-$query->coalesceNotEmpty('whatever', 'ArticleNr')
-    ->as('coalesceString'); // SELECT COALESCE_NE(whatever, ArticleNr) AS coalesceString
-```
-
-**reverse(**_string_`$field`**):**`Query`
-
-Reverse string
-
-```php
-$query->reverse('name')
-    ->as('reversedName'); // SELECT REVERSE(name) AS reversedName
-```
-
-#### 5.4.4. Numeric functions
-
-**round(**_string_`$field`**,** _int_`$precision = 0`**):**`Query`
-
-Round number mathematically
-
-```php
-$query->round('price')
-    ->as('roundedPrice') // SELECT ROUND(price, 0) AS roundedPrice
-```
-
-Or you can specify precision
-
-```php
-$query->round('price', 2)
-    ->as('roundedPrice') // SELECT ROUND(price, 2) AS roundedPrice
-```
-
-**floor(**_string_`$field`**):**`Query`
-
-Round number down
-
-```php
-$query->floor('price')
-    ->as('floorPrice') // SELECT FLOOR(price) AS floorPrice
-```
-
-**ceil(**_string_`$field`**):**`Query`
-
-Round number up
-
-```php
-$query->ceil('price')
-    ->as('ceilPrice') // SELECT CEIL(price) AS ceilPrice
-```
-
-**modulo(**_string_`$field`**,** _int_`$divisor`**):**`Query`
-
-Modulo operation, when divisor is zero then exception is thrown
-
-```php
-$query->modulo('price', 2)
-    ->as('modPrice') // SELECT MOD(price, 2) AS modPrice
-```
-
-#### 5.4.5. Aggregate Functions
+#### 5.4.1. Aggregate Functions
 
 Like in SQL, you can use these functions to aggregate data.
 
@@ -716,6 +537,220 @@ Select maximum value
 ```php
 $query->max('price')
     ->as('max'); // SELECT MAX(price) AS max
+```
+
+#### 5.4.2. Hashing functions
+
+**sha1(**_string_`$field`**):**`Query`
+
+SHA1 algorithm for hashing
+
+```php
+$query->sha1('name')
+    ->as('hash'); // SELECT SHA1(name) AS hash
+```
+
+**md5(**_string_`$field`**):**`Query`
+
+MD5 algorithm for hashing
+
+```php
+$query->md5('name')
+    ->as('hash'); // SELECT MD5(name) AS hash
+```
+
+#### 5.4.3. Math Functions
+
+**round(**_string_`$field`**,** _int_`$precision = 0`**):**`Query`
+
+Round number mathematically
+
+```php
+$query->round('price')
+    ->as('roundedPrice') // SELECT ROUND(price, 0) AS roundedPrice
+```
+
+Or you can specify precision
+
+```php
+$query->round('price', 2)
+    ->as('roundedPrice') // SELECT ROUND(price, 2) AS roundedPrice
+```
+
+**floor(**_string_`$field`**):**`Query`
+
+Round number down
+
+```php
+$query->floor('price')
+    ->as('floorPrice') // SELECT FLOOR(price) AS floorPrice
+```
+
+**ceil(**_string_`$field`**):**`Query`
+
+Round number up
+
+```php
+$query->ceil('price')
+    ->as('ceilPrice') // SELECT CEIL(price) AS ceilPrice
+```
+
+**modulo(**_string_`$field`**,** _int_`$divisor`**):**`Query`
+
+Modulo operation, when divisor is zero then exception is thrown
+
+```php
+$query->modulo('price', 2)
+    ->as('modPrice') // SELECT MOD(price, 2) AS modPrice
+```
+
+#### 5.4.4. String Functions
+
+**upper(**_string_`$field`**):**`Query`
+
+Convert string to upper case
+
+```php
+$query->upper('name')
+    ->as('upperName') // SELECT UPPER(name) AS upperName
+```
+
+**lower(**_string_`$field`**):**`Query`
+
+Convert string to lower case
+
+```php
+$query->lower('name')->as('lowerName') // SELECT LOWER(name) AS lowerName
+```
+
+**length(**_string_`$field`**):**`Query`
+
+Get length of string
+
+```php
+$query->length('name')
+    ->as('length') // SELECT LENGTH(name) AS length
+```
+
+**concat(**_string_`...$fields`**):**`Query`
+
+Concatenate values with no separator.
+
+```php
+$query->concat('ArticleNr', 'CatalogNr')
+    ->as('concatenateString'); // SELECT CONCAT(ArticleNr, CatalogNr) AS concatenateString
+```
+
+**concatWS(**_string_`$separator`**,** _string_`...$fields`**):**`Query`
+
+Concatenate values with separator
+
+```php
+// Concatenate values with separator
+$query->concatWS('/', 'ArticleNr', 'CatalogNr')
+    ->as('concatenateString'); // SELECT CONCAT_WS("/", ArticleNr, CatalogNr) AS concatenateString
+```
+
+**reverse(**_string_`$field`**):**`Query`
+
+Reverse string
+
+```php
+$query->reverse('name')
+    ->as('reversedName'); // SELECT REVERSE(name) AS reversedName
+```
+
+**explode(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
+
+**split(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
+
+split string to array
+
+```php
+$delimiter = '|';
+$query->explode('Partner_Article', $delimiter)
+    ->as('related') // SELECT EXPLODE("|", Partner_Article) AS related
+```
+
+Or alias to explode is `split()`. This example shows default delimiter `,`.
+
+```php
+$query->split('Partner_Article')
+    ->as('related') // SELECT EXPLODE(",", Partner_Article) AS related
+```
+
+**implode(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
+
+**glue(**_string_`$field`**,** _string_`$delimiter = ","`**):**`Query`
+
+Join array to string
+
+```php
+$query->implode('categories[]->id', '|')
+    ->as('catString'); // SELECT IMPLODE("|", categories[]->id) AS catString
+```
+
+Or alias to implode is `glue()`. This example shows default delimiter `,`.
+
+```php
+$query->glue('categories[]->id')
+    ->as('catString'); // SELECT IMPLODE(",", categories[]->id) AS catString
+```
+
+**from_base64(**_string_`$field`**):**`Query`
+
+Decode base64 string
+
+```php
+$query->fromBase64('base64String')
+    ->as('decodedString'); // SELECT FROM_BASE64(base64String) AS decodedString
+```
+
+**to_base64(**_string_`$field`**):**`Query`
+
+Encode string to base64
+
+```php
+$query->toBase64('string')
+    ->as('base64String'); // SELECT TO_BASE64(string) AS base64String
+```
+
+**randomString(**_int_`$length`**):**`Query`
+
+Generates random string from predefined charset `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789`
+
+```php
+$query->randomString(16)
+    ->as('randomString'); // SELECT RANDOM_STRING(16) AS randomString
+```
+
+#### 5.4.5. Utils Functions
+
+**coalesce(**_string_`...$fields`**)**`: Query`
+
+Coalesce values (first non-null value)
+
+```php
+$query->coalesce('whatever', 'ArticleNr')
+    ->as('coalesceString'); // SELECT COALESCE(ArticleNr, whatever) AS coalesceString
+```
+
+**coalesceNotEmpty(**_string_`...$fields`**)**`: Query`
+
+Coalesce values when not empty (first non-empty value)
+
+```php
+$query->coalesceNotEmpty('whatever', 'ArticleNr')
+    ->as('coalesceString'); // SELECT COALESCE_NE(whatever, ArticleNr) AS coalesceString
+```
+
+**randomBytes(**_int_`$length`**):**`Query`
+
+Generates cryptographically secure random bytes. Suitable for generating salts, keys, and nonces.
+
+```php
+$query->randomBytes(16)
+    ->as('randomBytes'); // SELECT RANDOM_BYTES(16) AS randomBytes
 ```
 
 ### 5.5. Mapping - Data Transfer Objects

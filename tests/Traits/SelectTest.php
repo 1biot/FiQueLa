@@ -64,7 +64,7 @@ class SelectTest extends TestCase
     public function testToDuplicateAliasField(): void
     {
         $this->expectException(Exceptions\AliasException::class);
-        $this->expectExceptionMessage('Alias "brand" already defined');
+        $this->expectExceptionMessage('AS: "brand" already defined');
 
         $this->query
             ->select('brand.name')->as('brand')
@@ -149,72 +149,72 @@ class SelectTest extends TestCase
         $this->assertNull($selectedFields['name']['function']);
 
         $this->assertNotNull($selectedFields['roundedPrice']['function']);
-        $this->assertInstanceOf(Functions\Round::class, $selectedFields['roundedPrice']['function']);
+        $this->assertInstanceOf(Functions\Math\Round::class, $selectedFields['roundedPrice']['function']);
 
         $this->assertNotNull($selectedFields['ceilPrice']['function']);
-        $this->assertInstanceOf(Functions\Ceil::class, $selectedFields['ceilPrice']['function']);
+        $this->assertInstanceOf(Functions\Math\Ceil::class, $selectedFields['ceilPrice']['function']);
 
         $this->assertNotNull($selectedFields['floorPrice']['function']);
-        $this->assertInstanceOf(Functions\Floor::class, $selectedFields['floorPrice']['function']);
+        $this->assertInstanceOf(Functions\Math\Floor::class, $selectedFields['floorPrice']['function']);
 
         $this->assertNotNull($selectedFields['sumPrice']['function']);
-        $this->assertInstanceOf(Functions\Sum::class, $selectedFields['sumPrice']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\Sum::class, $selectedFields['sumPrice']['function']);
 
         $this->assertNotNull($selectedFields['countId']['function']);
-        $this->assertInstanceOf(Functions\Count::class, $selectedFields['countId']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\Count::class, $selectedFields['countId']['function']);
 
         $this->assertNotNull($selectedFields['maxPrice']['function']);
-        $this->assertInstanceOf(Functions\Max::class, $selectedFields['maxPrice']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\Max::class, $selectedFields['maxPrice']['function']);
 
         $this->assertNotNull($selectedFields['minPrice']['function']);
-        $this->assertInstanceOf(Functions\Min::class, $selectedFields['minPrice']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\Min::class, $selectedFields['minPrice']['function']);
 
         $this->assertNotNull($selectedFields['modPrice']['function']);
-        $this->assertInstanceOf(Functions\Mod::class, $selectedFields['modPrice']['function']);
+        $this->assertInstanceOf(Functions\Math\Mod::class, $selectedFields['modPrice']['function']);
 
         $this->assertNotNull($selectedFields['avgPrice']['function']);
-        $this->assertInstanceOf(Functions\Avg::class, $selectedFields['avgPrice']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\Avg::class, $selectedFields['avgPrice']['function']);
 
         $this->assertNotNull($selectedFields['lengthName']['function']);
-        $this->assertInstanceOf(Functions\Length::class, $selectedFields['lengthName']['function']);
+        $this->assertInstanceOf(Functions\String\Length::class, $selectedFields['lengthName']['function']);
 
         $this->assertNotNull($selectedFields['lowerName']['function']);
-        $this->assertInstanceOf(Functions\Lower::class, $selectedFields['lowerName']['function']);
+        $this->assertInstanceOf(Functions\String\Lower::class, $selectedFields['lowerName']['function']);
 
         $this->assertNotNull($selectedFields['upperName']['function']);
-        $this->assertInstanceOf(Functions\Upper::class, $selectedFields['upperName']['function']);
+        $this->assertInstanceOf(Functions\String\Upper::class, $selectedFields['upperName']['function']);
 
         $this->assertNotNull($selectedFields['sha1Name']['function']);
-        $this->assertInstanceOf(Functions\Sha1::class, $selectedFields['sha1Name']['function']);
+        $this->assertInstanceOf(Functions\Hashing\Sha1::class, $selectedFields['sha1Name']['function']);
 
         $this->assertNotNull($selectedFields['md5Name']['function']);
-        $this->assertInstanceOf(Functions\Md5::class, $selectedFields['md5Name']['function']);
+        $this->assertInstanceOf(Functions\Hashing\Md5::class, $selectedFields['md5Name']['function']);
 
         $this->assertNotNull($selectedFields['implodeNameParts']['function']);
-        $this->assertInstanceOf(Functions\Implode::class, $selectedFields['implodeNameParts']['function']);
+        $this->assertInstanceOf(Functions\String\Implode::class, $selectedFields['implodeNameParts']['function']);
 
         $this->assertNotNull($selectedFields['glueNameParts']['function']);
-        $this->assertInstanceOf(Functions\Implode::class, $selectedFields['glueNameParts']['function']);
+        $this->assertInstanceOf(Functions\String\Implode::class, $selectedFields['glueNameParts']['function']);
 
         $this->assertNotNull($selectedFields['nameParts']['function']);
-        $this->assertInstanceOf(Functions\Explode::class, $selectedFields['nameParts']['function']);
+        $this->assertInstanceOf(Functions\String\Explode::class, $selectedFields['nameParts']['function']);
 
         $this->assertNotNull($selectedFields['splitsNameParts']['function']);
-        $this->assertInstanceOf(Functions\Explode::class, $selectedFields['splitsNameParts']['function']);
+        $this->assertInstanceOf(Functions\String\Explode::class, $selectedFields['splitsNameParts']['function']);
 
         $this->assertNotNull($selectedFields['coalesced']['function']);
-        $this->assertInstanceOf(Functions\Coalesce::class, $selectedFields['coalesced']['function']);
+        $this->assertInstanceOf(Functions\Utils\Coalesce::class, $selectedFields['coalesced']['function']);
 
         $this->assertNotNull($selectedFields['coalescedNE']['function']);
-        $this->assertInstanceOf(Functions\CoalesceNotEmpty::class, $selectedFields['coalescedNE']['function']);
+        $this->assertInstanceOf(Functions\Utils\CoalesceNotEmpty::class, $selectedFields['coalescedNE']['function']);
 
         $this->assertNotNull($selectedFields['concatenatedWS']['function']);
-        $this->assertInstanceOf(Functions\ConcatWS::class, $selectedFields['concatenatedWS']['function']);
+        $this->assertInstanceOf(Functions\String\ConcatWS::class, $selectedFields['concatenatedWS']['function']);
 
         $this->assertNotNull($selectedFields['concatenated']['function']);
-        $this->assertInstanceOf(Functions\Concat::class, $selectedFields['concatenated']['function']);
+        $this->assertInstanceOf(Functions\String\Concat::class, $selectedFields['concatenated']['function']);
 
         $this->assertNotNull($selectedFields['groupConcatenated']['function']);
-        $this->assertInstanceOf(Functions\GroupConcat::class, $selectedFields['groupConcatenated']['function']);
+        $this->assertInstanceOf(Functions\Aggregate\GroupConcat::class, $selectedFields['groupConcatenated']['function']);
     }
 }

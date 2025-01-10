@@ -8,6 +8,7 @@ use League\Csv\InvalidArgument;
 use League\Csv\Reader;
 use League\Csv\UnavailableFeature;
 use League\Csv\UnavailableStream;
+use UQL\Exceptions\UnableOpenFileException;
 
 /**
  * @implements Stream<\Generator>
@@ -40,10 +41,7 @@ abstract class CsvProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws UnavailableStream
-     * @throws InvalidArgument
-     * @throws UnavailableFeature
-     * @throws Exception
+     * @throws UnableOpenFileException
      */
     public function getStream(?string $query): ?\ArrayIterator
     {
@@ -52,28 +50,29 @@ abstract class CsvProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws InvalidArgument
-     * @throws UnavailableStream
-     * @throws UnavailableFeature
-     * @throws Exception
+     * @throws UnableOpenFileException
      */
     public function getStreamGenerator(?string $query): ?\Generator
     {
-        $csv = Reader::createFromPath($this->csvFilePath);
-        $csv->setDelimiter($this->delimiter);
-        if ($this->inputEncoding !== null && $this->inputEncoding !== '' && $this->inputEncoding !== 'UTF-8') {
-            $csv->addStreamFilter(sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding));
+        try {
+            $csv = Reader::createFromPath($this->csvFilePath);
+            $csv->setDelimiter($this->delimiter);
+            if ($this->inputEncoding !== null && $this->inputEncoding !== '' && $this->inputEncoding !== 'UTF-8') {
+                $csv->addStreamFilter(sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding));
+            }
+
+            if ($this->useHeader) {
+                $csv->setHeaderOffset(0);
+            }
+
+            $encoder = new CharsetConverter();
+            $encoder->inputEncoding('ASCII');
+            $encoder->outputEncoding('UTF-8');
+
+            yield from $csv->getRecords();
+        } catch (\Exception $e) {
+            throw new UnableOpenFileException(sprintf('Unexpected error: %s', $e->getMessage()), previous: $e);
         }
-
-        if ($this->useHeader) {
-            $csv->setHeaderOffset(0);
-        }
-
-        $encoder = new CharsetConverter();
-        $encoder->inputEncoding('ASCII');
-        $encoder->outputEncoding('UTF-8');
-
-        yield from $csv->getRecords();
     }
 
     public function isUseHeader(): bool

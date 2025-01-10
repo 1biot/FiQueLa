@@ -9,6 +9,7 @@ use UQL\Stream\Neon;
 use UQL\Stream\Xml;
 use UQL\Stream\Yaml;
 use UQL\Traits;
+use UQL\Results;
 
 final class Provider implements Query, \Stringable
 {
@@ -24,9 +25,9 @@ final class Provider implements Query, \Stringable
     {
     }
 
-    public function execute(): \UQL\Results\Stream
+    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider
     {
-        return new \UQL\Results\Stream(
+        $streamResult = new Results\Stream(
             $this->stream,
             $this->selectedFields,
             $this->getFrom(),
@@ -38,6 +39,12 @@ final class Provider implements Query, \Stringable
             $this->limit,
             $this->offset
         );
+
+        return match ($resultClass) {
+            Results\Cache::class => new Results\Cache(iterator_to_array($streamResult->getIterator())),
+            Results\Stream::class => $streamResult,
+            default => throw new \InvalidArgumentException("Unknown result class: $resultClass"),
+        };
     }
 
     public function test(): string

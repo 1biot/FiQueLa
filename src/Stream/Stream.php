@@ -2,6 +2,7 @@
 
 namespace UQL\Stream;
 
+use UQL\Query\Provider;
 use UQL\Query\Query;
 use UQL\Results\Results;
 

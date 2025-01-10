@@ -3,6 +3,7 @@
 namespace UQL\Stream;
 
 use UQL\Exceptions;
+use UQL\Exceptions\InvalidArgumentException;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -23,6 +24,7 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
     /**
      * @param string|null $query
      * @return StreamProviderArrayIterator|null
+     * @throws InvalidArgumentException
      */
     public function getStream(?string $query): ?\ArrayIterator
     {
@@ -35,6 +37,9 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
         return $stream;
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function getStreamGenerator(?string $query): ?\Generator
     {
         $stream = $this->getStream($query);
@@ -48,6 +53,7 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
      * @param string $key
      * @param bool $isLast
      * @return StreamProviderArrayIterator
+     * @throws InvalidArgumentException
      */
     protected function applyKeyFilter(\ArrayIterator $stream, string $key, bool $isLast): \ArrayIterator
     {

@@ -35,7 +35,13 @@ class TypeTest extends TestCase
         // Test scalar or null to array
         foreach ($types as $type) {
             $value = Type::castValue($type, Type::ARRAY);
-            $this->assertSame($type, $value[0]);
+            $this->assertEquals($type, $value[0]);
+        }
+
+        // Test scalar or null to object
+        foreach ($types as $type) {
+            $value = Type::castValue($type, Type::OBJECT);
+            $this->assertEquals(null, $value);
         }
 
         // Test array to array is the same

@@ -2,6 +2,6 @@
 
 namespace UQL\Exceptions;
 
-class InvalidArgumentException extends \InvalidArgumentException
+class InvalidArgumentException extends Exception
 {
 }

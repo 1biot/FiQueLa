@@ -5,6 +5,8 @@ namespace UQL\Query;
 use UQL\Enum\LogicalOperator;
 use UQL\Enum\Operator;
 use UQL\Enum\Sort;
+use UQL\Exceptions;
+use UQL\Results;
 use UQL\Results\ResultsProvider;
 
 /**
@@ -41,6 +43,9 @@ interface Query
      * This method allows you to define the fields you want to include in the selection.
      * It supports dot notation for selecting nested fields. If you call the `select()`
      * method multiple times, the fields will be merged into a single selection.
+     *
+     * @param string $fields The fields to include in the selection.
+     * @throws Exceptions\SelectException
      *
      * Example with simple fields:
      *
@@ -362,6 +367,76 @@ interface Query
     public function reverse(string $field): Query;
 
     /**
+     * Generate a random string in the query.
+     *
+     * This method allows you to generate a random string in the query results.
+     * You can specify the length of the random string to generate. If you call the `randomString()`
+     * method multiple times, the random strings will be generated into a single result.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->randomString(16);
+     * // Result: SELECT RANDOM_STRING(16)
+     * ```
+     *
+     * Use this method to generate random strings in your query results.
+     */
+    public function randomString(int $length = 10): Query;
+
+    /**
+     * Apply the FROM_BASE64 function to a field in the query.
+     *
+     * This method allows you to apply the FROM_BASE64 function to a field in the query results.
+     * If you call the `toBase64()` method multiple times, the fields will be encoded into a single result.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->toBase64('field');
+     * // Result: SELECT FROM_BASE64(field)
+     * ```
+     *
+     * Use this method to encode a field in your query results.
+     */
+    public function fromBase64(string $field): Query;
+
+    /**
+     * Apply the TO_BASE64 function to a field in the query.
+     *
+     * This method allows you to apply the TO_BASE64 function to a field in the query results.
+     * If you call the `toBase64()` method multiple times, the fields will be encoded into a single result.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->toBase64('field');
+     * // Result: SELECT TO_BASE64(field)
+     * ```
+     *
+     * Use this method to encode a field in your query results.
+     */
+    public function toBase64(string $field): Query;
+
+    /**
+     * Generate random bytes in the query.
+     *
+     * This method allows you to generate random bytes in the query results.
+     * You can specify the length of the random bytes to generate. If you call the `randomBytes()`
+     * method multiple times, the random bytes will be generated into a single result.
+     *
+     * Example usage:
+     *
+     * ```
+     * $query->randomBytes(16);
+     * // Result: SELECT RANDOM_BYTES(16)
+     * ```
+     *
+     * Use this method to generate random bytes in your query results.
+     */
+    public function randomBytes(int $length = 10): Query;
+
+    /**
      * Specify a specific part of the data to select.
      *
      * This method allows you to target a specific section of the data for selection.
@@ -503,7 +578,12 @@ interface Query
     public function limit(int $limit, ?int $offset = null): Query;
     public function page(int $page, int $perPage = self::PER_PAGE_DEFAULT): Query;
 
-    public function execute(): ResultsProvider;
+    /**
+     * @template T of Results\Cache|Results\Stream
+     * @param class-string<T> $resultClass Fully qualified class name of the result class.
+     * @return T
+     */
+    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider;
 
     public function test(): string;
 }

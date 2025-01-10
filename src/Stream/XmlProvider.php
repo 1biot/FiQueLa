@@ -26,6 +26,9 @@ abstract class XmlProvider extends StreamProvider implements Stream
         return $generator ? new \ArrayIterator(iterator_to_array($generator)) : null;
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function getStreamGenerator(?string $query): ?\Generator
     {
         if ($query === null) {

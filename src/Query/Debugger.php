@@ -3,8 +3,9 @@
 namespace UQL\Query;
 
 use UQL\Parser\Sql;
-use UQL\Results\Proxy;
+use UQL\Results\Cache;
 use UQL\Results\ResultsProvider;
+use UQL\Results\Stream;
 use UQL\Stream\Json;
 use UQL\Stream\JsonStream;
 use UQL\Stream\Neon;
@@ -136,7 +137,7 @@ class Debugger
 
     private static function benchmarkStream(Query $query, int $iterations = 2500): void
     {
-        $results = $query->execute();
+        $results = $query->execute(Stream::class);
         self::echoSection('STREAM BENCHMARK');
         self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
         self::echoLineNameValue('Count', $results->count());
@@ -147,7 +148,7 @@ class Debugger
 
     private static function benchmarkProxy(Query $query, int $iterations = 2500): void
     {
-        $results = $query->execute()->getProxy();
+        $results = $query->execute();
         self::echoSection('PROXY BENCHMARK');
         self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
         self::echoLineNameValue('Count', $results->count());
@@ -156,7 +157,7 @@ class Debugger
         self::split();
     }
 
-    private static function iterateResults(ResultsProvider|Proxy $results, int $iterations = 2500): void
+    private static function iterateResults(ResultsProvider|Cache $results, int $iterations = 2500): void
     {
         $counter = 0;
         for ($i = 0; $i < $iterations; $i++) {

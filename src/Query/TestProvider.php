@@ -3,7 +3,7 @@
 namespace UQL\Query;
 
 use UQL\Exceptions\InvalidArgumentException;
-use UQL\Results\Proxy;
+use UQL\Results;
 use UQL\Traits\Conditions;
 use UQL\Traits\From;
 use UQL\Traits\Groupable;
@@ -66,9 +66,9 @@ class TestProvider implements Query
         return $this;
     }
 
-    public function execute(): Proxy
+    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider
     {
-        return new Proxy([]);
+        return new Results\Cache([]);
     }
 
     public function test(): string

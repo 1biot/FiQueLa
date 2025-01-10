@@ -3,12 +3,13 @@
 namespace UQL\Traits;
 
 use UQL\Exceptions;
+use UQL\Exceptions\UnexpectedValueException;
 use UQL\Functions;
 use UQL\Query\Query;
 
 /**
  * @codingStandardsIgnoreStart
- * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Functions\BaseFunction|Functions\AggregateFunction}
+ * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction}
  * @codingStandardsIgnoreEnd
  * @phpstan-type SelectedFields array<string, SelectedField>
  */
@@ -23,6 +24,11 @@ trait Select
         return $this;
     }
 
+    /**
+     * @param string $fields
+     * @return Query
+     * @throws Exceptions\SelectException
+     */
     public function select(string $fields): Query
     {
         $fields = array_map('trim', explode(',', $fields));
@@ -42,6 +48,11 @@ trait Select
         return $this;
     }
 
+    /**
+     * @param string $alias
+     * @return Query
+     * @throws Exceptions\AliasException
+     */
     public function as(string $alias): Query
     {
         if ($alias === '') {
@@ -50,11 +61,15 @@ trait Select
 
         $select = array_key_last($this->selectedFields);
         if ($select === null) {
-            throw new Exceptions\AliasException('Cannot use alias without any "SELECT" field');
+            throw new Exceptions\AliasException(
+                sprintf('Cannot use alias "%s" without any selected field', $alias)
+            );
         } elseif ($this->selectedFields[$select]['alias']) {
-            throw new Exceptions\AliasException('Cannot use alias repeatedly');
+            throw new Exceptions\AliasException(
+                sprintf('"%s" cannot be used for a field that is already aliased.', $alias)
+            );
         } elseif (isset($this->selectedFields[$alias])) {
-            throw new Exceptions\AliasException(sprintf('Alias "%s" already defined', $alias));
+            throw new Exceptions\AliasException(sprintf('"%s" already defined', $alias));
         }
 
         $function = $this->selectedFields[$select]['function'] ?? null;
@@ -66,27 +81,27 @@ trait Select
 
     public function concat(string ...$fields): Query
     {
-        return $this->addFieldFunction(new Functions\Concat(...$fields));
+        return $this->addFieldFunction(new Functions\String\Concat(...$fields));
     }
 
     public function concatWithSeparator(string $separator, string ...$fields): Query
     {
-        return $this->addFieldFunction(new Functions\ConcatWS($separator, ...$fields));
+        return $this->addFieldFunction(new Functions\String\ConcatWS($separator, ...$fields));
     }
 
     public function coalesce(string ...$fields): Query
     {
-        return $this->addFieldFunction(new Functions\Coalesce(...$fields));
+        return $this->addFieldFunction(new Functions\Utils\Coalesce(...$fields));
     }
 
     public function coalesceNotEmpty(string ...$fields): Query
     {
-        return $this->addFieldFunction(new Functions\CoalesceNotEmpty(...$fields));
+        return $this->addFieldFunction(new Functions\Utils\CoalesceNotEmpty(...$fields));
     }
 
     public function explode(string $field, string $separator = ','): Query
     {
-        return $this->addFieldFunction(new Functions\Explode($field, $separator));
+        return $this->addFieldFunction(new Functions\String\Explode($field, $separator));
     }
 
     public function split(string $field, string $separator = ','): Query
@@ -96,7 +111,7 @@ trait Select
 
     public function implode(string $field, string $separator = ','): Query
     {
-        return $this->addFieldFunction(new Functions\Implode($field, $separator));
+        return $this->addFieldFunction(new Functions\String\Implode($field, $separator));
     }
 
     public function glue(string $field, string $separator = ','): Query
@@ -106,86 +121,117 @@ trait Select
 
     public function sha1(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Sha1($field));
+        return $this->addFieldFunction(new Functions\Hashing\Sha1($field));
     }
 
     public function md5(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Md5($field));
+        return $this->addFieldFunction(new Functions\Hashing\Md5($field));
     }
 
     public function lower(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Lower($field));
+        return $this->addFieldFunction(new Functions\String\Lower($field));
     }
 
     public function upper(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Upper($field));
+        return $this->addFieldFunction(new Functions\String\Upper($field));
     }
 
     public function round(string $field, int $precision = 0): Query
     {
-        return $this->addFieldFunction(new Functions\Round($field, $precision));
+        return $this->addFieldFunction(new Functions\Math\Round($field, $precision));
     }
 
     public function length(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Length($field));
+        return $this->addFieldFunction(new Functions\String\Length($field));
     }
 
     public function reverse(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Reverse($field));
+        return $this->addFieldFunction(new Functions\String\Reverse($field));
     }
 
     public function ceil(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Ceil($field));
+        return $this->addFieldFunction(new Functions\Math\Ceil($field));
     }
 
     public function floor(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Floor($field));
+        return $this->addFieldFunction(new Functions\Math\Floor($field));
     }
 
+    /**
+     * @param string $field
+     * @param int $divisor
+     * @return Query
+     * @throws Exceptions\SelectException
+     */
     public function modulo(string $field, int $divisor): Query
     {
-        return $this->addFieldFunction(new Functions\Mod($field, $divisor));
+        try {
+            return $this->addFieldFunction(new Functions\Math\Mod($field, $divisor));
+        } catch (UnexpectedValueException $e) {
+            throw new Exceptions\SelectException($e->getMessage());
+        }
     }
 
     public function count(?string $field = null): Query
     {
-        return $this->addFieldFunction(new Functions\Count($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Count($field));
     }
 
     public function sum(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Sum($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Sum($field));
     }
 
     public function groupConcat(string $field, string $separator = ','): Query
     {
-        return $this->addFieldFunction(new Functions\GroupConcat($field, $separator));
+        return $this->addFieldFunction(new Functions\Aggregate\GroupConcat($field, $separator));
     }
 
     public function min(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Min($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Min($field));
     }
 
     public function avg(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Avg($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Avg($field));
     }
 
     public function max(string $field): Query
     {
-        return $this->addFieldFunction(new Functions\Max($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Max($field));
     }
 
-    private function addFieldFunction(Functions\BaseFunction|Functions\AggregateFunction $function): Query
+    public function randomString(int $length = 10): Query
     {
+        return $this->addFieldFunction(new Functions\String\RandomString($length));
+    }
+
+    public function randomBytes(int $length = 10): Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\RandomBytes($length));
+    }
+
+    public function fromBase64(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\String\Base64Decode($field));
+    }
+
+    public function toBase64(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\String\Base64Encode($field));
+    }
+
+    private function addFieldFunction(
+        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction $function
+    ): Query {
         $this->addField(
             (string) $function,
             function: $function
@@ -197,7 +243,7 @@ trait Select
     private function addField(
         string $field,
         ?string $alias = null,
-        null|Functions\BaseFunction|Functions\AggregateFunction $function = null
+        null|Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction $function = null
     ): Query {
         $this->selectedFields[$alias ?? $field] = [
             'originField' => $field,

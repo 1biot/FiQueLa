@@ -22,12 +22,12 @@ enum Type: string
         $type = $type ?? self::matchByValue($value);
         return match ($type) {
             self::STRING, self::UNKNOWN => (string) $value,
-            self::INTEGER => (int) $value,
-            self::FLOAT => (float) $value,
-            self::BOOLEAN => (bool) $value,
+            self::INTEGER => is_numeric($value) ? (int) $value : 0,
+            self::FLOAT => is_numeric($value) ? (float) $value : 0.0,
+            self::BOOLEAN => (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
             self::NULL => null,
             self::ARRAY => is_array($value) ? $value : [$value],
-            self::OBJECT => is_object($value) ? $value : (object) $value,
+            self::OBJECT => is_object($value) ? $value : null,
             default => throw new InvalidArgumentException(
                 sprintf('Unsupported type: %s', $type->value)
             )
@@ -81,6 +81,25 @@ enum Type: string
 
         // Fallback to string
         return self::castValue($value, self::STRING);
+    }
+
+    /**
+     * @return Type[]
+     */
+    public static function listValues(): array
+    {
+        return [
+            self::BOOLEAN,
+            self::INTEGER,
+            self::FLOAT,
+            self::STRING,
+            self::ARRAY,
+            self::OBJECT,
+            self::RESOURCE,
+            self::RESOURCE_CLOSED,
+            self::NULL,
+            self::UNKNOWN,
+        ];
     }
 
     private static function isNumeric(string $value): bool

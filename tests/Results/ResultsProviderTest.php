@@ -3,15 +3,15 @@
 namespace Results;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Results\Proxy;
+use UQL\Results\Cache;
 
 class ResultsProviderTest extends TestCase
 {
-    private Proxy $proxy;
+    private Cache $proxy;
 
     protected function setUp(): void
     {
-        $this->proxy = new Proxy([
+        $this->proxy = new Cache([
             [
                 'id' => 1,
                 'name' => 'Product A',
