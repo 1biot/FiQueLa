@@ -23,7 +23,7 @@ $users = $usersFile->query()
     ->from('data.users')
     ->leftJoin($orders, 'o')
         ->on('id', Operator::EQUAL, 'userId')
-    ->groupBy('orderId')
+    ->groupBy('o.orderId')
     ->orderBy('totalPrice')->desc();
 
 Debugger::inspectQuery($users);

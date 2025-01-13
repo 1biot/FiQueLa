@@ -1,99 +1,74 @@
-# FiQueLa - File Query Language 
+# FiQueLa: File Query Language 
 
 > _[fi-kju-ela]_
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
-![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
-![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
-
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
 ![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_115-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_409-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
-**F**i**Q**ue**L**a is a PHP library for seamless manipulation of data in
-**XML**, **CSV**, **JSON**, **YAML** and **NEON** formats. The library provides MySQL-inspired syntax for querying, filtering,
-joining and aggregating data. It is designed for simplicity, modularity, and efficiency.
+![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
+![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
 
-**Table of Contents:**
+**F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
+like **XML**, **CSV**, **JSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,
+join, and aggregate data with a familiar and efficient syntax. Whether you're working with large datasets or integrating
+various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
 
-- 1 - [Features](#1-features)
-- 2 - [Planning Features](#2-planning-features)
-- 3 - [Installation](#3-installation)
-- 4 - [Getting Started](#4-getting-started)
-  - 4.1 - [Supported Formats](#41-supported-formats)
-  - 4.2 - [Basic Querying](#42-basic-querying)
-  - 4.3 - [Operators](#43-operators)
-  - 4.4 - [Fetching Data](#44-fetching-data)
-    - 4.4.1 - [Getting and Fetching Data](#441-getting-and-fetching-data)
-    - 4.4.2 - [Stream Data](#442-stream-data)
-    - 4.4.3 - [InMemory Data](#442-inmemory-data)
-- 5 - [Advanced Usage](#5-advanced-usage)
-  - 5.1 - [Sorting Functions](#51-sorting-functions)
-  - 5.2 - [Use HAVING Conditions](#52-use-having-conditions)
-  - 5.3 - [Joining Sources](#53-joining-sources)
-  - 5.4 - [Functions](#54-functions)
-    - 5.4.1 - [Aggregate Functions](#541-aggregate-functions)
-    - 5.4.2 - [Hashing Functions](#542-hashing-functions)
-    - 5.4.3 - [Math Functions](#543-math-functions)
-    - 5.4.4 - [String Functions](#544-string-functions)
-    - 5.4.5 - [Utils Functions](#545-utils-functions)
-  - 5.5 - [Mapping - Data Transfer Objects](#55-mapping---data-transfer-objects)
-  - 5.6 - [Pagination, Limit and Offset](#56-pagination-limit-and-offset)
-  - 5.7 - [SQL](#57-sql)
-    - 5.7.1 - [Interpreted SQL](#571-interpreted-sql)
-    - 5.7.2 - [Using SQL Strings](#572-using-sql-strings)
-  - 5.8 - [Inspect Queries and Benchmarking](#58-inspect-queries-and-benchmarking)
-    - 5.8.1 - [Inspect Queries](#581-inspect-queries) 
-    - 5.8.2 - [Benchmarking](#582-benchmarking)
-    - 5.8.3 - [Final results](#583-final-results)
-- 6 - [Examples](#6-examples)
-- 7 - [Contributions](#7-contributions)
-
-## 1. Features
+**Features**:
 
 - ✅ Support for **XML**, **CSV**, **JSON**, **YAML** and **NEON** (easily extensible to other formats).
+- ✅ SQL-inspired capabilities like `SELECT`, `JOIN`, `WHERE`, `HAVING`, `GROUP BY`, `ORDER BY`, `LIMIT` and `OFFSET`.
+- ✅ Advance selecting and aggregating functions like: `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `ROUND`, `FLOOR`, `CEIL`, `MOD`, `EXPLODE`, `IMPLODE`, `MD5`, `SHA1`, `UPPER`, `LOWER`, `LENGTH`, `REVERSE`, `CONCAT`, `COALESCE` and more...
 - ✅ Support stream generator for large **JSON**, **XML** and **CSV** files.
-- ✅ SQL-inspired capabilities:
-  - **SELECT** for selecting fields and aliases.
-  - **JOIN** for joining multiple data sources.
-  - **WHERE** for filtering with various operators.
-  - **HAVING** for filtering by aliases in queries.
-  - **GROUP BY** for grouping data.
-  - **ORDER BY** for sorting.
-  - **LIMIT** and **OFFSET** for pagination and result limits.
-- ✅ Operators for filtering data:
-  - **==**, **!==**, **=**, **!=**
-  - **>**, **<**, **>=**, **<=**
-  - and [more](#43-operators) ... 💪
 - ✅ Data Transfer Objects (DTO)
-- ✅ Advance selecting functions for nested data.
-  - **COALESCE** for selecting first non-null value.
-  - **CONCAT** for concatenating values.
-  - **REVERSE** for reversing strings.
-  - **UPPER** and **LOWER** for changing case.
-  - **LENGTH** for getting length of string.
-  - **ROUND**, **FLOOR** and **CEIL** for rounding numbers.
-  - **MOD** for modulo operation.
-  - **EXPLODE** for splitting values.
-  - **IMPLODE** for joining values.
-  - **MD5** and **SHA1** for hashing values.
-  - more functions will arrive soon... 🚅
 - 🚀 Unified API across all supported formats.
-- ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires to load all data into memory. But everything else is like ⚡️.
-- ⚠️ SQL - Supports SQL string queries inspired with MySQL syntax. Syntax does not support yet all SQL fluent features.
-- ⚠️ Automatic conversion of queries into SQL-like syntax. It is not fully compatible yet with SQL parser
 
-## 2. Planning Features
+**Table of Contents**:
 
-- [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
-- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **F**i**Q**ue**L**a.
-- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
-- [ ] **Tests**: Increase test coverage.
+- _I_ - [Overview](#i-overview)
+- _II_ - [Installation](#ii-installation)
+- _III_ - [Getting Started](#iii-getting-started)
+  - _III.A_ - [Supported Formats](#iiia-supported-formats)
+  - _III.B_ - [Basic Quering](#iiib-basic-querying)
+  - _III.C_ - [Fetching Data](#iiic-fetching-data)
+  - _III.D_ - [Mapping - Data Transfer Objects](#iiid-mapping---data-transfer-objects)
+- _IV_ - [Query Life Cycle](#iv-query-life-cycle)
+- _V_ - [Advance Features](#v-advance-features)
+  - _V.A_ - [Joining Data Sources](#va-joining-data-sources)
+  - _V.B_ - [Aggregations and Functions](#vb-aggregations-and-functions)
+  - _V.C_ - [Sorting and Filtering](#vc-sorting-and-filtering)
+  - _V.D_ - [Pagination and Limits](#vd-pagination-and-limits)
+  - _V.E_ - [SQL Integration](#ve-sql-integration)
+  - _V.F_ - [Query Inspection and Benchmarking](#vf-query-inspection-and-benchmarking)
+- _VI_ - [Examples](#vi-examples)
+- _VII_ - [Knowing issues](#vii-knowing-issues)
+- _VIII_ - [Planning Features](#viii-planning-features)
+- _IX_ - [Contributions](#ix-contributions)
+___
 
-## 3. Installation
+## I. Overview
+
+Why limit SQL to databases when it can be just as effective for querying structured data? **F**i**Q**ue**L**a (File Query Language)
+brings the power of SQL to your files. Whether you're working with **JSON**, **XML**, **CSV**, or **YAML**, **F**i**Q**ue**L**a enables you to interact with these formats using familiar SQL syntax.
+
+Key highlights:
+- **Universal Querying**: Use SQL-like queries to filter, sort, join, and aggregate data across multiple file types.
+- **Data Formats Support**: Seamlessly work with JSON, XML, CSV, YAML, and more.
+- **Powerful Features**: Access advanced SQL features like `GROUP BY`, `HAVING`, and functions for data transformation directly on your file-based datasets.
+- **Developer-Friendly**: Whether you're a beginner or an experienced developer, FiQueLa offers a simple and consistent API for all your data needs.
+- **Flexible Integration**: Ideal for scenarios where data lives in files rather than traditional databases.
+
+Use **F**i**Q**ue**L**a to:
+- Simplify data extraction and analysis from structured files.
+- Combine data from multiple sources with ease.
+- Create lightweight data processing pipelines without a full-fledged database.
+
+**F**i**Q**ue**L**a empowers developers to unlock the potential of file-based data with the familiar and expressive language of SQL.
+
+## II. Installation
 
 Install via [Composer](https://getcomposer.org/):
 
@@ -101,28 +76,19 @@ Install via [Composer](https://getcomposer.org/):
 composer require 1biot/fiquela
 ```
 
-## 4. Getting Started
+## III. Getting Started
 
-### 4.1. Supported Formats
-
-#### XML
-
-XML requires standard PHP extensions only (`libxml`, `simplexml` and `xmlreader`):
-
-```php
-use FQL\Stream\Xml;
-
-$xml = Xml::open('data.xml');
-$xml->setEncoding('windows-1250');
-```
+### III.A. Supported Formats
 
 #### CSV
 
-CSV requires `league/csv` package:
+**F**i**Q**ue**L**a using internally `league/csv` package for CSV files. This support is optional and if you want to use it, you need to install it:
 
 ```bash
 composer require league/csv
 ```
+
+And then you can use it like this:
 
 ```php
 use FQL\Stream\Csv;
@@ -133,10 +99,12 @@ $csv = Csv::open('data.xml')
     ->useHeader(true);
 ```
 
+> ⚠️ **Note**: **FQL** currently supports CSV files only, with no support for CSV strings yet. 
+
 #### JSON
 
 Native support for JSON data allows you to load it from files or strings. Uses `json_decode` function and for large
-files use [JSON Stream](#json-stream).
+files is recommended to use [JSON Stream](#json-stream).
 
 ```php
 use FQL\Stream\Json;
@@ -156,15 +124,28 @@ JSON Stream is useful for large JSON files. It uses `halaxa/json-machine` packag
 composer require halaxa/json-machine
 ```
 
+And then you can use it like this:
+
 ```php
 use FQL\Stream\JsonStream;
 
 $json = JsonStream::open('big/data.json');
 ```
 
+#### XML
+
+XML support requires only standard PHP extensions (`libxml`, `simplexml` and `xmlreader`):
+
+```php
+use FQL\Stream\Xml;
+
+$xml = Xml::open('data.xml');
+$xml->setEncoding('windows-1250');
+```
+
 #### YAML and NEON
 
-To use YAML and NEON formats, you need to install the required libraries:
+To use YAML and NEON formats are optional too, and you need to install the required libraries:
 
 ```bash
 composer require symfony/yaml nette/neon
@@ -178,97 +159,35 @@ $yaml = Yaml::open('data.yaml');
 $neon = Neon::open('data.neon');
 ```
 
-### 4.2. Basic Querying
+### III.B. Basic Querying
+
+It is example how you can easily query data from files. 
 
 ```php
 use FQL\Enum\Operator;
 
+$scannedIdFromRFID = '1234567890';
+
+// creating query
 $query = $xml->query()
     ->select('name, age')
     ->from('users.user')
-    ->where('age', Operator::GREATER_THAN, 18)
-    ->orderBy('name')->asc();
-
-$results = $query->execute();
-foreach ($results->fetchAll() as $user) {
-    echo "{$user['name']} is {$user['age']} years old.\n";
-}
+    ->where('age', Operator::GREATER_THAN_OR_EQUAL, 18)
+    ->and('id', Operator::EQUAL_STRICT, $scannedIdFromRFID);
 ```
 
-### 4.3. Operators
+### III.C. Fetching Data
 
-#### EQUAL (STRICT)
+Executing a query does not immediately execute it; instead, it prepares the query for lazy loading. The `execute()` method
+simply returns an `IteratorAggregate`, leaving it up to you to decide how to process the results.
 
-```php
-// doesn't matter if the value is string or integer
-$query->where('age', Operator::EQUAL, 18); // WHERE age = 18
-$query->where('age', Operator::EQUAL, "18"); // WHERE age = "18"
-
-// this is strict comparison
-$query->where('age', Operator::EQUAL_STRICT, 18); // WHERE age == 18
-$query->where('age', Operator::EQUAL_STRICT, "18"); // WHERE age == "18"
-```
-
-#### NOT EQUAL (STRICT)
-
-```php
-// doesn't matter if the value is string or integer
-$query->where('age', Operator::NOT_EQUAL, 18); // WHERE age != 18
-$query->and('age', Operator::NOT_EQUAL, "18"); // WHERE age != "18"
-
-// this is strict comparison
-$query->where('age', Operator::NOT_EQUAL_STRICT, 18); // WHERE age !== 18
-$query->and('age', Operator::NOT_EQUAL_STRICT, "18"); // WHERE age !== "18"
-```
-
-#### GREATER THAN (OR EQUAL)
-
-```php
-$query->where('age', Operator::GREATER_THAN, 18); // WHERE age > 18
-$query->where('age', Operator::GREATER_THAN_OR_EQUAL, 18); // WHERE age >= 18
-```
-
-#### LESS THAN (OR EQUAL)
-
-```php
-$query->where('age', Operator::LESS_THAN, 18); // WHERE age < 18
-$query->where('age', Operator::LESS_THAN_OR_EQUAL, 18); // WHERE age <= 18
-```
-
-#### (NOT) IN
-
-```php
-$query->where('age', Operator::IN, [18, 19, 20]);
-$query->where('age', Operator::NOT_IN, [18, 19, 20]);
-```
-
-#### CONTAINS
-
-```php
-$query->where('name', Operator::CONTAINS, 'John');  // %John%
-```
-
-#### STARTS WITH
-
-```php
-$query->where('name', Operator::STARTS_WITH, 'John');  // John%
-```
-
-#### ENDS WITH
-
-```php
-$query->where('name', Operator::ENDS_WITH, 'John');  // %John
-```
-
-### 4.4. Getting and Fetching Data
-
-For results from `Query` use method `execute()`. It returns `FQL\Results\ResultsProvider` object which can be used for
-fetching data. This method using parameter to choose between `Stream` or `InMemory` fetching data. Default is `InMemory`.
+`execute()` method returns the `FQL\Results\ResultsProvider` object, which can be used to fetch data. This method accepts
+a parameter to specify the fetching mode—either `Results\Stream` or `Results\InMemory`. By default, the parameter is `null`,
+and the library will automatically select the most suitable option it is affected by sql itself. 
 
 ```php
 use FQL\Results;
-// create a query like $query->select('field')->from('path) ...
-$query = $csv->query();
+
 // get the results
 $results = $query->execute();
 $results = $query->execute(Results\InMemory::class);
@@ -278,7 +197,7 @@ $results = $query->execute(Results\Stream::class);
 **getIterator():**`\Traversable`
 
 Has a same behavior as `fetchAll()` method without $dto parameter.
-    
+
 ```php
 $results = $query->execute();
 foreach ($results->getIterator() as $user) {
@@ -374,81 +293,155 @@ Method to get minimum value.
 $min = $results->min('total_price');
 ```
 
-#### 4.4.2 Stream Data
+### III.D. Mapping - Data Transfer Objects
 
-The advantage of `FQL\Results\Stream` is that it reads data directly from the file with each operation, ensuring it is
-always up-to-date. This is memory efficient, but it is slower for too many iterations. About 2.01s for 50 000 iterations.
+You can map your results to Data Transfer Objects (**DTO**) with `$dto` property when using fetch functions.
 
-#### 4.4.3 InMemory Data
-
-Object `FQL\Query\Provider\` could provide proxy data for fetching results by `getProxy()` method. This is not so memory
-efficient, but it is faster, much faster. About 0.003s for 50 000 iterations to compare 2.01s from `Stream` object.
-
-```php
-// create a query like $query->select('field')->from('path') ...
-$query = $csv->query();
-// get the results
-$proxyResults = $query->execute()->getProxy();
-// and then fetch data
-$proxyResults->fetchAll();
-$proxyResults->fetch();
-...
-```
-
-## 5. Advanced Usage
-
-### 5.1. Sorting functions
+Example with anonymous DTO object:
 
 ```php
 use FQL\Enum\Operator;
+use FQL\Query\Debugger;
 
-$results = $json->query()
-    ->select('name, age')
-    ->from('users')
-    ->where('age', Operator::GREATER_THAN, 18)
-    ->orderBy('name')->asc()
-    ->orderBy('age')->desc()
-    ->execute()
-    ->fetchAll();
+$query = $this->json->query()
+    ->select('id, name, price')
+    ->select('brand.name')->as('brand')
+    ->select('categories[]->name')->as('categories')
+    ->select('categories[]->id')->as('categoryIds')
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN, 200)
+    ->orderBy('price')->desc();
+
+$dto = new class {
+    public int $id;
+    public string $name;
+    public int $price;
+    public string $brand;
+    public array $categories;
+    public array $categoryIds;
+};
+
+Debugger::dump($query->execute()->fetch($dto::class));
 ```
 
-### 5.2. Use HAVING Conditions
+Output will look like this:
 
-This is useful when you want to filter by aliases in queries. Filtering not translate any nested values, but WHERE conditions does.
+```
+class@anonymous #753
+   id: 4
+   name: 'Product D'
+   price: 400
+   brand: 'Brand B'
+   categories: array (2)
+   |  0 => 'Category D'
+   |  1 => 'Category E'
+   categoryIds: array (2)
+   |  0 => 'CAT-D'
+   |  1 => 'CAT-E'
+```
+
+You can use standard classes as DTO as well:
 
 ```php
-use FQL\Enum\Operator;
-
-$query = $json->query();
-
-$results = $query
-    ->select('name')
-    ->round('price', 0)->as('roundedPrice')
-    ->from('products')
-    ->where('currency.code', Operator::EQUAL_STRICT, 'USD')
-    ->having('roundedPrice', Operator::GREATER_THAN, 125)
-    ->execute()
-    ->fetchAll();
-
-foreach ($results as $user) {
-    echo "{$user['fullName']} is {$user['years']} years old.\n";
+class ProductDto
+{
+    public int $id;
+    public string $name;
+    public int $price;
+    public string $brand;
+    public array $categories;
+    public array $categoryIds;
 }
+
+class CategoryDto implements \Stringable
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly string $id
+    ) {
+    }
+    
+    public function __toString() : string
+    {
+        return sprintf('%s-%s', $this->id, $this->name);  
+    }
+}
+
 ```
 
-### 5.3. Joining Sources
+### IV. Query Life Cycle
 
-Joining sources is possible with `leftJoin` and `innerJoin` methods. The following example demonstrates a
+1) **FROM** and **JOIN**:
+    - Data are loaded from the sources specified in the `FROM` clause.
+    - If `JOIN` is present, data is combined based on the join conditions.
+2) **WHERE**:
+    - Filters rows based on conditions specified in the `WHERE` clause.
+    - Filtering happens at the raw data level before any grouping or calculations.
+3) **DISTINCT**:
+    - If the `DISTINCT` clause is used, duplicate rows are removed based on the specified columns.
+    - `DISTINCT` is skipped if a `GROUP BY` clause is present, as grouping inherently eliminates duplicates.
+4) **GROUP BY**:
+    - Data is grouped based on the columns specified in the `GROUP BY` clause.
+    - This prepares grouped data for aggregate functions like `SUM`, `COUNT`, `AVG`, etc.
+5) **SELECT**:
+    - Columns, expressions, and aggregate functions defined in the `SELECT` clause are processed.
+    - The output includes either aggregated data or individual columns.
+6) **HAVING**:
+    - Filters the results produced by the `SELECT` clause.
+    - Primarily used to filter grouped data after aggregation.
+7) **ORDER BY**:
+    - Results are sorted based on the specified columns or expressions.
+    - Sorting can be in ascending (`ASC`), descending (`DESC`) or shuffled (`SHUFFLE`) and naturally sorted (`NATSORT`) order.
+8) **LIMIT** and **OFFSET**:
+    - Limits the number of rows returned by the query using `LIMIT`.
+    - If `OFFSET` is present, it skips a specified number of rows before returning the results.
+
+___
+
+**Example Query Execution**:
+
+For the query:
+
+```sql
+SELECT name, SUM(sales) AS total_sales
+FROM [employees.xml].employees.employee
+WHERE age > 30
+GROUP BY name
+HAVING total_sales > 1000
+ORDER BY total_sales DESC
+LIMIT 10;
+```
+
+**Execution Order**:
+1) **FROM** and **JOIN**:
+   - Data is loaded from the employees file `employees.xml`.
+2) **WHERE**:
+   - Filters rows where `age > 30`.
+3) **GROUP BY**:
+   - Groups data by the `name` column.
+4) **SELECT**:
+   - Processes grouped data and calculates `SUM(sales)` for each group.
+5) **HAVING**:
+   - Filters groups where `total_sales > 1000`.
+6) **ORDER BY**:
+   - Sorts results by `total_sales` in descending order.
+7) **LIMIT**:
+   - Returns only the top 10 rows.
+
+## V. Advance Features
+
+### V.A. Joining Data Sources
+
+Joining data sources is possible with `leftJoin` and `innerJoin` methods. The following example demonstrates a
 left join between **XML** and **JSON** file.
 
 ```php
-use FQL\Enum\Operator;
-use FQL\Stream\Json;
+use FQL\Stream\JsonStream as Json;
 use FQL\Stream\Xml;
+use FQL\Enum\Operator;
 use FQL\Query\Debugger;
 
-$usersFile = Json::open(__DIR__ . '/data/users.json');
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
-
 $orders = $ordersFile->query()
     ->select('id')->as('orderId')
     ->select('user_id')->as('userId')
@@ -457,6 +450,7 @@ $orders = $ordersFile->query()
     
 Debugger::inspectQuery($orders);
 
+$usersFile = Json::open(__DIR__ . '/data/users.json');
 $users = $usersFile->query()
     ->selectAll()
     ->from('data.users')
@@ -469,9 +463,9 @@ Debugger::inspectQuery($users);
 
 For results try the `composer example:join` command.
 
-### 5.4 Functions
+### V.B. Aggregations and Functions
 
-Functions are useful for manipulating data in queries. You can use them in `select` method. Functions values may be sets
+Aggregations and functions are useful for manipulating data in queries. You can use them in `select` method. Functions values may be sets
 as aliases which can be chained with previously called functions.
 
 ```php
@@ -481,9 +475,18 @@ $json->query()
     ->round('sellPrice', 2)->as('roundedPrice');
 ```
 
-#### 5.4.1. Aggregate Functions
+#### Aggregate Functions
 
 Like in SQL, you can use these functions to aggregate data.
+
+**avg(**_string_`$field`**):**`Query`
+
+Select average value of column
+
+```php
+$query->avg('price')
+    ->as('avg'); // SELECT AVG(price) AS avg
+```
 
 **count(**_string_`$field = null`**):**`Query`
 
@@ -497,15 +500,6 @@ $query->count()
     ->as('count'); // SELECT COUNT(*) AS count
 ```
 
-**sum(**_string_`$field`**):**`Query`
-
-Select sum of values
-
-```php
-$query->sum('price')
-    ->as('sum'); // SELECT SUM(price) AS sum
-```
-
 **group_concat(**_string_`$field`**,** _string_`$separator = ","`**):**`Query`
 
 Concatenate values
@@ -516,15 +510,6 @@ $query->groupConcat('name')
 // or with separator
 $query->groupConcat('name', '|')
     ->as('concatenatedNames'); // SELECT GROUP_CONCAT(name, "|") AS concatenatedNames
-```
-
-**avg(**_string_`$field`**):**`Query`
-
-Select average value of column
-
-```php
-$query->avg('price')
-    ->as('avg'); // SELECT AVG(price) AS avg
 ```
 
 **min(**_string_`$field`**):**`Query`
@@ -545,16 +530,16 @@ $query->max('price')
     ->as('max'); // SELECT MAX(price) AS max
 ```
 
-#### 5.4.2. Hashing functions
+**sum(**_string_`$field`**):**`Query`
 
-**sha1(**_string_`$field`**):**`Query`
-
-SHA1 algorithm for hashing
+Select sum of values
 
 ```php
-$query->sha1('name')
-    ->as('hash'); // SELECT SHA1(name) AS hash
+$query->sum('price')
+    ->as('sum'); // SELECT SUM(price) AS sum
 ```
+
+#### Hashing functions
 
 **md5(**_string_`$field`**):**`Query`
 
@@ -565,7 +550,43 @@ $query->md5('name')
     ->as('hash'); // SELECT MD5(name) AS hash
 ```
 
-#### 5.4.3. Math Functions
+**sha1(**_string_`$field`**):**`Query`
+
+SHA1 algorithm for hashing
+
+```php
+$query->sha1('name')
+    ->as('hash'); // SELECT SHA1(name) AS hash
+```
+
+#### Math Functions
+
+**ceil(**_string_`$field`**):**`Query`
+
+Round number up
+
+```php
+$query->ceil('price')
+    ->as('ceilPrice') // SELECT CEIL(price) AS ceilPrice
+```
+
+**floor(**_string_`$field`**):**`Query`
+
+Round number down
+
+```php
+$query->floor('price')
+    ->as('floorPrice') // SELECT FLOOR(price) AS floorPrice
+```
+
+**modulo(**_string_`$field`**,** _int_`$divisor`**):**`Query`
+
+Modulo operation, when divisor is zero then exception is thrown
+
+```php
+$query->modulo('price', 2)
+    ->as('modPrice') // SELECT MOD(price, 2) AS modPrice
+```
 
 **round(**_string_`$field`**,** _int_`$precision = 0`**):**`Query`
 
@@ -583,34 +604,7 @@ $query->round('price', 2)
     ->as('roundedPrice') // SELECT ROUND(price, 2) AS roundedPrice
 ```
 
-**floor(**_string_`$field`**):**`Query`
-
-Round number down
-
-```php
-$query->floor('price')
-    ->as('floorPrice') // SELECT FLOOR(price) AS floorPrice
-```
-
-**ceil(**_string_`$field`**):**`Query`
-
-Round number up
-
-```php
-$query->ceil('price')
-    ->as('ceilPrice') // SELECT CEIL(price) AS ceilPrice
-```
-
-**modulo(**_string_`$field`**,** _int_`$divisor`**):**`Query`
-
-Modulo operation, when divisor is zero then exception is thrown
-
-```php
-$query->modulo('price', 2)
-    ->as('modPrice') // SELECT MOD(price, 2) AS modPrice
-```
-
-#### 5.4.4. String Functions
+#### String Functions
 
 **upper(**_string_`$field`**):**`Query`
 
@@ -730,9 +724,9 @@ $query->randomString(16)
     ->as('randomString'); // SELECT RANDOM_STRING(16) AS randomString
 ```
 
-#### 5.4.5. Utils Functions
+#### Utils Functions
 
-**coalesce(**_string_`...$fields`**)**`: Query`
+**coalesce(**_string_`...$fields`**)**:`Query`
 
 Coalesce values (first non-null value)
 
@@ -741,7 +735,7 @@ $query->coalesce('whatever', 'ArticleNr')
     ->as('coalesceString'); // SELECT COALESCE(ArticleNr, whatever) AS coalesceString
 ```
 
-**coalesceNotEmpty(**_string_`...$fields`**)**`: Query`
+**coalesceNotEmpty(**_string_`...$fields`**)**:`Query`
 
 Coalesce values when not empty (first non-empty value)
 
@@ -759,89 +753,67 @@ $query->randomBytes(16)
     ->as('randomBytes'); // SELECT RANDOM_BYTES(16) AS randomBytes
 ```
 
-### 5.5. Mapping - Data Transfer Objects
 
-You can map your results to Data Transfer Objects (**DTO**) with `$dto` property when using fetch functions.
 
-Example with anonymous DTO object:
+
+
+
+
+
+
+
+
+
+
+
+
+
+### V.C. Sorting and Filtering
+
+#### Sorting Functions
+
+**F**i**Q**ue**L**a now supports basic operators for filtering data like `ASC`, `DESC`, `SHUFFLE` and `NATSORT`.
 
 ```php
 use FQL\Enum\Operator;
-use FQL\Query\Debugger;
 
-$query = $this->json->query()
-    ->select('id, name, price')
-    ->select('brand.name')->as('brand')
-    ->select('categories[]->name')->as('categories')
-    ->select('categories[]->id')->as('categoryIds')
-    ->from('data.products')
-    ->where('price', Operator::GREATER_THAN, 200)
-    ->orderBy('price')->desc()
-    ->limit(1);
-
-$dto = new class {
-    public int $id;
-    public string $name;
-    public int $price;
-    public string $brand;
-    public array $categories;
-    public array $categoryIds;
-};
-
-Debugger::dump($query->execute()->fetch($dto::class));
-```
-
-```
-// Output:
-class@anonymous #753
-   id: 4
-   name: 'Product D'
-   price: 400
-   brand: 'Brand B'
-   categories: array (2)
-   |  0 => 'Category D'
-   |  1 => 'Category E'
-   categoryIds: array (2)
-   |  0 => 'CAT-D'
-   |  1 => 'CAT-E'
-```
-
-You can use DTO classes as well:
-
-```php
-class ProductDto
-{
-    public int $id;
-    public string $name;
-    public int $price;
-    public string $brand;
-    public array $categories;
-    public array $categoryIds;
-}
-
-class CategoryDto implements \Stringable
-{
-    public function __construct(
-        public readonly string $name,
-        public readonly string $id
-    ) {}
-    
-    public function __toString() : string{
-        return sprintf('%s-%s', $this->id, $this->name);  
-    }
-}
-
-```
-
-### 5.6. Pagination, Limit and Offset
-
-```php
-$results = $query
+$results = $json->query()
     ->select('name, age')
     ->from('users')
-    ->page(2, 20);
+    ->where('age', Operator::GREATER_THAN, 18)
+    ->orderBy('name')->asc()
+    ->orderBy('age')->desc()
+    ->orderBy('name')->natural()
+    ->orderBy('age')->shuffle();
+```
 
-// or using limit and offset
+> ⚠️ **Note**: `SHUFFLE` and `NATSORT` are experimental functions because they are too slow for datasets with many records, But feel free to try them.
+
+#### Filtering functions
+
+Using `HAVING` is useful when you want to filter data based on final row or aggregated values. `HAVIN` not translate any
+nested values, but `WHERE` clause does.
+
+```php
+use FQL\Enum\Operator;
+
+$query = $json->query();
+
+$results = $query
+    ->select('name')
+    ->round('price', 0)->as('roundedPrice')
+    ->avg('price')->as('avgPrice')
+    ->from('products')
+    ->where('currency.code', Operator::EQUAL_STRICT, 'USD')
+    ->having('roundedPrice', Operator::GREATER_THAN, 125)
+        ->and('avgPrice', Operator::GREATER_THAN, 90);
+```
+
+### V.D. Pagination and Limits
+
+You can limit the number of results returned by using the `LIMIT` and `OFFSET` clauses. This is useful for paginating.
+
+```php
 $results = $query
     ->select('name, age')
     ->from('users')
@@ -849,12 +821,20 @@ $results = $query
     ->offset(40);
 ```
 
-### 5.7. SQL
+Or using by `page()` method:
 
-#### 5.7.1. Interpreted SQL
+```php
+$results = $query
+    ->select('name, age')
+    ->from('users')
+    ->page(2, 20);
+```
 
-All fluent queries can be interpreted to SQL strings. This is useful for debugging and understanding how queries are
-executed.
+### V.E. SQL Integration
+
+#### Interpreted SQL
+
+All fluent queries can be converted into SQL strings.
 
 ```php
 $query = JsonStream::open(__DIR__ . '/data/products.tmp')->query();
@@ -866,13 +846,13 @@ $query->selectAll()
     ->from('data.products')
     ->where('price', Operator::LESS_THAN, 300)
     ->or('price', Operator::GREATER_THAN, 400)
-    ->groupBy('brandCode')
+    ->groupBy('brand.code')
     ->orderBy('productCount')->desc();
 
 echo $query->test();
 ```
 
-Output is referenced to SQL query which will be compatible with future version of SQL parser.
+`test()` produce output represents the query in SQL format. This feature is particularly useful for debugging and gaining a clear understanding of how queries are constructed and executed.
 
 ```sql
 SELECT
@@ -884,17 +864,16 @@ FROM [json://products.tmp].data.products
 WHERE
   price < 200
   OR price > 300
-GROUP BY brandCode
+GROUP BY brand.code
 ORDER BY productCount DESC
 ```
 
-#### 5.7.2. Using SQL Strings
+#### Using SQL Strings
 
-> ⚠️ Parser does not support yet `functions`, `joins`, `group by`, `having` conditions and `from` abilities.
-> Parser will be more complex in the future, and now it is for testing purposes.
+Parse SQL strings directly into queries for all supported file formats. Idea is to use SQL strings for creating queries without fluent syntax. Now it could be used only for simple queries directly to files.
 
-Parse SQL strings directly into queries for all supported file formats. Now work in progress and supports only basics
-functions. Idea is to use SQL strings for creating queries without fluent syntax. Now it could be used only for simple queries directly to files.
+> ⚠️ Parser does not support yet `functions`, `joins`, `group by`, `having` conditions and `from` advanced abilities.
+> Parser will be more complex in the future, and now it is only for testing purposes.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -926,6 +905,8 @@ functions. Idea is to use SQL strings for creating queries without fluent syntax
 </root>
 ```
 
+Using SQL strings for querying XML data:
+
 ```php
 $sql = <<<SQL
 SELECT
@@ -938,25 +919,16 @@ WHERE
 ORDER BY productName DESC
 SQL;
 
-$results = $xml->sql($sql);
-Debugger::dump(iterator_to_array($results->fetchAll()));
+$results = $xml->sql($sql)
+    ->fetchAll();
+Debugger::dump(iterator_to_array($results));
 ```
 
-```
-// Output:
-array (2)
-   0 => array (2)
-   |  'productName' => 'Item 3'
-   |  'price' => '300'
-   1 => array (2)
-   |  'productName' => 'Item 1'
-   |  'price' => '100'
-```
+In the future, it will be possible to use `FROM` and `JOIN` to directly load data from files, and the fluent interface
+will be fully compatible with SQL strings.
 
-In future will be possible to use `from` and `join` to directly loadings data from files and fluent interface will be
-fully compatible with SQL strings.
 
-### 5.8. Inspect Queries and Benchmarking
+### V.F. Query Inspection and Benchmarking
 
 If you want use inspecting and benchmarking queries, you need to use `FQL\Query\Debugger` class. Dumping variables and
 cli output require `tracy/tracy` package if you are not using it, you can install it by:
@@ -973,7 +945,7 @@ use FQL\Query\Debugger;
 Debugger::start();
 ```
 
-### 5.8.1. Inspect Queries
+#### Inspect Queries
 You can inspect your query for mor information about execution time, memory usage, SQL query and results.
 
 ```php
@@ -998,7 +970,7 @@ Debugger::inspectQuerySql(
 );
 ```
 
-### 5.8.2. Benchmarking
+#### Benchmarking
 
 You can benchmark your queries and test their performance through the number of iterations.
 
@@ -1014,7 +986,7 @@ $query = Xml::open(__DIR__ . '/data/orders.xml')->query()
 Debugger::benchmarkQuery($query, 1000);
 ```
 
-### 5.8.3. Final results
+#### Final results
 
 ```php
 Debugger::end();
@@ -1030,9 +1002,9 @@ Will output final results like this:
 >> Final execution time (µs): 2019434
 ```
 
-For more information about inspecting queries and benchmarking, see the [examples](#6-examples)
+For more information about inspecting queries and benchmarking, see the [examples](#vi-examples)
 
-## 6. Examples
+## VI. Examples
 
 Check the examples and run them using Composer. All examples uses `\FQL\Helpers\Debugger` and methods `inspectQuery` or
 `inspectQuerySql` or `benchmarkQuery` to show the results.
@@ -1057,33 +1029,6 @@ Runs `composer example:join` and output will look like this:
 '*** SQL query: ***'
 '=================='
 >> SELECT 
->>   id AS orderId,
->>   user_id AS userId,
->>   total_price AS totalPrice
->> FROM [orders.xml].orders.order
-'================'
-'*** Results: ***'
-'================'
-> Count: 4
-'=================='
-'*** First row: ***'
-'=================='
-array (3)
-   'orderId' => 1
-   'userId' => 1
-   'totalPrice' => 100
-
-'------------------------------'
-> Memory usage: 2.0059MB (emalloc)
-> Memory peak usage: 2.0712MB (emalloc)
-'------------------------------'
-> Execution time (s): 0.019864
-> Execution time (ms): 19.864
-> Execution time (µs): 19864
-'=================='
-'*** SQL query: ***'
-'=================='
->> SELECT 
 >>   id,
 >>   name,
 >>   o.orderId AS orderId,
@@ -1097,11 +1042,12 @@ array (3)
 >>     total_price AS totalPrice
 >>   FROM [orders.xml].orders.order
 >> ) AS o ON id = userId
->> GROUP BY orderId
+>> GROUP BY o.orderId
 >> ORDER BY totalPrice DESC
 '================'
 '*** Results: ***'
 '================'
+> Result class: FQL\Results\InMemory
 > Count: 5
 '=================='
 '*** First row: ***'
@@ -1113,16 +1059,16 @@ array (4)
    'totalPrice' => 600
 
 '------------------------------'
-> Memory usage: 2.0259MB (emalloc)
-> Memory peak usage: 2.0712MB (emalloc)
+> Memory usage: 2.0601MB (emalloc)
+> Memory peak usage: 2.1227MB (emalloc)
 '------------------------------'
-> Execution time (s): 0.00319
-> Execution time (ms): 3.19
-> Execution time (µs): 3190
+> Execution time (s): 0.021444
+> Execution time (ms): 21.444
+> Execution time (µs): 21444
 '========================'
 '*** Benchmark Query: ***'
 '========================'
-> 10 000 iterations
+> 100 iterations
 '=================='
 '*** SQL query: ***'
 '=================='
@@ -1140,41 +1086,59 @@ array (4)
 >>     total_price AS totalPrice
 >>   FROM [orders.xml].orders.order
 >> ) AS o ON id = userId
->> GROUP BY orderId
+>> GROUP BY o.orderId
 >> ORDER BY totalPrice DESC
 '========================='
 '*** STREAM BENCHMARK: ***'
 '========================='
-> Size (KB): 2.57
+> Size (KB): 2.8
 > Count: 5
-> Iterated results: 50 000
+> Iterated results: 500
 '------------------------------'
-> Memory usage: 2.0259MB (emalloc)
-> Memory peak usage: 2.0712MB (emalloc)
+> Memory usage: 2.0583MB (emalloc)
+> Memory peak usage: 2.1227MB (emalloc)
 '------------------------------'
-> Execution time (s): 2.028502
-> Execution time (ms): 2028.502
-> Execution time (µs): 2028502
+> Execution time (s): 0.026855
+> Execution time (ms): 26.855
+> Execution time (µs): 26855
 '========================'
 '*** PROXY BENCHMARK: ***'
 '========================'
-> Size (KB): 0.56
+> Size (KB): 0.72
 > Count: 5
-> Iterated results: 50 000
+> Iterated results: 500
 '------------------------------'
-> Memory usage: 2.028MB (emalloc)
-> Memory peak usage: 2.0712MB (emalloc)
+> Memory usage: 2.0603MB (emalloc)
+> Memory peak usage: 2.1227MB (emalloc)
 '------------------------------'
-> Execution time (s): 0.003005
-> Execution time (ms): 3.005
-> Execution time (µs): 3005
+> Execution time (s): 0.001072
+> Execution time (ms): 1.072
+> Execution time (µs): 1072
 '=============================='
->> Final execution time (s): 2.054598
->> Final execution time (ms): 2054.598
->> Final execution time (µs): 2054598
+> Memory usage: 2.058MB (emalloc)
+> Memory peak usage: 2.1227MB (emalloc)
+>> Final execution time (s): 0.049452
+>> Final execution time (ms): 49.452
+>> Final execution time (µs): 49452
 ```
 
-## 7. Contributions
+## VII. Knowing issues
+
+- ⚠️ You can use `WHERE` clause only for one logical group. Nesting groups is not supported yet.
+- ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
+to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
+- ⚠️ SQL - Supports SQL string queries inspired with SQL-like syntax. Syntax does not support yet all SQL fluent features.
+- ⚠️ Automatic conversion of queries into SQL-like syntax. It is not fully compatible yet with SQL parser
+
+## VIII. Planning Features
+
+- [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
+- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **F**i**Q**ue**L**a.
+- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
+- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
+- [ ] **Tests**: Increase test coverage.
+
+## IX. Contributions
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
 

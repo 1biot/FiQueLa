@@ -2,8 +2,9 @@
 
 ## [2.0.0] - UNRELEASED
 
-Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does. Namespace
-`UQL` moved to `FQL`
+- Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does
+- Namespace `UQL` moved to `FQL`
+- Rewritten documentation
 
 ### Added
 
@@ -47,8 +48,9 @@ instead.
 - Method `finish()` renamed to `end()`
 - Edits single line output
 
-### Fixed
-- Fixed issue with conditions grouping in `WHERE` clause (no done yet)
+### Issue
+- Fix issue with nested conditions in `WHERE` clause
+(Problem affects conditions with nested group conditions, but base conditions works correctly)
 
 ---
 
