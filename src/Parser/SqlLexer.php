@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Parser;
+namespace FQL\Parser;
 
 class SqlLexer
 {

@@ -1,16 +1,22 @@
 # Changelog
 
 ## [2.0.0] - UNRELEASED
+
+Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does. Namespace
+`UQL` moved to `FQL`
+
 ### Added
 
 #### File formats
-- Added new `UQL\Stream\JsonStream` class allows parsing JSON data as a stream
+- Added new `FQL\Stream\JsonStream` class allows parsing JSON data as a stream
 
 #### Functions
+- Added support for `DISTINCT` clause
 - Added support for grouping data by `GROUP BY` clause
-- Refactored Functions namespace folder structure
+- `DISTINCT` and `GROUP BY` are not compatible with each other
+- Refactored `FQL\Functions` namespace folder structure
 - Supports new aggregate functions: `COUNT`, `SUM`, `AVG`, `MIN`, `MAX` and `GROUP_CONCAT`
-  - these methods are usable in `SELECT` clause and in `UQL\Results\ResultProvider` object
+  - these methods are usable in `SELECT` clause and in `FQL\Results\ResultProvider` object
 - Added new functions: `FROM_BASE64`, `TO_BASE64`, `RANDOM_STRING` and `RANDOM_BYTES`
 
 #### Utils
@@ -23,21 +29,26 @@
 ### Changed
 
 #### Results
-- Refactored fetching the results. Interface `UQL\Query\Query` removed fetching methods and replaced by `execute()` method
-instead. This method returns `UQL\Result\ResultProvider` object that implements missing fetching methods.
+- Refactored fetching the results
+- Interface `FQL\Query\Query` removed fetching methods and replaced by `execute()` method
+instead. 
+- Method `execute()` returns `FQL\Result\ResultProvider` object that implements missing fetching methods.
+- `execute()` decide which results are used (`FQL\Result\Stream` or `FQL\Result\InMemory`) or you can specify it manually.
 
 #### Helpers and Traits
 - Helpers are refactored as traits
-  - `UQL\Helpers\ArrayHelper` moved to `UQL\Traits\Helpers\NestedArrayAccessor`
-  - `UQL\Helpers\StringHelper` moved to `UQL\Traits\Helpers\StringOperations`
+  - `FQL\Helpers\ArrayHelper` moved to `FQL\Traits\Helpers\NestedArrayAccessor`
+  - `FQL\Helpers\StringHelper` moved to `FQL\Traits\Helpers\StringOperations`
 
 #### Debugger
-- `UQL\Helpers\Debugger` moved to `UQL\Query\Debugger` and edits single line output
-- Fixed issue when splitting time a renamed method from `end()` to `split()` and `finish()` to `end()`
+- `FQL\Helpers\Debugger` moved to `FQL\Query\Debugger`
+- Fixed issue when splitting time
+- Method `end()` renamed to `split()`
+- Method `finish()` renamed to `end()`
 - Edits single line output
 
 ### Fixed
-- Fixed issue with conditions grouping in `WHERE` clause
+- Fixed issue with conditions grouping in `WHERE` clause (no done yet)
 
 ---
 

@@ -1,7 +1,7 @@
 <?php
 
-namespace UQL\Exceptions;
+namespace FQL\Exceptions;
 
-class UnexpectedValueException extends Exception
+class UnexpectedValueException extends \UnexpectedValueException
 {
 }

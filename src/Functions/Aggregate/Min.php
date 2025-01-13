@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Functions\Aggregate;
+namespace FQL\Functions\Aggregate;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\SingleFieldAggregateFunction;
 
 class Min extends SingleFieldAggregateFunction
 {

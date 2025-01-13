@@ -1,11 +1,11 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Parser\Sql;
-use UQL\Query\Query;
-use UQL\Results\Results;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Parser\Sql;
+use FQL\Query\Query;
+use FQL\Results\Results;
 
 abstract class StreamProvider
 {

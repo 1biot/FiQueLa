@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Traits;
+namespace FQL\Traits;
 
 trait Groupable
 {

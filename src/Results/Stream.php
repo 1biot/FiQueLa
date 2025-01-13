@@ -1,29 +1,27 @@
 <?php
 
-namespace UQL\Results;
+namespace FQL\Results;
 
-use League\Csv\Exception;
-use League\Csv\InvalidArgument;
-use League\Csv\UnavailableFeature;
-use League\Csv\UnavailableStream;
-use UQL\Enum\Join;
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Operator;
-use UQL\Enum\Sort;
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Functions\Core\AggregateFunction;
-use UQL\Functions\Core\BaseFunction;
-use UQL\Functions\Core\NoFieldFunction;
-use UQL\Query\Query;
-use UQL\Stream\Csv;
-use UQL\Stream\Json;
-use UQL\Stream\JsonStream;
-use UQL\Stream\Neon;
-use UQL\Stream\Xml;
-use UQL\Stream\Yaml;
-use UQL\Traits\Helpers\NestedArrayAccessor;
-use UQL\Traits\Joinable;
-use UQL\Traits\Select;
+use FQL\Enum\Join;
+use FQL\Enum\LogicalOperator;
+use FQL\Enum\Operator;
+use FQL\Enum\Sort;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions\UnableOpenFileException;
+use FQL\Functions\Core\AggregateFunction;
+use FQL\Functions\Core\BaseFunction;
+use FQL\Functions\Core\NoFieldFunction;
+use FQL\Query\Query;
+use FQL\Results;
+use FQL\Stream\Csv;
+use FQL\Stream\Json;
+use FQL\Stream\JsonStream;
+use FQL\Stream\Neon;
+use FQL\Stream\Xml;
+use FQL\Stream\Yaml;
+use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Joinable;
+use FQL\Traits\Select;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -50,6 +48,7 @@ class Stream extends ResultsProvider
      */
     public function __construct(
         private readonly Xml|Json|JsonStream|Yaml|Neon|Csv $stream,
+        private readonly bool $distinct,
         private readonly array $selectedFields,
         private readonly string $from,
         private readonly array $where,
@@ -62,6 +61,11 @@ class Stream extends ResultsProvider
     ) {
     }
 
+    /**
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     * @throws InvalidArgumentException
+     * @throws UnableOpenFileException
+     */
     public function getIterator(): \Traversable
     {
         yield from $this->buildStream();
@@ -83,13 +87,11 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @throws UnavailableStream
-     * @throws InvalidArgument
+     * @return \Generator<StreamProviderArrayIteratorValue>
      * @throws InvalidArgumentException
-     * @throws UnavailableFeature
-     * @throws Exception
+     * @throws UnableOpenFileException
      */
-    private function applyStreamSource(): \Generator
+    private function applyStreamSource(): \Traversable
     {
         $streamSource = $this->from === Query::SELECT_ALL
             ? null
@@ -99,11 +101,10 @@ class Stream extends ResultsProvider
 
     /**
      * Applies all defined joins to the dataset.
-     *
-     * @param \Generator $data The primary data to join.
-     * @return \ArrayIterator<int, StreamProviderArrayIteratorValue>|\Generator The joined dataset.
+     * @param \Traversable<StreamProviderArrayIteratorValue> $data The primary data to join.
+     * @return \Traversable<StreamProviderArrayIteratorValue> The joined dataset.
      */
-    private function applyJoins(\Generator $data): \ArrayIterator|\Generator
+    private function applyJoins(\Traversable $data): \Traversable
     {
         foreach ($this->joins as $join) {
             $data = $this->applyJoin($data, $join);
@@ -114,13 +115,13 @@ class Stream extends ResultsProvider
 
     /**
      * Applies a single join to the dataset.
-     * @param StreamProviderArrayIterator|\Generator $leftData The left dataset.
+     * @param \Traversable<StreamProviderArrayIteratorValue> $leftData The left dataset.
      * @param JoinAbleArray $join The join definition.
-     * @return \ArrayIterator<int, StreamProviderArrayIteratorValue> The resulting dataset after the join.
+     * @return \Traversable<StreamProviderArrayIteratorValue> The resulting dataset after the join.
      */
-    private function applyJoin(iterable $leftData, array $join): \ArrayIterator
+    private function applyJoin(\Traversable $leftData, array $join): \Traversable
     {
-        $rightData = iterator_to_array($join['table']->execute()->getIterator());
+        $rightData = $join['table']->execute(Results\Stream::class)->getIterator();
         $alias = $join['alias'];
         $leftKey = $join['leftKey'];
         $rightKey = $join['rightKey'];
@@ -136,10 +137,10 @@ class Stream extends ResultsProvider
             }
         }
 
-        $result = [];
+        // Get the structure of the right table from the hashmap
+        $rightStructure = array_keys(current($hashmap)[0] ?? []);
         foreach ($leftData as $leftRow) {
             $leftKeyValue = $leftRow[$leftKey] ?? null;
-
             if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
                 // Handle matches (n * n)
                 foreach ($hashmap[$leftKeyValue] as $rightRow) {
@@ -149,76 +150,57 @@ class Stream extends ResultsProvider
                         : array_merge($leftRow, $rightRow);
 
                     if ($operator->evaluate($leftKeyValue, $rightRow[$rightKey] ?? null)) {
-                        $result[] = $joinedRow;
+                        yield $joinedRow;
                     }
                 }
             } elseif ($type === Join::LEFT) {
                 // Handle LEFT JOIN (no match)
-                $nullRow = array_fill_keys(array_keys($rightData[0] ?? []), null);
+                $nullRow = array_fill_keys($rightStructure, null);
                 /** @var StreamProviderArrayIteratorValue $joinedRow */
                 $joinedRow = $alias
                     ? array_merge($leftRow, [$alias => $nullRow])
                     : array_merge($leftRow, $nullRow);
 
-                $result[] = $joinedRow;
+                yield $joinedRow;
+            }
+
+            if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
+                unset($hashmap[$leftKeyValue]); // remove the used key from the hashmap
             }
         }
-
-        return new \ArrayIterator($result);
     }
 
-    private function getStream(): \Generator
+    /**
+     * @implements \Traversable<StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     * @throws UnableOpenFileException
+     * @throws InvalidArgumentException
+     */
+    private function buildStream(): \Traversable
     {
-        $count = 0;
-        $currentOffset = 0; // Number of already skipped records
-        $groupedData = [];
-
-        $applyLimitAtStream = $this->isLimitable() && !$this->isSortable() && !$this->isGroupable();
-
         $stream = $this->hasJoin()
             ? $this->applyJoins($this->applyStreamSource())
             : $this->applyStreamSource();
 
-        foreach ($stream as $item) {
-            if (!$this->evaluateWhereConditions($item)) {
-                continue;
+        if ($this->isGroupable()) {
+            if (!$this->isSortable()) {
+                return yield from $this->applyGrouping($stream); // apply limit and offset automatically
             }
 
-            $resultItem = $this->applySelect($item);
-            if ($this->isGroupable()) {
-                $groupKey = $this->hasPhase('group') ? $this->createGroupKey($resultItem) : '*';
-                $groupedData[$groupKey][] = $item;
-                continue;
-            }
-
-            if (!$this->evaluateHavingConditions($resultItem)) {
-                continue;
-            }
-
-            // Offset application
-            if ($applyLimitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
-                $currentOffset++;
-                continue;
-            }
-
-            yield $resultItem;
-
-            $count++;
-            if ($applyLimitAtStream && $this->limit !== null && $count >= $this->limit) {
-                break;
-            }
+            $stream = $this->applyGrouping($stream);
+        } else {
+            $stream = $this->applyBaseStream($stream);
         }
 
-        yield from $this->applyGrouping($groupedData);
-    }
 
-    private function buildStream(): \Generator
-    {
+
         if (!$this->isSortable()) {
-            return yield from $this->getStream();
+            return yield from $stream; // apply limit and offset automatically
+        } elseif (!$this->isLimitable()) {
+            return yield from $this->applySorting($stream);
         }
 
-        return yield from $this->applyLimit($this->applySorting($this->getStream()));
+        return yield from $this->applyLimit($this->applySorting($stream));
     }
 
     /**
@@ -262,7 +244,6 @@ class Stream extends ResultsProvider
      * Evaluate group of conditions
      * @param StreamProviderArrayIteratorValue $item
      * @param array<Condition|ConditionGroup> $conditions
-     * @return bool
      */
     private function evaluateGroup(array $item, array $conditions, bool $nestingValues): bool
     {
@@ -325,6 +306,9 @@ class Stream extends ResultsProvider
             } elseif ($fieldData['function'] instanceof NoFieldFunction) {
                 $result[$fieldName] = $fieldData['function']();
                 continue;
+            } elseif ($fieldData['function'] instanceof AggregateFunction) {
+                $result[$finalField] = $item[$finalField] ?? null;
+                continue;
             }
 
             $result[$fieldName] = $this->accessNestedValue(
@@ -338,19 +322,98 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @param array<string, StreamProviderArrayIteratorValue[]> $groupedData
-     * @return \Generator
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Traversable<StreamProviderArrayIteratorValue>
+     * @throws InvalidArgumentException
      */
-    private function applyGrouping(array $groupedData): \Generator
+    private function applyBaseStream(\Traversable $stream): \Traversable
     {
-        foreach ($groupedData as $groupKey => $groupItems) {
-            $aggregatedItem = $this->applySelect($groupItems[0]);
-            $aggregatedItem = $this->applyAggregations($groupItems, $aggregatedItem); // Aggregate grouped items
+        $count = 0;
+        $currentOffset = 0; // Number of already skipped records
+        $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
+
+        foreach ($stream as $item) {
+            if (!$this->evaluateWhereConditions($item)) {
+                continue;
+            }
+
+            $resultItem = $this->applySelect($item);
+            if (!$this->evaluateHavingConditions($resultItem)) {
+                continue; // Skip resultItem that do not satisfy HAVING
+            }
+
+            if ($this->distinct) {
+                $hash = md5(serialize($resultItem));
+                if (isset($seen[$hash])) {
+                    continue;
+                }
+                $seen[$hash] = true;
+            }
+
+            // Offset application
+            if ($applyLimitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                $currentOffset++;
+                continue;
+            }
+
+            yield $resultItem; // Return result
+
+            $count++;
+            if ($applyLimitAtStream && $this->limit !== null && $count >= $this->limit) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     * @throws InvalidArgumentException
+     */
+    private function applyGrouping(\Traversable $stream): \Traversable
+    {
+        $groupedData = [];
+        $groupKey = Query::SELECT_ALL;
+        foreach ($stream as $item) {
+            if (!$this->evaluateWhereConditions($item)) {
+                continue;
+            } elseif ($this->hasPhase('group')) {
+                $groupKey = $this->createGroupKey($item);
+            }
+
+            $groupedData[$groupKey][] = $item;
+        }
+
+        if ($groupKey === Query::SELECT_ALL) {
+            // Aggregate grouped items
+            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL]);
+            if ($this->evaluateHavingConditions($aggregatedItem)) {
+                return yield $aggregatedItem;
+            }
+        }
+
+        $count = 0;
+        $currentOffset = 0; // Number of already skipped records
+        $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
+        foreach ($groupedData as $groupItems) {
+            // Aggregate grouped items
+            $aggregatedItem = $this->applyAggregations($groupItems);
             if (!$this->evaluateHavingConditions($aggregatedItem)) {
                 continue; // Skip groups that do not satisfy HAVING
             }
 
+            // Offset application
+            if ($applyLimitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                $currentOffset++;
+                continue;
+            }
+
             yield $aggregatedItem; // Return aggregated result
+
+            $count++;
+            if ($applyLimitAtStream && $this->limit !== null && $count >= $this->limit) {
+                break;
+            }
         }
     }
 
@@ -358,24 +421,24 @@ class Stream extends ResultsProvider
      * Aggregates grouped items.
      *
      * @param array<int, array<string, mixed>> $groupItems Grouped items for a single group
-     * @param StreamProviderArrayIteratorValue $aggregatedItem Grouped items for a single group
      * @return array<string, mixed> Aggregated result
      */
-    private function applyAggregations(array $groupItems, array $aggregatedItem): array
+    private function applyAggregations(array $groupItems): array
     {
+        $aggregatedItem = $groupItems[0];
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = $finalField;
             if ($fieldData['function'] instanceof AggregateFunction) {
-                $aggregatedItem[$fieldName] = $fieldData['function']($groupItems);
+                $aggregatedItem[$finalField] = $fieldData['function']($groupItems);
             }
         }
 
-        return $aggregatedItem;
+        return $this->applySelect($aggregatedItem);
     }
 
     /**
      * @param \Generator<StreamProviderArrayIteratorValue> $iterator
      * @return \Generator<StreamProviderArrayIteratorValue>
+     * @throws InvalidArgumentException
      */
     private function applySorting(\Generator $iterator): \Generator
     {
@@ -437,8 +500,7 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * Vytvoří klíč skupiny na základě GROUP BY polí.
-     *
+     * Creates a group key based on GROUP BY fields.
      * @param array<string, mixed> $item
      * @return string
      */
@@ -446,8 +508,9 @@ class Stream extends ResultsProvider
     {
         $keyParts = [];
         foreach ($this->groupByFields as $field) {
-            $keyParts[] = $item[$field] ?? 'NULL';
+            $keyParts[] = $this->accessNestedValue($item, $field);
         }
+
         return implode('|', $keyParts);
     }
 
@@ -473,17 +536,17 @@ class Stream extends ResultsProvider
         return in_array($phase, $phaseArray, true);
     }
 
-    private function hasJoin(): bool
+    public function hasJoin(): bool
     {
         return $this->hasPhase('join');
     }
 
-    private function isSortable(): bool
+    public function isSortable(): bool
     {
         return $this->hasPhase('sort');
     }
 
-    private function isGroupable(): bool
+    public function isGroupable(): bool
     {
         foreach ($this->selectedFields as $data) {
             if ($data['function'] instanceof AggregateFunction) {
@@ -494,7 +557,7 @@ class Stream extends ResultsProvider
         return $this->hasPhase('group');
     }
 
-    private function isLimitable(): bool
+    public function isLimitable(): bool
     {
         return $this->hasPhase('limit');
     }

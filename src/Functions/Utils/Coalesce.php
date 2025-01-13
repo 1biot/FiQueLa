@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Functions\Utils;
+namespace FQL\Functions\Utils;
 
-use UQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\MultipleFieldsFunction;
 
 class Coalesce extends MultipleFieldsFunction
 {

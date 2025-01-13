@@ -20,4 +20,9 @@
         <user_id>2</user_id>
         <total_price>600</total_price>
     </order>
+    <order>
+        <id>4</id>
+        <user_id>2</user_id>
+        <total_price>600</total_price>
+    </order>
 </orders>

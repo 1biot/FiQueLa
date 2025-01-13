@@ -1,12 +1,12 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
 use ArrayIterator;
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormatException;
-use UQL\Query\Provider;
-use UQL\Query\Query;
+use FQL\Exceptions\FileNotFoundException;
+use FQL\Exceptions\InvalidFormatException;
+use FQL\Query\Provider;
+use FQL\Query\Query;
 
 final class Json extends ArrayStreamProvider
 {

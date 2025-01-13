@@ -3,15 +3,15 @@
 namespace Results;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Results\Cache;
+use FQL\Results\InMemory;
 
 class ResultsProviderTest extends TestCase
 {
-    private Cache $proxy;
+    private InMemory $proxy;
 
     protected function setUp(): void
     {
-        $this->proxy = new Cache([
+        $this->proxy = new InMemory([
             [
                 'id' => 1,
                 'name' => 'Product A',

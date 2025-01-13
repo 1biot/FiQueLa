@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
-use UQL\Query\Provider;
-use UQL\Query\Query;
-use UQL\Results\Results;
+use FQL\Query\Provider;
+use FQL\Query\Query;
+use FQL\Results\Results;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider

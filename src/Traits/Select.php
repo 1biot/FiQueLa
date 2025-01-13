@@ -1,11 +1,11 @@
 <?php
 
-namespace UQL\Traits;
+namespace FQL\Traits;
 
-use UQL\Exceptions;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions;
-use UQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions;
+use FQL\Query\Query;
 
 /**
  * @codingStandardsIgnoreStart
@@ -15,6 +15,8 @@ use UQL\Query\Query;
  */
 trait Select
 {
+    private bool $distinct = false;
+
     /** @var SelectedFields $selectedFields */
     private array $selectedFields = [];
 
@@ -45,6 +47,12 @@ trait Select
             $this->addField($field);
         }
 
+        return $this;
+    }
+
+    public function distinct(bool $distinct = true): Query
+    {
+        $this->distinct = $distinct;
         return $this;
     }
 
@@ -257,6 +265,10 @@ trait Select
     private function selectToString(): string
     {
         $return = Query::SELECT . ' ';
+        if ($this->distinct) {
+            $return .= Query::DISTINCT . ' ';
+        }
+
         if ($this->selectedFields === []) {
             return $return . Query::SELECT_ALL;
         }

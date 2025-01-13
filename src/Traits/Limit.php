@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Traits;
+namespace FQL\Traits;
 
-use UQL\Query\Query;
+use FQL\Query\Query;
 
 trait Limit
 {

@@ -1,6 +1,6 @@
-# UniQueL - Universal Query Language 
+# FiQueLa - File Query Language 
 
-> _[yu-nik-ju-el]_
+> _[fi-kju-ela]_
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
@@ -8,11 +8,11 @@
 ![Packagist Downloads](https://img.shields.io/packagist/dm/1biot/uniquel)
 
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_107-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_399-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_115-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_409-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
-**U**ni**Q**ue**L** is a PHP library for seamless manipulation of data in
+**F**i**Q**ue**L**a is a PHP library for seamless manipulation of data in
 **XML**, **CSV**, **JSON**, **YAML** and **NEON** formats. The library provides MySQL-inspired syntax for querying, filtering,
 joining and aggregating data. It is designed for simplicity, modularity, and efficiency.
 
@@ -27,8 +27,8 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
   - 4.3 - [Operators](#43-operators)
   - 4.4 - [Fetching Data](#44-fetching-data)
     - 4.4.1 - [Getting and Fetching Data](#441-getting-and-fetching-data)
-    - 4.4.2 - [Proxy Data](#442-stream-data)
-    - 4.4.3 - [Proxy Data](#442-proxy-data)
+    - 4.4.2 - [Stream Data](#442-stream-data)
+    - 4.4.3 - [InMemory Data](#442-inmemory-data)
 - 5 - [Advanced Usage](#5-advanced-usage)
   - 5.1 - [Sorting Functions](#51-sorting-functions)
   - 5.2 - [Use HAVING Conditions](#52-use-having-conditions)
@@ -88,7 +88,7 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
 ## 2. Planning Features
 
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
-- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **U**ni**Q**ue**L**.
+- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **F**i**Q**ue**L**a.
 - [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage.
@@ -98,7 +98,7 @@ joining and aggregating data. It is designed for simplicity, modularity, and eff
 Install via [Composer](https://getcomposer.org/):
 
 ```bash
-composer require 1biot/uniquel
+composer require 1biot/fiquela
 ```
 
 ## 4. Getting Started
@@ -110,7 +110,7 @@ composer require 1biot/uniquel
 XML requires standard PHP extensions only (`libxml`, `simplexml` and `xmlreader`):
 
 ```php
-use UQL\Stream\Xml;
+use FQL\Stream\Xml;
 
 $xml = Xml::open('data.xml');
 $xml->setEncoding('windows-1250');
@@ -125,7 +125,7 @@ composer require league/csv
 ```
 
 ```php
-use UQL\Stream\Csv;
+use FQL\Stream\Csv;
 
 $csv = Csv::open('data.xml')
     ->inputEncoding('windows-1250')
@@ -139,7 +139,7 @@ Native support for JSON data allows you to load it from files or strings. Uses `
 files use [JSON Stream](#json-stream).
 
 ```php
-use UQL\Stream\Json;
+use FQL\Stream\Json;
 
 // Load from a file
 $json = Json::open('data.json');
@@ -157,7 +157,7 @@ composer require halaxa/json-machine
 ```
 
 ```php
-use UQL\Stream\JsonStream;
+use FQL\Stream\JsonStream;
 
 $json = JsonStream::open('big/data.json');
 ```
@@ -171,8 +171,8 @@ composer require symfony/yaml nette/neon
 ```
 
 ```php
-use UQL\Stream\Yaml;
-use UQL\Stream\Neon;
+use FQL\Stream\Yaml;
+use FQL\Stream\Neon;
 
 $yaml = Yaml::open('data.yaml');
 $neon = Neon::open('data.neon');
@@ -181,7 +181,7 @@ $neon = Neon::open('data.neon');
 ### 4.2. Basic Querying
 
 ```php
-use UQL\Enum\Operator;
+use FQL\Enum\Operator;
 
 $query = $xml->query()
     ->select('name, age')
@@ -262,14 +262,17 @@ $query->where('name', Operator::ENDS_WITH, 'John');  // %John
 
 ### 4.4. Getting and Fetching Data
 
-For results from `Query` use method `execute()`. It returns `UQL\Results\ResultsProvider` object which can be used for
-fetching data.
+For results from `Query` use method `execute()`. It returns `FQL\Results\ResultsProvider` object which can be used for
+fetching data. This method using parameter to choose between `Stream` or `InMemory` fetching data. Default is `InMemory`.
 
 ```php
+use FQL\Results;
 // create a query like $query->select('field')->from('path) ...
 $query = $csv->query();
 // get the results
 $results = $query->execute();
+$results = $query->execute(Results\InMemory::class);
+$results = $query->execute(Results\Stream::class);
 ```
 
 **getIterator():**`\Traversable`
@@ -371,14 +374,14 @@ Method to get minimum value.
 $min = $results->min('total_price');
 ```
 
-#### 4.4.1 Stream Data
+#### 4.4.2 Stream Data
 
-The advantage of `UQL\Results\Stream` is that it reads data directly from the file with each operation, ensuring it is
+The advantage of `FQL\Results\Stream` is that it reads data directly from the file with each operation, ensuring it is
 always up-to-date. This is memory efficient, but it is slower for too many iterations. About 2.01s for 50 000 iterations.
 
-#### 4.4.2 Proxy Data
+#### 4.4.3 InMemory Data
 
-Object `UQL\Results\Stream` could provide proxy data for fetching results by `getProxy()` method. This is not so memory
+Object `FQL\Query\Provider\` could provide proxy data for fetching results by `getProxy()` method. This is not so memory
 efficient, but it is faster, much faster. About 0.003s for 50 000 iterations to compare 2.01s from `Stream` object.
 
 ```php
@@ -397,7 +400,7 @@ $proxyResults->fetch();
 ### 5.1. Sorting functions
 
 ```php
-use UQL\Enum\Operator;
+use FQL\Enum\Operator;
 
 $results = $json->query()
     ->select('name, age')
@@ -414,7 +417,7 @@ $results = $json->query()
 This is useful when you want to filter by aliases in queries. Filtering not translate any nested values, but WHERE conditions does.
 
 ```php
-use UQL\Enum\Operator;
+use FQL\Enum\Operator;
 
 $query = $json->query();
 
@@ -438,7 +441,10 @@ Joining sources is possible with `leftJoin` and `innerJoin` methods. The followi
 left join between **XML** and **JSON** file.
 
 ```php
-use UQL\Enum\Operator;use UQL\Query\Debugger;use UQL\Stream\Json;use UQL\Stream\Xml;
+use FQL\Enum\Operator;
+use FQL\Stream\Json;
+use FQL\Stream\Xml;
+use FQL\Query\Debugger;
 
 $usersFile = Json::open(__DIR__ . '/data/users.json');
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
@@ -760,7 +766,8 @@ You can map your results to Data Transfer Objects (**DTO**) with `$dto` property
 Example with anonymous DTO object:
 
 ```php
-use UQL\Enum\Operator;use UQL\Query\Debugger;
+use FQL\Enum\Operator;
+use FQL\Query\Debugger;
 
 $query = $this->json->query()
     ->select('id, name, price')
@@ -951,7 +958,7 @@ fully compatible with SQL strings.
 
 ### 5.8. Inspect Queries and Benchmarking
 
-If you want use inspecting and benchmarking queries, you need to use `UQL\Query\Debugger` class. Dumping variables and
+If you want use inspecting and benchmarking queries, you need to use `FQL\Query\Debugger` class. Dumping variables and
 cli output require `tracy/tracy` package if you are not using it, you can install it by:
 
 ```bash
@@ -961,7 +968,7 @@ composer require --dev tracy/tracy
 Start debugger at the beginning of your script.
 
 ```php
-use UQL\Query\Debugger;
+use FQL\Query\Debugger;
 
 Debugger::start();
 ```
@@ -970,7 +977,7 @@ Debugger::start();
 You can inspect your query for mor information about execution time, memory usage, SQL query and results.
 
 ```php
-use UQL\Stream\Xml;
+use FQL\Stream\Xml;
 
 $ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
 $query = $ordersFile->query()
@@ -996,7 +1003,7 @@ Debugger::inspectQuerySql(
 You can benchmark your queries and test their performance through the number of iterations.
 
 ```php
-use UQL\Stream\Xml;
+use FQL\Stream\Xml;
 
 $query = Xml::open(__DIR__ . '/data/orders.xml')->query()
     ->select('id')->as('orderId')
@@ -1027,7 +1034,7 @@ For more information about inspecting queries and benchmarking, see the [example
 
 ## 6. Examples
 
-Check the examples and run them using Composer. All examples uses `\UQL\Helpers\Debugger` and methods `inspectQuery` or
+Check the examples and run them using Composer. All examples uses `\FQL\Helpers\Debugger` and methods `inspectQuery` or
 `inspectQuerySql` or `benchmarkQuery` to show the results.
 
 ```bash
@@ -1035,6 +1042,7 @@ composer examples
 # or
 composer example:csv
 composer example:join
+composer example:json
 composer example:neon
 composer example:sql
 composer example:test

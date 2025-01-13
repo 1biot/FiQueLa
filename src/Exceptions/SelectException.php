@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Exceptions;
+namespace FQL\Exceptions;
 
 class SelectException extends InvalidArgumentException
 {

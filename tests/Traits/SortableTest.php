@@ -2,7 +2,7 @@
 
 namespace Traits;
 
-use UQL\Stream\Json;
+use FQL\Stream\Json;
 use PHPUnit\Framework\TestCase;
 
 class SortableTest extends TestCase

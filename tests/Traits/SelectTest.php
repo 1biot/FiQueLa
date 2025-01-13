@@ -3,10 +3,10 @@
 namespace Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions;
-use UQL\Functions;
-use UQL\Query\Query;
-use UQL\Query\TestProvider;
+use FQL\Exceptions;
+use FQL\Functions;
+use FQL\Query\Query;
+use FQL\Query\TestProvider;
 
 class SelectTest extends TestCase
 {

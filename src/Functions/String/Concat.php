@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Functions\String;
+namespace FQL\Functions\String;
 
-use UQL\Exceptions\UnexpectedValueException;
+use FQL\Exceptions\UnexpectedValueException;
 
 final class Concat extends ConcatWS
 {

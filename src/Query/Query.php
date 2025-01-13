@@ -1,13 +1,13 @@
 <?php
 
-namespace UQL\Query;
+namespace FQL\Query;
 
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Operator;
-use UQL\Enum\Sort;
-use UQL\Exceptions;
-use UQL\Results;
-use UQL\Results\ResultsProvider;
+use FQL\Enum\LogicalOperator;
+use FQL\Enum\Operator;
+use FQL\Enum\Sort;
+use FQL\Exceptions;
+use FQL\Results;
+use FQL\Results\ResultsProvider;
 
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
@@ -29,6 +29,7 @@ interface Query
     public const FROM_ALL = self::SELECT_ALL;
 
     public const SELECT = 'SELECT';
+    public const DISTINCT = 'DISTINCT';
     public const AS = 'AS';
     public const FROM = 'FROM';
     public const WHERE = 'WHERE';
@@ -88,6 +89,8 @@ interface Query
      * Use this method to select all fields in the query results.
      */
     public function selectAll(): Query;
+
+    public function distinct(bool $distinct = true): Query;
 
     /**
      * Alias the last selected field.
@@ -579,11 +582,11 @@ interface Query
     public function page(int $page, int $perPage = self::PER_PAGE_DEFAULT): Query;
 
     /**
-     * @template T of Results\Cache|Results\Stream
-     * @param class-string<T> $resultClass Fully qualified class name of the result class.
-     * @return T
+     * @template T of ResultsProvider
+     * @param class-string<T>|null $resultClass
+     * @return ResultsProvider
      */
-    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider;
+    public function execute(?string $resultClass = null): Results\ResultsProvider;
 
     public function test(): string;
 }

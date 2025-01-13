@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Enum;
+namespace FQL\Enum;
 
-use UQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions\InvalidArgumentException;
 
 enum Type: string
 {

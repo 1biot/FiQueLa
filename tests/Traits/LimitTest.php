@@ -3,7 +3,7 @@
 namespace Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Query\TestProvider;
+use FQL\Query\TestProvider;
 
 class LimitTest extends TestCase
 {

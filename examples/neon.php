@@ -1,8 +1,8 @@
 <?php
 
-use UQL\Enum\Operator;
-use UQL\Query\Debugger;
-use UQL\Stream\Neon;
+use FQL\Enum\Operator;
+use FQL\Query\Debugger;
+use FQL\Stream\Neon;
 
 require __DIR__ . '/bootstrap.php';
 

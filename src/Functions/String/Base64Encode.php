@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Functions\String;
+namespace FQL\Functions\String;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Functions\Core\SingleFieldFunction;
+use FQL\Enum\Type;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Functions\Core\SingleFieldFunction;
 
 class Base64Encode extends SingleFieldFunction
 {

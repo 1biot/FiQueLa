@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Functions\Aggregate;
+namespace FQL\Functions\Aggregate;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\SingleFieldAggregateFunction;
 
 class GroupConcat extends SingleFieldAggregateFunction
 {
@@ -19,7 +19,7 @@ class GroupConcat extends SingleFieldAggregateFunction
             $this->separator,
             array_filter(
                 array_map(function ($item) {
-                    $value = $this->getFieldValue($this->field, $item);
+                    $value = $this->getFieldValue($this->field, $item, false);
                     if (is_string($value)) {
                         $value = Type::matchByString($value);
                     }

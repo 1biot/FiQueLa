@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Parser;
+namespace FQL\Parser;
 
-use UQL\Query\Query;
+use FQL\Query\Query;
 
 interface Parser
 {

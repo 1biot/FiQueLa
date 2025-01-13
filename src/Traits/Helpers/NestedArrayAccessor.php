@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Traits\Helpers;
+namespace FQL\Traits\Helpers;
 
-use UQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions\InvalidArgumentException;
 
 trait NestedArrayAccessor
 {

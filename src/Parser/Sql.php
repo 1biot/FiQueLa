@@ -1,13 +1,13 @@
 <?php
 
-namespace UQL\Parser;
+namespace FQL\Parser;
 
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Operator;
-use UQL\Enum\Type;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Query\Query;
-use UQL\Enum\Sort;
+use FQL\Enum\LogicalOperator;
+use FQL\Enum\Operator;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Query\Query;
+use FQL\Enum\Sort;
 
 class Sql implements Parser
 {

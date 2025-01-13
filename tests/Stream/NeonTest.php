@@ -3,9 +3,9 @@
 namespace Stream;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormatException;
-use UQL\Stream\Neon;
+use FQL\Exceptions\FileNotFoundException;
+use FQL\Exceptions\InvalidFormatException;
+use FQL\Stream\Neon;
 
 class NeonTest extends TestCase
 {

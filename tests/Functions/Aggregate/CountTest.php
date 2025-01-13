@@ -3,7 +3,7 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Functions\Aggregate\Count;
+use FQL\Functions\Aggregate\Count;
 
 class CountTest extends TestCase
 {

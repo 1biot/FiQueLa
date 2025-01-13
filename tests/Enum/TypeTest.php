@@ -3,7 +3,7 @@
 namespace Enum;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Enum\Type;
+use FQL\Enum\Type;
 
 class TypeTest extends TestCase
 {

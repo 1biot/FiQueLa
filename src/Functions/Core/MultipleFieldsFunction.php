@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
-use UQL\Exceptions\UnexpectedValueException;
+use FQL\Exceptions\UnexpectedValueException;
 
 abstract class MultipleFieldsFunction extends BaseFunction
 {

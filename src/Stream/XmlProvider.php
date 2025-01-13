@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\InvalidArgumentException;
+use FQL\Enum\Type;
+use FQL\Exceptions\InvalidArgumentException;
 
 /**
  * @implements Stream<\Generator>

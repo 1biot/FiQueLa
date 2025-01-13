@@ -3,8 +3,8 @@
 namespace Traits\Helpers;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Helpers\ArrayHelper;
-use UQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Helpers\ArrayHelper;
+use FQL\Traits\Helpers\NestedArrayAccessor;
 
 class NestedArrayAccessorTest extends TestCase
 {

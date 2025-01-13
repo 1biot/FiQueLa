@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
-use UQL\Exceptions;
-use UQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions;
+use FQL\Exceptions\InvalidArgumentException;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>

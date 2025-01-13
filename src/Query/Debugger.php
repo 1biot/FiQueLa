@@ -1,16 +1,16 @@
 <?php
 
-namespace UQL\Query;
+namespace FQL\Query;
 
-use UQL\Parser\Sql;
-use UQL\Results\Cache;
-use UQL\Results\ResultsProvider;
-use UQL\Results\Stream;
-use UQL\Stream\Json;
-use UQL\Stream\JsonStream;
-use UQL\Stream\Neon;
-use UQL\Stream\Xml;
-use UQL\Stream\Yaml;
+use FQL\Parser\Sql;
+use FQL\Results\InMemory;
+use FQL\Results\ResultsProvider;
+use FQL\Results\Stream;
+use FQL\Stream\Json;
+use FQL\Stream\JsonStream;
+use FQL\Stream\Neon;
+use FQL\Stream\Xml;
+use FQL\Stream\Yaml;
 
 class Debugger
 {
@@ -50,6 +50,8 @@ class Debugger
         $end = microtime(true);
 
         $time = round(($end - $start) * 1e6); // µs
+        self::memoryUsage();
+        self::memoryPeakUsage();
         self::echoLineNameValue('Final execution time (s)', $time / 1000 / 1000, 2);
         self::echoLineNameValue('Final execution time (ms)', $time / 1000, 2);
         self::echoLineNameValue('Final execution time (µs)', $time, 2);
@@ -99,6 +101,7 @@ class Debugger
 
         $results = $query->execute();
         self::echoSection('Results');
+        self::echoLineNameValue('Result class', $results::class);
         self::echoLineNameValue('Count', $results->count());
         if ($listResults) {
             self::dump('------------------');
@@ -157,7 +160,7 @@ class Debugger
         self::split();
     }
 
-    private static function iterateResults(ResultsProvider|Cache $results, int $iterations = 2500): void
+    private static function iterateResults(ResultsProvider|InMemory $results, int $iterations = 2500): void
     {
         $counter = 0;
         for ($i = 0; $i < $iterations; $i++) {
@@ -168,7 +171,7 @@ class Debugger
         self::echoLineNameValue('Iterated results', number_format($counter, 0, ',', ' '));
     }
 
-    private static function echoSection(string $text): void
+    public static function echoSection(string $text): void
     {
         $text = '*** ' . $text . ': ***';
         self::dump(str_repeat('=', strlen($text)));
@@ -176,12 +179,12 @@ class Debugger
         self::dump(str_repeat('=', strlen($text)));
     }
 
-    private static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
+    public static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
     {
         self::echoLine(sprintf('%s: %s', $name, $value), $beginCharRepeat);
     }
 
-    private static function echoLine(string $text, int $beginCharRepeat = 1): void
+    public static function echoLine(string $text, int $beginCharRepeat = 1): void
     {
         echo sprintf('%s %s', str_repeat('>', $beginCharRepeat), $text) . PHP_EOL;
     }

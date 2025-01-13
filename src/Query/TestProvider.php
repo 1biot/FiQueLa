@@ -1,16 +1,16 @@
 <?php
 
-namespace UQL\Query;
+namespace FQL\Query;
 
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Results;
-use UQL\Traits\Conditions;
-use UQL\Traits\From;
-use UQL\Traits\Groupable;
-use UQL\Traits\Joinable;
-use UQL\Traits\Limit;
-use UQL\Traits\Select;
-use UQL\Traits\Sortable;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Results;
+use FQL\Traits\Conditions;
+use FQL\Traits\From;
+use FQL\Traits\Groupable;
+use FQL\Traits\Joinable;
+use FQL\Traits\Limit;
+use FQL\Traits\Select;
+use FQL\Traits\Sortable;
 
 /**
  * Class TestProvider implements traits for Query and empty results when fetching data. We need to test for traits only.
@@ -66,9 +66,9 @@ class TestProvider implements Query
         return $this;
     }
 
-    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider
+    public function execute(?string $resultClass = null): Results\ResultsProvider
     {
-        return new Results\Cache([]);
+        return new Results\InMemory([]);
     }
 
     public function test(): string

@@ -3,8 +3,8 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Aggregate\Avg;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Aggregate\Avg;
 
 class AvgTest extends TestCase
 {

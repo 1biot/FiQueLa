@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Functions\Math;
+namespace FQL\Functions\Math;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\SingleFieldFunction;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\SingleFieldFunction;
 
 final class Mod extends SingleFieldFunction
 {

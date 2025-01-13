@@ -2,6 +2,6 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use UQL\Query\Debugger;
+use FQL\Query\Debugger;
 
 Debugger::start();

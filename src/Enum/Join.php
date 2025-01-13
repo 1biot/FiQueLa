@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Enum;
+namespace FQL\Enum;
 
 enum Join: string
 {

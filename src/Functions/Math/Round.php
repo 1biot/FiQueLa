@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Functions\Math;
+namespace FQL\Functions\Math;
 
-use UQL\Enum\Type;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\SingleFieldFunction;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\SingleFieldFunction;
 
 final class Round extends SingleFieldFunction
 {
@@ -23,6 +23,10 @@ final class Round extends SingleFieldFunction
         $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
         if (is_string($value)) {
             $value = Type::matchByString($value);
+        }
+
+        if ($value === '') {
+            $value = 0;
         }
 
         if (!is_numeric($value) && is_string($value)) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Exceptions;
+namespace FQL\Exceptions;
 
 final class FileNotFoundException extends Exception
 {

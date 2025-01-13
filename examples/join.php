@@ -1,9 +1,9 @@
 <?php
 
-use UQL\Enum\Operator;
-use UQL\Query\Debugger;
-use UQL\Stream\Json;
-use UQL\Stream\Xml;
+use FQL\Enum\Operator;
+use FQL\Query\Debugger;
+use FQL\Stream\Json;
+use FQL\Stream\Xml;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -16,8 +16,6 @@ $orders = $ordersFile->query()
     ->select('total_price')->as('totalPrice')
     ->from('orders.order');
 
-Debugger::inspectQuery($orders);
-
 $users = $usersFile->query()
     ->select('id, name')
     ->select('o.orderId')->as('orderId')
@@ -29,5 +27,5 @@ $users = $usersFile->query()
     ->orderBy('totalPrice')->desc();
 
 Debugger::inspectQuery($users);
-Debugger::benchmarkQuery($users, 10000);
+Debugger::benchmarkQuery($users, 100);
 Debugger::end();

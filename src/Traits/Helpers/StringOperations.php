@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Traits\Helpers;
+namespace FQL\Traits\Helpers;
 
 trait StringOperations
 {
@@ -19,5 +19,15 @@ trait StringOperations
 
         // Convert to uppercase and return the result
         return strtoupper($snake);
+    }
+
+    public function isQuoted(string $input): bool
+    {
+        return preg_match('/^".*"$/', $input) === 1 || preg_match('/^\'.*\'$/', $input) === 1;
+    }
+
+    public function removeQuotes(string $input): string
+    {
+        return substr($input, 1, -1);
     }
 }

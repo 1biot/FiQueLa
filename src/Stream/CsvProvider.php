@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
 use League\Csv\CharsetConverter;
 use League\Csv\Exception;
@@ -8,7 +8,8 @@ use League\Csv\InvalidArgument;
 use League\Csv\Reader;
 use League\Csv\UnavailableFeature;
 use League\Csv\UnavailableStream;
-use UQL\Exceptions\UnableOpenFileException;
+use FQL\Enum\Type;
+use FQL\Exceptions\UnableOpenFileException;
 
 /**
  * @implements Stream<\Generator>
@@ -69,7 +70,9 @@ abstract class CsvProvider extends StreamProvider implements Stream
             $encoder->inputEncoding('ASCII');
             $encoder->outputEncoding('UTF-8');
 
-            yield from $csv->getRecords();
+            foreach ($csv->getRecords() as $row) {
+                yield array_map(fn ($value) => is_string($value) ? Type::matchByString($value) : $value, $row);
+            }
         } catch (\Exception $e) {
             throw new UnableOpenFileException(sprintf('Unexpected error: %s', $e->getMessage()), previous: $e);
         }

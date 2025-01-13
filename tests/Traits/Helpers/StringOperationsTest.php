@@ -3,7 +3,7 @@
 namespace Traits\Helpers;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Traits\Helpers\StringOperations;
+use FQL\Traits\Helpers\StringOperations;
 
 class StringOperationsTest extends TestCase
 {

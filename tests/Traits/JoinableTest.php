@@ -3,9 +3,9 @@
 namespace Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Enum\Operator;
-use UQL\Stream\Json;
-use UQL\Stream\Xml;
+use FQL\Enum\Operator;
+use FQL\Stream\Json;
+use FQL\Stream\Xml;
 
 class JoinableTest extends TestCase
 {

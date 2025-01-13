@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Functions\Utils;
+namespace FQL\Functions\Utils;
 
 final class CoalesceNotEmpty extends Coalesce
 {

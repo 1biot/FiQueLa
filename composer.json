@@ -26,7 +26,7 @@
   "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
-      "UQL\\": "./src/"
+      "FQL\\": "./src/"
     }
   },
   "scripts": {
@@ -65,8 +65,14 @@
       "@test:phpstan:memory-limit-256",
       "@test:phpunit tests"
     ],
+    "example:csv": [
+      "php -f examples/csv.php"
+    ],
     "example:join": [
       "php -f examples/join.php"
+    ],
+    "example:json": [
+      "php -f examples/json.php"
     ],
     "example:neon": [
       "php -f examples/neon.php"
@@ -83,17 +89,15 @@
     "example:yaml": [
       "php -f examples/yaml.php"
     ],
-    "example:csv": [
-      "php -f examples/csv.php"
-    ],
     "examples": [
-      "@example:join",
+      "@example:csv",
       "@example:neon",
+      "@example:join",
+      "@example:json",
       "@example:sql",
       "@example:test",
       "@example:xml",
-      "@example:yaml",
-      "@example:csv"
+      "@example:yaml"
     ]
   }
 }

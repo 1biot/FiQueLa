@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Functions\String;
+namespace FQL\Functions\String;
 
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\SingleFieldFunction;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\SingleFieldFunction;
 
 class Explode extends SingleFieldFunction
 {

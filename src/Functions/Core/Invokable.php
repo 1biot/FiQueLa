@@ -1,8 +1,8 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
-use UQL\Stream\ArrayStreamProvider;
+use FQL\Stream\ArrayStreamProvider;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider

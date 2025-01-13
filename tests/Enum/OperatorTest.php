@@ -3,7 +3,7 @@
 namespace Enum;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Enum\Operator;
+use FQL\Enum\Operator;
 
 class OperatorTest extends TestCase
 {

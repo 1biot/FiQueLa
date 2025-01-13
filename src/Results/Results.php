@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Results;
+namespace FQL\Results;
 
 interface Results extends \Countable
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
 use JsonMachine\Exception\InvalidArgumentException;
 use JsonMachine\Items;
@@ -36,7 +36,7 @@ abstract class JsonProvider extends StreamProvider implements Stream
                 ]
             );
         } catch (InvalidArgumentException $e) {
-            throw new \UQL\Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+            throw new \FQL\Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
         }
 
         yield from $items;

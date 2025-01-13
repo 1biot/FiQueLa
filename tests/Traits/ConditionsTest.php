@@ -3,10 +3,10 @@
 namespace Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Enum\LogicalOperator;
-use UQL\Enum\Operator;
-use UQL\Query\TestProvider;
-use UQL\Stream\Json;
+use FQL\Enum\LogicalOperator;
+use FQL\Enum\Operator;
+use FQL\Query\TestProvider;
+use FQL\Stream\Json;
 
 class ConditionsTest extends TestCase
 {

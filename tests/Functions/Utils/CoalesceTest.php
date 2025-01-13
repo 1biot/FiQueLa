@@ -3,7 +3,7 @@
 namespace Functions\Utils;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Functions\Utils\Coalesce;
+use FQL\Functions\Utils\Coalesce;
 
 class CoalesceTest extends TestCase
 {

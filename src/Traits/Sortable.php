@@ -1,10 +1,10 @@
 <?php
 
-namespace UQL\Traits;
+namespace FQL\Traits;
 
-use UQL\Exceptions;
-use UQL\Enum;
-use UQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Enum;
+use FQL\Query\Query;
 
 trait Sortable
 {

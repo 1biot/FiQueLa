@@ -3,8 +3,9 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Aggregate\Max;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Aggregate\Max;
 
 class MaxTest extends TestCase
 {
@@ -31,35 +32,29 @@ class MaxTest extends TestCase
         $this->expectExceptionMessage('Field "name" value is not numeric: Product A');
 
         $max = new Max('name');
-        $this->assertEquals(
-            'Product C',
-            $max(
-                [
-                    ['name' => 'Product A'],
-                    ['name' => 'Product B'],
-                    ['name' => 'Product C']
-                ]
-            )
+        $max(
+            [
+                ['name' => 'Product A'],
+                ['name' => 'Product B'],
+                ['name' => 'Product C']
+            ]
         );
     }
 
     public function testMaxWithUndefinedField(): void
     {
-        $this->expectException(UnexpectedValueException::class);
-        $this->expectExceptionMessage('Field "undefinedField" value is not numeric: ');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Field "undefinedField" not found');
 
         $max = new Max('undefinedField');
-        $this->assertEquals(
-            null,
-            $max([
-                ['numericPriceString' => '100'],
-                ['numericPriceString' => '200'],
-                ['numericPriceString' => '300'],
-                ['numericPriceString' => '400'],
-                ['numericPriceString' => '500'],
-                ['numericPriceString' => '600']
-            ])
-        );
+        $max([
+            ['numericPriceString' => '100'],
+            ['numericPriceString' => '200'],
+            ['numericPriceString' => '300'],
+            ['numericPriceString' => '400'],
+            ['numericPriceString' => '500'],
+            ['numericPriceString' => '600']
+        ]);
     }
 
     /**

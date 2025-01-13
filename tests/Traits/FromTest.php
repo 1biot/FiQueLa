@@ -3,8 +3,8 @@
 namespace Traits;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Query\Query;
-use UQL\Query\TestProvider;
+use FQL\Query\Query;
+use FQL\Query\TestProvider;
 
 class FromTest extends TestCase
 {

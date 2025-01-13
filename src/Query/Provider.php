@@ -1,34 +1,58 @@
 <?php
 
-namespace UQL\Query;
+namespace FQL\Query;
 
-use UQL\Stream\Csv;
-use UQL\Stream\Json;
-use UQL\Stream\JsonStream;
-use UQL\Stream\Neon;
-use UQL\Stream\Xml;
-use UQL\Stream\Yaml;
-use UQL\Traits;
-use UQL\Results;
+use FQL\Exceptions\QueryLogicException;
+use FQL\Stream\Csv;
+use FQL\Stream\Json;
+use FQL\Stream\JsonStream;
+use FQL\Stream\Neon;
+use FQL\Stream\Xml;
+use FQL\Stream\Yaml;
+use FQL\Traits;
+use FQL\Results;
 
 final class Provider implements Query, \Stringable
 {
     use Traits\Conditions;
     use Traits\From;
-    use Traits\Groupable;
+    use Traits\Groupable {
+        groupBy as private traitGroupBy;
+    }
     use Traits\Joinable;
     use Traits\Limit;
-    use Traits\Select;
+    use Traits\Select {
+        distinct as private traitDistinct;
+    }
     use Traits\Sortable;
 
     public function __construct(private readonly Xml|Json|JsonStream|Yaml|Neon|Csv $stream)
     {
     }
 
-    public function execute(string $resultClass = Results\Cache::class): Results\ResultsProvider
+    public function distinct(bool $distinct = true): Query
+    {
+        if ($this->groupByFields !== []) {
+            throw new QueryLogicException('DISTINCT is not allowed with GROUP BY clause');
+        }
+
+        return $this->traitDistinct($distinct);
+    }
+
+    public function groupBy(string ...$fields): Query
+    {
+        if ($this->distinct) {
+            throw new QueryLogicException('GROUP BY is not allowed with DISTINCT clause');
+        }
+
+        return $this->traitGroupBy(...$fields);
+    }
+
+    public function execute(?string $resultClass = null): Results\ResultsProvider
     {
         $streamResult = new Results\Stream(
             $this->stream,
+            $this->distinct,
             $this->selectedFields,
             $this->getFrom(),
             $this->contexts['where'],
@@ -41,9 +65,11 @@ final class Provider implements Query, \Stringable
         );
 
         return match ($resultClass) {
-            Results\Cache::class => new Results\Cache(iterator_to_array($streamResult->getIterator())),
+            Results\InMemory::class => new Results\InMemory(iterator_to_array($streamResult->getIterator())),
             Results\Stream::class => $streamResult,
-            default => throw new \InvalidArgumentException("Unknown result class: $resultClass"),
+            default => $streamResult->hasJoin() || $streamResult->isSortable() || $streamResult->isGroupable()
+                ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
+                : $streamResult
         };
     }
 

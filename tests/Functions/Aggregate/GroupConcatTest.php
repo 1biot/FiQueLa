@@ -3,7 +3,7 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Functions\Aggregate\GroupConcat;
+use FQL\Functions\Aggregate\GroupConcat;
 
 class GroupConcatTest extends TestCase
 {

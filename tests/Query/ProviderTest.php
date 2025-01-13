@@ -3,9 +3,9 @@
 namespace Query;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Enum\Operator;
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Stream\Json;
+use FQL\Enum\Operator;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Stream\Json;
 
 class ProviderTest extends TestCase
 {

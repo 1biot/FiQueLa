@@ -3,9 +3,9 @@
 namespace Stream;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormatException;
-use UQL\Stream\Yaml;
+use FQL\Exceptions\FileNotFoundException;
+use FQL\Exceptions\InvalidFormatException;
+use FQL\Stream\Yaml;
 
 class YamlTest extends TestCase
 {

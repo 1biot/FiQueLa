@@ -1,12 +1,12 @@
 <?php
 
-namespace UQL\Stream;
+namespace FQL\Stream;
 
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Exceptions\InvalidFormatException;
-use UQL\Exceptions\NotImplementedException;
-use UQL\Query\Provider;
-use UQL\Query\Query;
+use FQL\Exceptions\FileNotFoundException;
+use FQL\Exceptions\InvalidFormatException;
+use FQL\Exceptions\NotImplementedException;
+use FQL\Query\Provider;
+use FQL\Query\Query;
 
 class Xml extends XmlProvider
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
 interface InvokableNoField
 {

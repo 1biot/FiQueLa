@@ -1,10 +1,11 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Stream\ArrayStreamProvider;
-use UQL\Traits\Helpers\StringOperations;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Stream\ArrayStreamProvider;
+use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Helpers\StringOperations;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
@@ -12,6 +13,7 @@ use UQL\Traits\Helpers\StringOperations;
 abstract class AggregateFunction implements InvokableAggregate, \Stringable
 {
     use StringOperations;
+    use NestedArrayAccessor;
 
     /**
      * @throws UnexpectedValueException
@@ -30,8 +32,8 @@ abstract class AggregateFunction implements InvokableAggregate, \Stringable
     /**
      * @param StreamProviderArrayIteratorValue $item
      */
-    protected function getFieldValue(string $field, array $item): mixed
+    protected function getFieldValue(string $field, array $item, bool $throwOnMissing = true): mixed
     {
-        return $item[$field] ?? null;
+        return $this->accessNestedValue($item, $field, $throwOnMissing);
     }
 }

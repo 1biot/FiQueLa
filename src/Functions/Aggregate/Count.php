@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Functions\Aggregate;
+namespace FQL\Functions\Aggregate;
 
-use UQL\Functions\Core\SingleFieldAggregateFunction;
-use UQL\Query\Query;
+use FQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Query\Query;
 
 class Count extends SingleFieldAggregateFunction
 {
@@ -23,7 +23,7 @@ class Count extends SingleFieldAggregateFunction
 
         return count(
             array_filter(
-                array_map(fn(array $item) => $this->getFieldValue($this->field, $item) !== null, $items),
+                array_map(fn(array $item) => $this->getFieldValue($this->field, $item, false) !== null, $items),
                 fn($value) => $value
             )
         );

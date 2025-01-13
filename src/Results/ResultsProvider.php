@@ -1,10 +1,11 @@
 <?php
 
-namespace UQL\Results;
+namespace FQL\Results;
 
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Functions;
-use UQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Functions;
+use FQL\Query\Query;
+use FQL\Traits\Helpers\NestedArrayAccessor;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from Stream
@@ -14,15 +15,28 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 {
     use NestedArrayAccessor;
 
+    /** @var array<string, float> */
+    private array $avgCache = [];
+    /** @var array<string, float> */
+    private array $sumCache = [];
+    private ?int $innerCounter = null;
+
     public function fetchAll(?string $dto = null): \Generator
     {
+        $counter = 0;
         foreach ($this->getIterator() as $resultItem) {
-            yield $dto !== null && class_exists($dto)
-                ? $this->mapArrayToObject($resultItem, $dto)
-                : $resultItem;
+            yield $this->mapArrayToObject($resultItem, $dto);
+            $counter++;
+        }
+
+        if ($this->innerCounter === null) {
+            $this->innerCounter = $counter;
         }
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function fetchNth(int|string $n, ?string $dto = null): \Generator
     {
         if (!is_int($n) && !in_array($n, ['even', 'odd'], true)) {
@@ -32,7 +46,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         }
 
         $index = 0; // Record index
-        foreach ($this->fetchAll($dto) as $item) {
+        foreach ($this->getIterator() as $item) {
             $matchesNth = false;
 
             if ($n === 'even') {
@@ -44,7 +58,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
             }
 
             if ($matchesNth) {
-                yield $item;
+                yield $this->mapArrayToObject($item, $dto);
             }
 
             $index++;
@@ -53,8 +67,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
     public function fetch(?string $dto = null): mixed
     {
-        foreach ($this->fetchAll($dto) as $item) {
-            return $item;
+        foreach ($this->getIterator() as $item) {
+            return $this->mapArrayToObject($item, $dto);
         }
         return null;
     }
@@ -74,40 +88,68 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
     public function count(): int
     {
-        return iterator_count($this->fetchAll());
+        if ($this->innerCounter !== null) {
+            return $this->innerCounter;
+        }
+
+        $this->innerCounter = iterator_count($this->getIterator());
+        return $this->innerCounter;
     }
 
     public function sum(string $key): float
     {
-        $sum = new Functions\Aggregate\Sum($key);
-        return $sum(iterator_to_array($this->fetchAll()));
+        if (isset($this->sumCache[$key])) {
+            return $this->sumCache[$key];
+        }
+
+        $sum = 0;
+        foreach ($this->getIterator() as $item) {
+            $sum += $item[$key] ?? 0;
+        }
+
+        $this->sumCache[$key] = $sum;
+        return $this->sumCache[$key];
     }
 
     public function avg(string $key, int $decimalPlaces = 2): float
     {
-        $avg = new Functions\Aggregate\Avg($key);
-        return round($avg(iterator_to_array($this->fetchAll())), $decimalPlaces);
+        if (isset($this->avgCache[$key])) {
+            return $this->avgCache[$key];
+        }
+
+        $this->avgCache[$key] = round($this->sum($key) / $this->count(), $decimalPlaces);
+        return $this->avgCache[$key];
     }
 
     public function min(string $key): float
     {
-        $min = new Functions\Aggregate\Min($key);
-        return $min(iterator_to_array($this->fetchAll()));
+        $min = PHP_INT_MAX;
+        foreach ($this->getIterator() as $item) {
+            $min = min($min, $item[$key] ?? PHP_INT_MAX);
+        }
+        return $min;
     }
 
     public function max(string $key): float
     {
-        $max = new Functions\Aggregate\Max($key);
-        return $max(iterator_to_array($this->fetchAll()));
+        $max = PHP_INT_MIN;
+        foreach ($this->getIterator() as $item) {
+            $max = max($max, $item[$key] ?? PHP_INT_MIN);
+        }
+        return $max;
     }
 
     /**
+     * @template T of mixed
      * @param StreamProviderArrayIteratorValue $data
-     * @param class-string $className
-     * @return object|StreamProviderArrayIteratorValue
+     * @return ($className is class-string<T> ? T : StreamProviderArrayIteratorValue)
      */
-    private function mapArrayToObject(array $data, string $className): object|array
+    private function mapArrayToObject(array $data, ?string $className = null): mixed
     {
+        if ($className === null) {
+            return $data;
+        }
+
         try {
             $reflectionClass = new \ReflectionClass($className);
 

@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Functions\Utils;
+namespace FQL\Functions\Utils;
 
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Functions\Core\NoFieldFunction;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Functions\Core\NoFieldFunction;
 
 /**
  * Generates cryptographically secure random bytes.

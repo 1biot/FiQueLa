@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Functions\Hashing;
+namespace FQL\Functions\Hashing;
 
-use UQL\Enum\Type;
-use UQL\Functions\Core\SingleFieldFunction;
+use FQL\Enum\Type;
+use FQL\Functions\Core\SingleFieldFunction;
 
 final class Sha1 extends SingleFieldFunction
 {

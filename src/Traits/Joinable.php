@@ -1,11 +1,11 @@
 <?php
 
-namespace UQL\Traits;
+namespace FQL\Traits;
 
-use UQL\Enum;
-use UQL\Exceptions;
-use UQL\Query\Query;
-use UQL\Stream\ArrayStreamProvider;
+use FQL\Enum;
+use FQL\Exceptions;
+use FQL\Query\Query;
+use FQL\Stream\ArrayStreamProvider;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider

@@ -1,9 +1,9 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Traits\Helpers\StringOperations;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Traits\Helpers\StringOperations;
 
 abstract class NoFieldFunction implements InvokableNoField, \Stringable
 {

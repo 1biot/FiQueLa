@@ -1,12 +1,12 @@
 <?php
 
-namespace UQL\Functions\Core;
+namespace FQL\Functions\Core;
 
-use UQL\Exceptions\InvalidArgumentException;
-use UQL\Exceptions\UnexpectedValueException;
-use UQL\Stream\ArrayStreamProvider;
-use UQL\Traits\Helpers\NestedArrayAccessor;
-use UQL\Traits\Helpers\StringOperations;
+use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exceptions\UnexpectedValueException;
+use FQL\Stream\ArrayStreamProvider;
+use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Helpers\StringOperations;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider

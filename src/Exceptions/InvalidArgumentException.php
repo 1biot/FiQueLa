@@ -1,7 +1,7 @@
 <?php
 
-namespace UQL\Exceptions;
+namespace FQL\Exceptions;
 
-class InvalidArgumentException extends Exception
+class InvalidArgumentException extends \InvalidArgumentException
 {
 }

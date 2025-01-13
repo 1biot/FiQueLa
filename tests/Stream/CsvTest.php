@@ -3,8 +3,8 @@
 namespace Stream;
 
 use PHPUnit\Framework\TestCase;
-use UQL\Exceptions\FileNotFoundException;
-use UQL\Stream\Csv;
+use FQL\Exceptions\FileNotFoundException;
+use FQL\Stream\Csv;
 
 class CsvTest extends TestCase
 {
