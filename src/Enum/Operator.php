@@ -14,6 +14,7 @@ enum Operator: string
     case GREATER_THAN_OR_EQUAL = '>=';
     case LESS_THAN = '<';
     case LESS_THAN_OR_EQUAL = '<=';
+
     case IN = 'IN';
     case NOT_IN = 'NOT_IN';
     case CONTAINS = 'CONTAINS';

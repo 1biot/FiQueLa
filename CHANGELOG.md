@@ -41,16 +41,22 @@ instead.
   - `FQL\Helpers\ArrayHelper` moved to `FQL\Traits\Helpers\NestedArrayAccessor`
   - `FQL\Helpers\StringHelper` moved to `FQL\Traits\Helpers\StringOperations`
 
+#### SQL Parser
+- Extends SQL parser to support new functionalities
+- Support select functions like `COUNT`, `SUM`, `AVG`, `MIN`, `MAX` and `COALESCE` and others are usable in `SELECT` clause
+- Support `DISTINCT` clause
+- Support `GROUP BY` clause with more fields at once
+- Support `HAVING` clause
+- Support `OFFSET` clause
+- Newly support `ORDER BY` more fields at once
+
 #### Debugger
 - `FQL\Helpers\Debugger` moved to `FQL\Query\Debugger`
 - Fixed issue when splitting time
 - Method `end()` renamed to `split()`
 - Method `finish()` renamed to `end()`
+- Added SQL syntax highlighting, just use `FQL\Query\Debugger::highlightSQL($sql)` method
 - Edits single line output
-
-### Issue
-- Fix issue with nested conditions in `WHERE` clause
-(Problem affects conditions with nested group conditions, but base conditions works correctly)
 
 ---
 

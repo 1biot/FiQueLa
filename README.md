@@ -19,12 +19,13 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 
 **Features**:
 
-- ✅ Support for **XML**, **CSV**, **JSON**, **YAML** and **NEON** (easily extensible to other formats).
-- ✅ SQL-inspired capabilities like `SELECT`, `JOIN`, `WHERE`, `HAVING`, `GROUP BY`, `ORDER BY`, `LIMIT` and `OFFSET`.
-- ✅ Advance selecting and aggregating functions like: `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `ROUND`, `FLOOR`, `CEIL`, `MOD`, `EXPLODE`, `IMPLODE`, `MD5`, `SHA1`, `UPPER`, `LOWER`, `LENGTH`, `REVERSE`, `CONCAT`, `COALESCE` and more...
-- ✅ Support stream generator for large **JSON**, **XML** and **CSV** files.
-- ✅ Data Transfer Objects (DTO)
-- 🚀 Unified API across all supported formats.
+- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, YAML, and NEON.
+- 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
+- ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
+- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `MD5`, `UPPER`, and many more.
+- 🚀 **Efficient with Large Files**: Optimized for processing JSON, XML, and CSV files with tens of thousands of rows using stream processing.
+- 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
+- ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
 
 **Table of Contents**:
 
@@ -47,7 +48,6 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 - _VII_ - [Knowing issues](#vii-knowing-issues)
 - _VIII_ - [Planning Features](#viii-planning-features)
 - _IX_ - [Contributions](#ix-contributions)
-___
 
 ## I. Overview
 
@@ -60,6 +60,7 @@ Key highlights:
 - **Powerful Features**: Access advanced SQL features like `GROUP BY`, `HAVING`, and functions for data transformation directly on your file-based datasets.
 - **Developer-Friendly**: Whether you're a beginner or an experienced developer, FiQueLa offers a simple and consistent API for all your data needs.
 - **Flexible Integration**: Ideal for scenarios where data lives in files rather than traditional databases.
+- **SQL-Like Strings**: Write and execute SQL-like string queries directly, providing an alternative to fluent syntax for greater flexibility and familiarity.
 
 Use **F**i**Q**ue**L**a to:
 - Simplify data extraction and analysis from structured files.
@@ -74,6 +75,12 @@ Install via [Composer](https://getcomposer.org/):
 
 ```bash
 composer require 1biot/fiquela
+```
+
+Install packages for optional features:
+
+```bash
+composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tracy
 ```
 
 ## III. Getting Started
@@ -93,7 +100,7 @@ And then you can use it like this:
 ```php
 use FQL\Stream\Csv;
 
-$csv = Csv::open('data.xml')
+$csv = Csv::open('data.csv')
     ->inputEncoding('windows-1250')
     ->setDelimiter(';')
     ->useHeader(true);
@@ -753,21 +760,6 @@ $query->randomBytes(16)
     ->as('randomBytes'); // SELECT RANDOM_BYTES(16) AS randomBytes
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### V.C. Sorting and Filtering
 
 #### Sorting Functions
@@ -787,7 +779,8 @@ $results = $json->query()
     ->orderBy('age')->shuffle();
 ```
 
-> ⚠️ **Note**: `SHUFFLE` and `NATSORT` are experimental functions because they are too slow for datasets with many records, But feel free to try them.
+> ⚠️ **Note**: `SHUFFLE` and `NATSORT` are experimental functions because they are too slow for datasets with many records,
+But feel free to try them.
 
 #### Filtering functions
 
@@ -852,7 +845,8 @@ $query->selectAll()
 echo $query->test();
 ```
 
-`test()` produce output represents the query in SQL format. This feature is particularly useful for debugging and gaining a clear understanding of how queries are constructed and executed.
+`test()` produce output represents the query in SQL format. This feature is particularly useful for debugging and gaining
+a clear understanding of how queries are constructed and executed.
 
 ```sql
 SELECT
@@ -870,10 +864,12 @@ ORDER BY productCount DESC
 
 #### Using SQL Strings
 
-Parse SQL strings directly into queries for all supported file formats. Idea is to use SQL strings for creating queries without fluent syntax. Now it could be used only for simple queries directly to files.
+Parse SQL strings directly into queries for all supported file formats. Idea is to use SQL strings for creating queries
+without fluent syntax. Now it could be used only for simple queries directly to files. Newly support `GROUP BY`, `OFFSET`,
+multiple sorting and `SELECT` [functions](#vb-aggregations-and-functions) (All of them).
 
-> ⚠️ Parser does not support yet `functions`, `joins`, `group by`, `having` conditions and `from` advanced abilities.
-> Parser will be more complex in the future, and now it is only for testing purposes.
+> ⚠️ Parser still does not support `JOIN` clause and some logical operators `IN`, `NOT_IN`,
+`CONTAINS`, `STARTS_WITH` and `ENDS_WITH`.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -924,8 +920,8 @@ $results = $xml->sql($sql)
 Debugger::dump(iterator_to_array($results));
 ```
 
-In the future, it will be possible to use `FROM` and `JOIN` to directly load data from files, and the fluent interface
-will be fully compatible with SQL strings.
+> ⚠️ In the future, it will be possible to use `FROM` and `JOIN` to directly load data from files and use all results
+types from another queries.
 
 
 ### V.F. Query Inspection and Benchmarking
@@ -1133,7 +1129,9 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## VIII. Planning Features
 
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
-- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent **F**i**Q**ue**L**a.
+- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like
+`FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent
+**F**i**Q**ue**L**a.
 - [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage.

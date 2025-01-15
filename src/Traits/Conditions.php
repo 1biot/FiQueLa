@@ -60,16 +60,9 @@ trait Conditions
     public function having(?string $key = null, ?Enum\Operator $operator = null, mixed $value = null): Query
     {
         $this->currentContext = 'having';
-
-        if (!$this->havingGroupExists) {
-            $this->group(); // Automatically create HAVING group if group does not exist
-            $this->havingGroupExists = true;
-        }
-
         if ($key !== null && $operator !== null) {
             $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         }
-
         return $this;
     }
 

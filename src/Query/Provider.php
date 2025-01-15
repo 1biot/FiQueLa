@@ -90,10 +90,10 @@ final class Provider implements Query, \Stringable
         $queryParts[] = $this->joinsToString();
         // WHERE
         $queryParts[] = $this->conditionsToString('where');
-        // HAVING
-        $queryParts[] = $this->conditionsToString('having');
         // GROUP BY
         $queryParts[] = $this->groupByToString();
+        // HAVING
+        $queryParts[] = $this->conditionsToString('having');
         // ORDER BY
         $queryParts[] = $this->orderByToString();
         // OFFSET

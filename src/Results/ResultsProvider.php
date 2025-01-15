@@ -4,7 +4,6 @@ namespace FQL\Results;
 
 use FQL\Exceptions\InvalidArgumentException;
 use FQL\Functions;
-use FQL\Query\Query;
 use FQL\Traits\Helpers\NestedArrayAccessor;
 
 /**
@@ -15,22 +14,10 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 {
     use NestedArrayAccessor;
 
-    /** @var array<string, float> */
-    private array $avgCache = [];
-    /** @var array<string, float> */
-    private array $sumCache = [];
-    private ?int $innerCounter = null;
-
     public function fetchAll(?string $dto = null): \Generator
     {
-        $counter = 0;
         foreach ($this->getIterator() as $resultItem) {
             yield $this->mapArrayToObject($resultItem, $dto);
-            $counter++;
-        }
-
-        if ($this->innerCounter === null) {
-            $this->innerCounter = $counter;
         }
     }
 
@@ -88,37 +75,22 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
     public function count(): int
     {
-        if ($this->innerCounter !== null) {
-            return $this->innerCounter;
-        }
-
-        $this->innerCounter = iterator_count($this->getIterator());
-        return $this->innerCounter;
+        return iterator_count($this->getIterator());
     }
 
     public function sum(string $key): float
     {
-        if (isset($this->sumCache[$key])) {
-            return $this->sumCache[$key];
-        }
-
         $sum = 0;
         foreach ($this->getIterator() as $item) {
             $sum += $item[$key] ?? 0;
         }
 
-        $this->sumCache[$key] = $sum;
-        return $this->sumCache[$key];
+        return $sum;
     }
 
     public function avg(string $key, int $decimalPlaces = 2): float
     {
-        if (isset($this->avgCache[$key])) {
-            return $this->avgCache[$key];
-        }
-
-        $this->avgCache[$key] = round($this->sum($key) / $this->count(), $decimalPlaces);
-        return $this->avgCache[$key];
+        return round($this->sum($key) / $this->count(), $decimalPlaces);
     }
 
     public function min(string $key): float
@@ -127,6 +99,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         foreach ($this->getIterator() as $item) {
             $min = min($min, $item[$key] ?? PHP_INT_MAX);
         }
+
         return $min;
     }
 
@@ -136,6 +109,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         foreach ($this->getIterator() as $item) {
             $max = max($max, $item[$key] ?? PHP_INT_MIN);
         }
+
         return $max;
     }
 

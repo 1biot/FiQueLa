@@ -13,7 +13,8 @@ class SqlLexer
         // Basic tokenization (can be enhanced for better SQL support)
         // Regex to split SQL while respecting quoted strings
         $regex = '/
-            (\'[^\']*\'                    # Single quoted strings
+            (\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\))   # Function calls (e.g., FUNC_1(arg1)) - name must follow rules
+            |(\'[^\']*\'                    # Single quoted strings
             | "[^"]*"                     # Double quoted strings
             | [(),]                       # Parentheses and commas
             | \b(AND|OR)\b                # Logical operators as whole words

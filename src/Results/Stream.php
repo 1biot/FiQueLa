@@ -2,26 +2,19 @@
 
 namespace FQL\Results;
 
-use FQL\Enum\Join;
-use FQL\Enum\LogicalOperator;
-use FQL\Enum\Operator;
-use FQL\Enum\Sort;
-use FQL\Exceptions\InvalidArgumentException;
-use FQL\Exceptions\UnableOpenFileException;
+use FQL\Enum;
+use FQL\Exceptions;
 use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\NoFieldFunction;
 use FQL\Query\Query;
-use FQL\Results;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
 use FQL\Stream\Neon;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
-use FQL\Traits\Helpers\NestedArrayAccessor;
-use FQL\Traits\Joinable;
-use FQL\Traits\Select;
+use FQL\Traits;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -31,12 +24,26 @@ use FQL\Traits\Select;
  *
  * @phpstan-import-type Condition from Query
  * @phpstan-import-type ConditionGroup from Query
- * @phpstan-import-type JoinAbleArray from Joinable
- * @phpstan-import-type SelectedField from Select
+ * @phpstan-import-type JoinAbleArray from Traits\Joinable
+ * @phpstan-import-type SelectedField from Traits\Select
  */
 class Stream extends ResultsProvider
 {
-    use NestedArrayAccessor;
+    use Traits\Helpers\NestedArrayAccessor;
+
+    /** @var array<string, float> */
+    private array $avgCache = [];
+
+    /** @var array<string, float> */
+    private array $sumCache = [];
+
+    /** @var array<string, float> */
+    private array $minCache = [];
+
+    /** @var array<string, float> */
+    private array $maxCache = [];
+
+    private ?int $innerCounter = null;
 
     /**
      * @param array<string, SelectedField> $selectedFields
@@ -44,7 +51,7 @@ class Stream extends ResultsProvider
      * @param array<Condition|ConditionGroup> $havings
      * @param JoinAbleArray[] $joins
      * @param string[] $groupByFields
-     * @param array<string, Sort> $orderings
+     * @param array<string, Enum\Sort> $orderings
      */
     public function __construct(
         private readonly Xml|Json|JsonStream|Yaml|Neon|Csv $stream,
@@ -63,12 +70,52 @@ class Stream extends ResultsProvider
 
     /**
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws InvalidArgumentException
-     * @throws UnableOpenFileException
+     * @throws Exceptions\InvalidArgumentException
+     * @throws Exceptions\UnableOpenFileException
      */
     public function getIterator(): \Traversable
     {
         yield from $this->buildStream();
+    }
+
+    public function count(): int
+    {
+        if ($this->innerCounter === null) {
+            $this->innerCounter = parent::count();
+        }
+        return $this->innerCounter;
+    }
+
+    public function avg(string $key, int $decimalPlaces = 2): float
+    {
+        if (!isset($this->avgCache[$key])) {
+            $this->avgCache[$key] = $this->sum($key) / $this->count();
+        }
+        return round($this->avgCache[$key], $decimalPlaces);
+    }
+
+    public function sum(string $key): float
+    {
+        if (!isset($this->sumCache[$key])) {
+            $this->sumCache[$key] = parent::sum($key);
+        }
+        return $this->sumCache[$key];
+    }
+
+    public function min(string $key): float
+    {
+        if (!isset($this->minCache[$key])) {
+            $this->minCache[$key] = parent::min($key);
+        }
+        return $this->minCache[$key];
+    }
+
+    public function max(string $key): float
+    {
+        if (!isset($this->maxCache[$key])) {
+            $this->maxCache[$key] = parent::max($key);
+        }
+        return $this->maxCache[$key];
     }
 
     /**
@@ -82,14 +129,13 @@ class Stream extends ResultsProvider
                 $fields[] = $finalField;
             }
         }
-
         return $fields;
     }
 
     /**
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws InvalidArgumentException
-     * @throws UnableOpenFileException
+     * @throws Exceptions\InvalidArgumentException
+     * @throws Exceptions\UnableOpenFileException
      */
     private function applyStreamSource(): \Traversable
     {
@@ -109,7 +155,6 @@ class Stream extends ResultsProvider
         foreach ($this->joins as $join) {
             $data = $this->applyJoin($data, $join);
         }
-
         return $data;
     }
 
@@ -121,11 +166,11 @@ class Stream extends ResultsProvider
      */
     private function applyJoin(\Traversable $leftData, array $join): \Traversable
     {
-        $rightData = $join['table']->execute(Results\Stream::class)->getIterator();
+        $rightData = $join['table']->execute(self::class)->getIterator();
         $alias = $join['alias'];
         $leftKey = $join['leftKey'];
         $rightKey = $join['rightKey'];
-        $operator = $join['operator'] ?? Operator::EQUAL;
+        $operator = $join['operator'] ?? Enum\Operator::EQUAL;
         $type = $join['type'];
 
         // Build a hashmap for the right table
@@ -153,7 +198,7 @@ class Stream extends ResultsProvider
                         yield $joinedRow;
                     }
                 }
-            } elseif ($type === Join::LEFT) {
+            } elseif ($type === Enum\Join::LEFT) {
                 // Handle LEFT JOIN (no match)
                 $nullRow = array_fill_keys($rightStructure, null);
                 /** @var StreamProviderArrayIteratorValue $joinedRow */
@@ -173,8 +218,8 @@ class Stream extends ResultsProvider
     /**
      * @implements \Traversable<StreamProviderArrayIteratorValue>
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws UnableOpenFileException
-     * @throws InvalidArgumentException
+     * @throws Exceptions\UnableOpenFileException
+     * @throws Exceptions\InvalidArgumentException
      */
     private function buildStream(): \Traversable
     {
@@ -258,15 +303,17 @@ class Stream extends ResultsProvider
                     $nestingValues
                         ? $this->accessNestedValue($item, $condition['key'])
                         : $item[$condition['key']]
-                            ?? throw new InvalidArgumentException(sprintf("Field '%s' not found.", $condition['key'])),
+                            ?? throw new Exceptions\UnexpectedValueException(
+                                sprintf("Field '%s' not found.", $condition['key'])
+                            ),
                     $condition['operator'],
                     $condition['value']
                 );
             }
 
-            if ($condition['type'] === LogicalOperator::AND) {
+            if ($condition['type'] === Enum\LogicalOperator::AND) {
                 $result = $result === null ? $groupResult : $result && $groupResult;
-            } elseif ($condition['type'] === LogicalOperator::OR) {
+            } elseif ($condition['type'] === Enum\LogicalOperator::OR) {
                 $result = $result === null ? $groupResult : $result || $groupResult;
             }
         }
@@ -277,11 +324,11 @@ class Stream extends ResultsProvider
     /**
      * Evaluate of simple condition
      * @param mixed $value Concrete value
-     * @param Operator $operator Operator
+     * @param Enum\Operator $operator Operator
      * @param mixed $operand Comparison value
      * @return bool
      */
-    private function evaluateCondition(mixed $value, Operator $operator, mixed $operand): bool
+    private function evaluateCondition(mixed $value, Enum\Operator $operator, mixed $operand): bool
     {
         return $operator->evaluate($value, $operand);
     }
@@ -289,7 +336,7 @@ class Stream extends ResultsProvider
     /**
      * @param array<string|int, mixed> $item
      * @return array<string|int, mixed>
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     private function applySelect(array $item): array
     {
@@ -324,7 +371,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Traversable<StreamProviderArrayIteratorValue>
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     private function applyBaseStream(\Traversable $stream): \Traversable
     {
@@ -368,7 +415,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     private function applyGrouping(\Traversable $stream): \Traversable
     {
@@ -438,7 +485,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Generator<StreamProviderArrayIteratorValue> $iterator
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws InvalidArgumentException
+     * @throws Exceptions\SortException
      */
     private function applySorting(\Generator $iterator): \Generator
     {
@@ -449,15 +496,15 @@ class Stream extends ResultsProvider
         $data = iterator_to_array($iterator);
         foreach ($this->orderings as $field => $type) {
             switch ($type) {
-                case Sort::ASC:
+                case Enum\Sort::ASC:
                     usort($data, fn($a, $b) => ($a[$field] ?? null) <=> ($b[$field] ?? null));
                     break;
 
-                case Sort::DESC:
+                case Enum\Sort::DESC:
                     usort($data, fn($a, $b) => ($b[$field] ?? null) <=> ($a[$field] ?? null));
                     break;
 
-                case Sort::NATSORT:
+                case Enum\Sort::NATSORT:
                     usort($data, function ($a, $b) use ($field) {
                         $valA = $a[$field] ?? '';
                         $valB = $b[$field] ?? '';
@@ -465,12 +512,14 @@ class Stream extends ResultsProvider
                     });
                     break;
 
-                case Sort::SHUFFLE:
+                case Enum\Sort::SHUFFLE:
                     shuffle($data);
                     break;
 
                 default:
-                    throw new InvalidArgumentException(sprintf('Unsupported sort type: %s', $type->value));
+                    throw new Exceptions\SortException(
+                        sprintf('Unsupported sort type: %s', $type->value)
+                    );
             }
         }
 
