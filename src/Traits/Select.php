@@ -5,7 +5,7 @@ namespace FQL\Traits;
 use FQL\Exceptions;
 use FQL\Exceptions\UnexpectedValueException;
 use FQL\Functions;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 
 /**
  * @codingStandardsIgnoreStart
@@ -264,13 +264,13 @@ trait Select
 
     private function selectToString(): string
     {
-        $return = Query::SELECT . ' ';
+        $return = Query::SELECT;
         if ($this->distinct) {
-            $return .= Query::DISTINCT . ' ';
+            $return .= ' ' . Query::DISTINCT;
         }
 
         if ($this->selectedFields === []) {
-            return $return . Query::SELECT_ALL;
+            return $return . ' ' . Query::SELECT_ALL;
         }
 
         $count = count($this->selectedFields) - 1;

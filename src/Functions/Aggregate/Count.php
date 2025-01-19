@@ -3,7 +3,7 @@
 namespace FQL\Functions\Aggregate;
 
 use FQL\Functions\Core\SingleFieldAggregateFunction;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 
 class Count extends SingleFieldAggregateFunction
 {

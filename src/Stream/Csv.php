@@ -2,44 +2,36 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions\FileNotFoundException;
-use FQL\Exceptions\NotImplementedException;
-use FQL\Query\Provider;
-use FQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Interfaces;
 
 class Csv extends CsvProvider
 {
     /**
-     * @throws FileNotFoundException
-     * @return Csv
+     * @throws Exceptions\FileNotFoundException
      */
-    public static function open(string $path): Stream
+    public static function open(string $path): Interfaces\Stream
     {
         return self::openWithDelimiter($path);
     }
 
     /**
-     * @throws NotImplementedException
+     * @throws Exceptions\NotImplementedException
      */
-    public static function string(string $data): Stream
+    public static function string(string $data): Interfaces\Stream
     {
-        throw new NotImplementedException("Method not yet implemented.");
+        throw new Exceptions\NotImplementedException([__CLASS__, __FUNCTION__]);
     }
 
     /**
-     * @throws FileNotFoundException
+     * @throws Exceptions\FileNotFoundException
      */
-    public static function openWithDelimiter(string $path, ?string $delimiter = null): self
+    public static function openWithDelimiter(string $path, ?string $delimiter = null): Interfaces\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new FileNotFoundException("File not found or not readable.");
+            throw new Exceptions\FileNotFoundException("File not found or not readable.");
         }
 
         return new self($path, $delimiter ?? ',');
-    }
-
-    public function query(): Query
-    {
-        return new Provider($this);
     }
 }

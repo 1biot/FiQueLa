@@ -2,25 +2,21 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions\UnexpectedValueException;
-use FQL\Parser\Sql;
-use FQL\Query\Query;
-use FQL\Results\Results;
+use FQL\Interfaces;
+use FQL\Query;
+use FQL\Sql;
 
-abstract class StreamProvider
+abstract class StreamProvider implements Interfaces\Stream
 {
-    abstract public function query(): Query;
-
-    /**
-     * Execute SQL query
-     * @throws UnexpectedValueException
-     */
-    public function sql(string $sql): Results
+    public function query(): Interfaces\Query
     {
-        // parse SQL and return results
-        $query = (new Sql())
-            ->parse(trim($sql), $this->query());
+        return new Query\Query($this);
+    }
 
-        return $query->execute();
+    public function fql(string $sql): Interfaces\Results
+    {
+        return (new Sql\Sql())
+            ->parse(trim($sql), $this->query())
+            ->execute();
     }
 }

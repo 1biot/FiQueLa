@@ -2,22 +2,20 @@
 
 namespace FQL\Stream;
 
+use FQL\Exceptions;
+use FQL\Interfaces;
 use Nette\Neon\Exception;
-use FQL\Exceptions\FileNotFoundException;
-use FQL\Exceptions\InvalidFormatException;
-use FQL\Query\Provider;
-use FQL\Query\Query;
 
 class Neon extends ArrayStreamProvider
 {
     /**
-     * @throws FileNotFoundException
-     * @throws InvalidFormatException
+     * @throws Exceptions\FileNotFoundException
+     * @throws Exceptions\InvalidFormatException
      */
-    public static function open(string $path): Stream
+    public static function open(string $path): Interfaces\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new FileNotFoundException("File not found or not readable.");
+            throw new Exceptions\FileNotFoundException("File not found or not readable.");
         }
 
         try {
@@ -25,31 +23,26 @@ class Neon extends ArrayStreamProvider
             $stream = is_array($decoded) ? new \ArrayIterator($decoded) : new \ArrayIterator([$decoded]);
             return new self($stream);
         } catch (Exception $e) {
-            throw new InvalidFormatException("Invalid NEON string: " . $e->getMessage());
+            throw new Exceptions\InvalidFormatException("Invalid NEON string: " . $e->getMessage());
         }
     }
 
     /**
-     * @throws InvalidFormatException
+     * @throws Exceptions\InvalidFormatException
      */
-    public static function string(string $data): Stream
+    public static function string(string $data): Interfaces\Stream
     {
         try {
             $decoded = \Nette\Neon\Neon::decode($data);
             $stream = is_array($decoded) ? new \ArrayIterator($decoded) : new \ArrayIterator([$decoded]);
             return new self($stream);
         } catch (Exception $e) {
-            throw new InvalidFormatException("Invalid NEON string: " . $e->getMessage());
+            throw new Exceptions\InvalidFormatException("Invalid NEON string: " . $e->getMessage());
         }
-    }
-
-    public function query(): Query
-    {
-        return new Provider($this);
     }
 
     public function provideSource(): string
     {
-        return '[neon://memory]';
+        return '[neon](memory)';
     }
 }

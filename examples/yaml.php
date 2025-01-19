@@ -1,31 +1,36 @@
 <?php
 
-use FQL\Enum\Operator;
-use FQL\Query\Debugger;
-use FQL\Stream\Yaml;
+use FQL\Enum\Operator as Op;
+use FQL\Query;
 
 require __DIR__ . '/bootstrap.php';
 
-$yaml = Yaml::open(__DIR__ . '/data/products.yaml');
+try {
+    $query = Query\Provider::fromFileQuery('(./examples/data/products.yaml).data.paginator')
+        ->select('totalCount')->as('totalPages')
+        ->select('page')->as('actualPage');
 
-$query = $yaml->query();
-$query->select('name, price')
-    ->select('brand.name')->as('brand')
-    ->from('data.products')
-    ->where('brand.code', Operator::EQUAL, 'BRAND-A')
-    ->orGroup()
-        ->where('name', Operator::EQUAL, 'Product 2')
-        ->and('price', Operator::GREATER_THAN, 200);
+    Query\Debugger::inspectQuery($query);
+    Query\Debugger::benchmarkQuery($query);
 
-Debugger::inspectQuery($query);
-Debugger::benchmarkQuery($query);
+    $yaml = Query\Provider::fromFile('./examples/data/products.yaml');
 
-$query = $yaml->query()
-    ->select('totalCount')->as('totalPages')
-    ->select('page')->as('actualPage')
-    ->from('data.paginator');
+    $query = $yaml->query();
+    $query->select('name, price')
+        ->select('brand.name')->as('brand')
+        ->from('data.products')
+        ->where('brand.code', Op::EQUAL, 'BRAND-A')
+        ->orGroup()
+        ->where('name', Op::EQUAL, 'Product 2')
+        ->and('price', Op::GREATER_THAN, 200);
 
-Debugger::inspectQuery($query);
-Debugger::benchmarkQuery($query);
+    Query\Debugger::inspectQuery($query);
+    Query\Debugger::benchmarkQuery($query);
 
-Debugger::end();
+    Query\Debugger::end();
+} catch (\Exception $e) {
+    Query\Debugger::echoSection($e::class);
+    Query\Debugger::echoLine($e->getMessage());
+    Query\Debugger::dump($e->getTraceAsString());
+    Query\Debugger::split();
+}

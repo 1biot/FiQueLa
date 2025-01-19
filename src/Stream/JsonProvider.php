@@ -2,19 +2,22 @@
 
 namespace FQL\Stream;
 
-use JsonMachine\Exception\InvalidArgumentException;
-use JsonMachine\Items;
-use JsonMachine\JsonDecoder\ExtJsonDecoder;
+use FQL\Exceptions;
+use JsonMachine as JM;
 
 /**
- * @implements Stream<\Generator>
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  */
-abstract class JsonProvider extends StreamProvider implements Stream
+abstract class JsonProvider extends StreamProvider
 {
     protected function __construct(private readonly string $jsonFilePath)
     {
     }
 
+    /**
+     * @param string|null $query
+     * @return ?StreamProviderArrayIterator
+     */
     public function getStream(?string $query): ?\ArrayIterator
     {
         $generator = $this->getStreamGenerator($query);
@@ -28,15 +31,15 @@ abstract class JsonProvider extends StreamProvider implements Stream
         }
 
         try {
-            $items = Items::fromFile(
+            $items = JM\Items::fromFile(
                 $this->jsonFilePath,
                 [
                     'pointer' => $this->convertDotNotationToJsonPointer($query),
-                    'decoder' => new ExtJsonDecoder(true),
+                    'decoder' => new JM\JsonDecoder\ExtJsonDecoder(true),
                 ]
             );
-        } catch (InvalidArgumentException $e) {
-            throw new \FQL\Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+        } catch (JM\Exception\InvalidArgumentException $e) {
+            throw new Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
         }
 
         yield from $items;
@@ -44,11 +47,10 @@ abstract class JsonProvider extends StreamProvider implements Stream
 
     private function convertDotNotationToJsonPointer(string $dotNotation): string
     {
-        $parts = explode('.', $dotNotation);
         $pointer = '';
-
+        $parts = explode('.', $dotNotation);
         foreach ($parts as $part) {
-            // Pokud je část číselná, zpracujeme ji jako index pole
+            // If $part is numeric, process it as an array index
             if (ctype_digit($part)) {
                 $pointer .= '/' . $part;
             } else {
@@ -63,11 +65,7 @@ abstract class JsonProvider extends StreamProvider implements Stream
     {
         $source = '';
         if ($this->jsonFilePath !== '') {
-            if (pathinfo($this->jsonFilePath, PATHINFO_EXTENSION) !== 'json') {
-                $source .= 'json://';
-            }
-            $source .= basename($this->jsonFilePath);
-            $source = sprintf('[%s]', $source);
+            $source = sprintf('[json](%s)', basename($this->jsonFilePath));
         }
         return $source;
     }

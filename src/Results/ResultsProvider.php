@@ -4,6 +4,7 @@ namespace FQL\Results;
 
 use FQL\Exceptions\InvalidArgumentException;
 use FQL\Functions;
+use FQL\Interfaces\Results;
 use FQL\Traits\Helpers\NestedArrayAccessor;
 
 /**

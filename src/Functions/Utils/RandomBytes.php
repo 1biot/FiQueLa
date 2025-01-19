@@ -10,7 +10,7 @@ use FQL\Functions\Core\NoFieldFunction;
  *
  * Suitable for generating salts, keys, and nonces.
  */
-class RandomBytes extends NoFieldFunction
+final class RandomBytes extends NoFieldFunction
 {
     public function __construct(private readonly int $length = 10)
     {

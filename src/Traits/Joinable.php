@@ -4,7 +4,7 @@ namespace FQL\Traits;
 
 use FQL\Enum;
 use FQL\Exceptions;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 use FQL\Stream\ArrayStreamProvider;
 
 /**
@@ -88,17 +88,17 @@ trait Joinable
         $joinStrings = [];
 
         foreach ($this->joins as $join) {
-            $tableString = sprintf(
-                PHP_EOL . '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
-                str_replace(PHP_EOL, PHP_EOL . "\t", $join['table']->test())
+            $tableString = PHP_EOL . sprintf(
+                '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
+                str_replace(PHP_EOL, PHP_EOL . "\t", (string) $join['table'])
             );
             $alias = $join['alias'] ? ' AS ' . $join['alias'] : '';
             $condition = $join['leftKey'] && $join['rightKey']
                 ? sprintf('%s %s %s', $join['leftKey'], $join['operator']->value, $join['rightKey'])
                 : '[No Condition]';
 
-            $joinStrings[] = sprintf(
-                PHP_EOL . "%s %s%s ON %s",
+            $joinStrings[] = PHP_EOL . sprintf(
+                '%s %s%s ON %s',
                 strtoupper($join['type']->value),
                 $tableString,
                 $alias,

@@ -1,31 +1,26 @@
 <?php
 
 use FQL\Enum\Operator;
-use FQL\Query\Debugger;
-use FQL\Stream\Json;
-use FQL\Stream\Xml;
+use FQL\Query;
 
 require __DIR__ . '/bootstrap.php';
 
-$usersFile = Json::open(__DIR__ . '/data/users.json');
-$ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
+try {
+    $users = Query\Provider::fromFileQuery('(./examples/data/users.json).data.users')
+        ->select('id, name')
+        ->select('o.id')->as('orderId')
+        ->select('o.total_price')->as('totalPrice')
+        ->leftJoin(Query\Provider::fromFileQuery('(./examples/data/orders.xml).orders.order'), 'o')
+            ->on('id', Operator::EQUAL, 'user_id')
+        ->groupBy('o.id')
+        ->orderBy('totalPrice')->desc();
 
-$orders = $ordersFile->query()
-    ->select('id')->as('orderId')
-    ->select('user_id')->as('userId')
-    ->select('total_price')->as('totalPrice')
-    ->from('orders.order');
-
-$users = $usersFile->query()
-    ->select('id, name')
-    ->select('o.orderId')->as('orderId')
-    ->select('o.totalPrice')->as('totalPrice')
-    ->from('data.users')
-    ->leftJoin($orders, 'o')
-        ->on('id', Operator::EQUAL, 'userId')
-    ->groupBy('o.orderId')
-    ->orderBy('totalPrice')->desc();
-
-Debugger::inspectQuery($users);
-Debugger::benchmarkQuery($users, 100);
-Debugger::end();
+    Query\Debugger::inspectQuery($users);
+    Query\Debugger::benchmarkQuery($users, 100);
+    Query\Debugger::end();
+} catch (\Exception $e) {
+    Query\Debugger::echoSection($e::class);
+    Query\Debugger::echoLine($e->getMessage());
+    Query\Debugger::dump($e->getTraceAsString());
+    Query\Debugger::split();
+}

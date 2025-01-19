@@ -53,14 +53,14 @@ class TypeTest extends TestCase
 
     public function testMatchByValue(): void
     {
-        $this->assertSame(Type::BOOLEAN, Type::matchByValue(true));
-        $this->assertSame(Type::BOOLEAN, Type::matchByValue(false));
-        $this->assertSame(Type::INTEGER, Type::matchByValue(1));
-        $this->assertSame(Type::FLOAT, Type::matchByValue(1.0));
-        $this->assertSame(Type::STRING, Type::matchByValue("1"));
-        $this->assertSame(Type::ARRAY, Type::matchByValue([]));
-        $this->assertSame(Type::OBJECT, Type::matchByValue(new \stdClass()));
-        $this->assertSame(Type::NULL, Type::matchByValue(null));
+        $this->assertSame(Type::BOOLEAN, Type::match(true));
+        $this->assertSame(Type::BOOLEAN, Type::match(false));
+        $this->assertSame(Type::INTEGER, Type::match(1));
+        $this->assertSame(Type::FLOAT, Type::match(1.0));
+        $this->assertSame(Type::STRING, Type::match("1"));
+        $this->assertSame(Type::ARRAY, Type::match([]));
+        $this->assertSame(Type::OBJECT, Type::match(new \stdClass()));
+        $this->assertSame(Type::NULL, Type::match(null));
     }
 
     public function testMatchByString(): void

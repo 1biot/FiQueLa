@@ -2,7 +2,7 @@
 
 namespace FQL\Query;
 
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Interfaces\Query;
 use FQL\Results;
 use FQL\Traits\Conditions;
 use FQL\Traits\From;
@@ -15,7 +15,6 @@ use FQL\Traits\Sortable;
 /**
  * Class TestProvider implements traits for Query and empty results when fetching data. We need to test for traits only.
  * @phpstan-import-type SelectedFields from Select
- * @phpstan-import-type ConditionArray from Conditions
  */
 class TestProvider implements Query
 {
@@ -23,7 +22,9 @@ class TestProvider implements Query
     use From;
     use Groupable;
     use Joinable;
-    use Conditions;
+    use Conditions {
+        initialize as initializeConditions;
+    }
     use Sortable;
     use Limit;
 
@@ -48,21 +49,9 @@ class TestProvider implements Query
         return $this->getFrom();
     }
 
-    /**
-     * @param string $context
-     * @return ConditionArray
-     */
-    public function getConditions(string $context): array
-    {
-        return $this->contexts[$context] ?? throw new InvalidArgumentException('Unsupported context');
-    }
-
     public function resetConditions(): Query
     {
-        $this->contexts = [
-            'where' => [],
-            'having' => [],
-        ];
+        $this->initializeConditions();
         return $this;
     }
 
@@ -72,6 +61,11 @@ class TestProvider implements Query
     }
 
     public function test(): string
+    {
+        return '';
+    }
+
+    public function __toString(): string
     {
         return '';
     }

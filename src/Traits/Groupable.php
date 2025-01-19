@@ -17,6 +17,8 @@ trait Groupable
 
     public function groupByToString(): string
     {
-        return $this->groupByFields !== [] ? sprintf(PHP_EOL . "GROUP BY %s", implode(', ', $this->groupByFields)) : '';
+        return $this->groupByFields !== []
+            ? PHP_EOL . sprintf('GROUP BY %s', implode(', ', $this->groupByFields))
+            : '';
     }
 }

@@ -2,11 +2,11 @@
 
 namespace Traits;
 
-use PHPUnit\Framework\TestCase;
 use FQL\Exceptions;
 use FQL\Functions;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 use FQL\Query\TestProvider;
+use PHPUnit\Framework\TestCase;
 
 class SelectTest extends TestCase
 {

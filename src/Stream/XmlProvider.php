@@ -2,24 +2,31 @@
 
 namespace FQL\Stream;
 
-use FQL\Enum\Type;
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Enum;
+use FQL\Exceptions;
 
 /**
- * @implements Stream<\Generator>
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
+ * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
-abstract class XmlProvider extends StreamProvider implements Stream
+abstract class XmlProvider extends StreamProvider
 {
-    protected function __construct(private readonly string $xmlFilePath, private ?string $encoding = null)
+    private ?string $inputEncoding = null;
+
+    protected function __construct(private readonly string $xmlFilePath)
     {
     }
 
-    public function setEncoding(?string $encoding): self
+    public function setInputEncoding(?string $encoding): self
     {
-        $this->encoding = $encoding;
+        $this->inputEncoding = $encoding;
         return $this;
     }
 
+    /**
+     * @param string|null $query
+     * @return ?StreamProviderArrayIterator
+     */
     public function getStream(?string $query): ?\ArrayIterator
     {
         $generator = $this->getStreamGenerator($query);
@@ -27,24 +34,29 @@ abstract class XmlProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws Exceptions\UnexpectedValueException
+     * @throws Exceptions\InvalidArgumentException
      */
     public function getStreamGenerator(?string $query): ?\Generator
     {
         if ($query === null) {
-            return null;
+            throw $this->createEmptyQueryException();
         }
 
-        $xmlReader = \XMLReader::open($this->xmlFilePath, $this->encoding);
+        $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
         if (!$xmlReader) {
-            throw new InvalidArgumentException('Unable to open XML file.');
+            throw new Exceptions\InvalidArgumentException('Unable to open XML file.');
         }
 
         $depth = substr_count($query, '.');
+        if ($depth === 0) {
+            $depth = 1;
+        }
+
         while ($xmlReader->read()) {
             if (
                 $xmlReader->nodeType == \XMLReader::ELEMENT
-                && in_array($xmlReader->localName, explode('.', $query))
+                && ($query !== '' && in_array($xmlReader->localName, explode('.', $query)) || $query === '*')
                 && $xmlReader->depth === $depth
             ) {
                 try {
@@ -61,7 +73,7 @@ abstract class XmlProvider extends StreamProvider implements Stream
 
     /**
      * @param \SimpleXMLElement $element
-     * @return string|array<mixed>
+     * @return string|StreamProviderArrayIteratorValue
      */
     private function itemToArray(\SimpleXMLElement $element): string|array
     {
@@ -69,14 +81,14 @@ abstract class XmlProvider extends StreamProvider implements Stream
 
         // Convert attributes to an array under the key '@attributes'
         foreach ($element->attributes() as $attributeName => $attributeValue) {
-            $result['@attributes'][$attributeName] = Type::matchByString($attributeValue);
+            $result['@attributes'][$attributeName] = Enum\Type::matchByString($attributeValue);
         }
 
         // Conversion of attributes with namespaces
         foreach ($element->getNamespaces(true) as $prefix => $namespace) {
             foreach ($element->attributes($namespace) as $attributeName => $attributeValue) {
                 $key = $prefix ? "{$prefix}:{$attributeName}" : $attributeName;
-                $result['@attributes'][$key] = Type::matchByString($attributeValue);
+                $result['@attributes'][$key] = Enum\Type::matchByString($attributeValue);
             }
         }
 
@@ -90,7 +102,7 @@ abstract class XmlProvider extends StreamProvider implements Stream
                 }
                 $result[$childName][] = $childArray;
             } else {
-                $result[$childName] = is_string($childArray) ? Type::matchByString($childArray) : $childArray;
+                $result[$childName] = is_string($childArray) ? Enum\Type::matchByString($childArray) : $childArray;
             }
         }
 
@@ -113,12 +125,12 @@ abstract class XmlProvider extends StreamProvider implements Stream
         // If the element has no children and attributes, return a simple value
         $value = trim((string) $element);
         if ($value !== '' && empty($result)) {
-            return Type::matchByString($value);
+            return Enum\Type::matchByString($value);
         }
 
         // If the element has children or attributes but also a text value, add it as 'value'
         if ($value !== '') {
-            $result['value'] = Type::matchByString($value);
+            $result['value'] = Enum\Type::matchByString($value);
         }
 
         return $result;
@@ -129,24 +141,42 @@ abstract class XmlProvider extends StreamProvider implements Stream
         return $this->xmlFilePath;
     }
 
-    public function getEncoding(): ?string
+    public function getInputEncoding(): ?string
     {
-        return $this->encoding;
+        return $this->inputEncoding;
     }
 
     public function provideSource(): string
     {
         $source = '';
         if ($this->xmlFilePath !== '') {
-            if (pathinfo($this->xmlFilePath, PATHINFO_EXTENSION) !== 'xml') {
-                $source .= 'csv://';
-            }
-            $source .= basename($this->xmlFilePath);
-            $source = sprintf('[%s]', $source);
-            if ($this->encoding !== null && $this->encoding !== '') {
-                $source .= "({$this->encoding})";
-            }
+            $source = sprintf('[xml](%s)', basename($this->xmlFilePath));
         }
         return $source;
+    }
+
+    /**
+     * @return Exceptions\UnexpectedValueException
+     */
+    private function createEmptyQueryException(): Exceptions\UnexpectedValueException
+    {
+        $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
+        if (!$xmlReader) {
+            throw new Exceptions\InvalidArgumentException('Unable to open XML file.');
+        }
+
+        $elements = [];
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType == \XMLReader::ELEMENT) {
+                $elements[] = $xmlReader->localName;
+                if (count($elements) == 2) {
+                    break;
+                }
+            }
+        }
+
+        return new Exceptions\UnexpectedValueException(
+            sprintf('Empty query. Try to use "%s" query', implode('.', $elements))
+        );
     }
 }

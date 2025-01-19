@@ -2,12 +2,14 @@
 
 namespace FQL\Results;
 
+use FQL\Conditions\BaseConditionGroup;
+use FQL\Conditions\Condition;
 use FQL\Enum;
 use FQL\Exceptions;
 use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\NoFieldFunction;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
@@ -22,8 +24,6 @@ use FQL\Traits;
  * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
  * @codingStandardsIgnoreEnd
  *
- * @phpstan-import-type Condition from Query
- * @phpstan-import-type ConditionGroup from Query
  * @phpstan-import-type JoinAbleArray from Traits\Joinable
  * @phpstan-import-type SelectedField from Traits\Select
  */
@@ -46,20 +46,19 @@ class Stream extends ResultsProvider
     private ?int $innerCounter = null;
 
     /**
+     * @implements \FQL\Interfaces\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
      * @param array<string, SelectedField> $selectedFields
-     * @param array<Condition|ConditionGroup> $where
-     * @param array<Condition|ConditionGroup> $havings
      * @param JoinAbleArray[] $joins
      * @param string[] $groupByFields
      * @param array<string, Enum\Sort> $orderings
      */
     public function __construct(
-        private readonly Xml|Json|JsonStream|Yaml|Neon|Csv $stream,
+        private readonly \FQL\Interfaces\Stream $stream,
         private readonly bool $distinct,
         private readonly array $selectedFields,
         private readonly string $from,
-        private readonly array $where,
-        private readonly array $havings,
+        private readonly BaseConditionGroup $where,
+        private readonly BaseConditionGroup $havings,
         private readonly array $joins,
         private readonly array $groupByFields,
         private readonly array $orderings,
@@ -116,20 +115,6 @@ class Stream extends ResultsProvider
             $this->maxCache[$key] = parent::max($key);
         }
         return $this->maxCache[$key];
-    }
-
-    /**
-     * @return string[]
-     */
-    private function getAliasedFields(): array
-    {
-        $fields = [];
-        foreach ($this->selectedFields as $finalField => $fieldData) {
-            if ($fieldData['alias']) {
-                $fields[] = $finalField;
-            }
-        }
-        return $fields;
     }
 
     /**
@@ -237,8 +222,6 @@ class Stream extends ResultsProvider
             $stream = $this->applyBaseStream($stream);
         }
 
-
-
         if (!$this->isSortable()) {
             return yield from $stream; // apply limit and offset automatically
         } elseif (!$this->isLimitable()) {
@@ -249,88 +232,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+     * @param non-empty-lowercase-string $context
      * @param StreamProviderArrayIteratorValue $item
      */
-    private function evaluateWhereConditions(array $item): bool
+    private function evaluateConditions(string $context, array $item): bool
     {
-        return $this->evaluateConditions('where', $item, true);
-    }
-
-    /**
-     * @param StreamProviderArrayIteratorValue $item
-     */
-    private function evaluateHavingConditions(array $item): bool
-    {
-        $allowedFields = $this->getAliasedFields();
-        $proxyItem = [];
-        foreach ($allowedFields as $allowedField) {
-            if (!isset($item[$allowedField])) {
-                continue;
-            }
-            $proxyItem[$allowedField] = $item[$allowedField];
-        }
-        return $this->evaluateConditions('having', $proxyItem, false);
-    }
-
-    /**
-     * @param StreamProviderArrayIteratorValue $item
-     */
-    private function evaluateConditions(string $context, array $item, bool $nestingValues): bool
-    {
-        $evaluatedGroup = $context === 'where' ? $this->where : $this->havings;
-        if (empty($evaluatedGroup)) {
-            return true;
-        }
-
-        return $this->evaluateGroup($item, $evaluatedGroup, $nestingValues);
-    }
-
-    /**
-     * Evaluate group of conditions
-     * @param StreamProviderArrayIteratorValue $item
-     * @param array<Condition|ConditionGroup> $conditions
-     */
-    private function evaluateGroup(array $item, array $conditions, bool $nestingValues): bool
-    {
-        $result = null;
-        foreach ($conditions as $condition) {
-            if (isset($condition['group'])) {
-                // Recursive evaluate of nested group
-                $groupResult = $this->evaluateGroup($item, $condition['group'], $nestingValues);
-            } else {
-                // Evaluate of simple condition
-                $groupResult = $this->evaluateCondition(
-                    $nestingValues
-                        ? $this->accessNestedValue($item, $condition['key'])
-                        : $item[$condition['key']]
-                            ?? throw new Exceptions\UnexpectedValueException(
-                                sprintf("Field '%s' not found.", $condition['key'])
-                            ),
-                    $condition['operator'],
-                    $condition['value']
-                );
-            }
-
-            if ($condition['type'] === Enum\LogicalOperator::AND) {
-                $result = $result === null ? $groupResult : $result && $groupResult;
-            } elseif ($condition['type'] === Enum\LogicalOperator::OR) {
-                $result = $result === null ? $groupResult : $result || $groupResult;
-            }
-        }
-
-        return $result ?? true; // When we have no more conditions, returns true
-    }
-
-    /**
-     * Evaluate of simple condition
-     * @param mixed $value Concrete value
-     * @param Enum\Operator $operator Operator
-     * @param mixed $operand Comparison value
-     * @return bool
-     */
-    private function evaluateCondition(mixed $value, Enum\Operator $operator, mixed $operand): bool
-    {
-        return $operator->evaluate($value, $operand);
+        $evaluateGroup = $context === Condition::WHERE ? $this->where : $this->havings;
+        return $evaluateGroup->evaluate($item, $context === Condition::WHERE);
     }
 
     /**
@@ -380,12 +288,12 @@ class Stream extends ResultsProvider
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
 
         foreach ($stream as $item) {
-            if (!$this->evaluateWhereConditions($item)) {
+            if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;
             }
 
             $resultItem = $this->applySelect($item);
-            if (!$this->evaluateHavingConditions($resultItem)) {
+            if (!$this->evaluateConditions(Condition::HAVING, $resultItem)) {
                 continue; // Skip resultItem that do not satisfy HAVING
             }
 
@@ -422,7 +330,7 @@ class Stream extends ResultsProvider
         $groupedData = [];
         $groupKey = Query::SELECT_ALL;
         foreach ($stream as $item) {
-            if (!$this->evaluateWhereConditions($item)) {
+            if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;
             } elseif ($this->hasPhase('group')) {
                 $groupKey = $this->createGroupKey($item);
@@ -434,7 +342,7 @@ class Stream extends ResultsProvider
         if ($groupKey === Query::SELECT_ALL) {
             // Aggregate grouped items
             $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL]);
-            if ($this->evaluateHavingConditions($aggregatedItem)) {
+            if ($this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
                 return yield $aggregatedItem;
             }
         }
@@ -445,7 +353,7 @@ class Stream extends ResultsProvider
         foreach ($groupedData as $groupItems) {
             // Aggregate grouped items
             $aggregatedItem = $this->applyAggregations($groupItems);
-            if (!$this->evaluateHavingConditions($aggregatedItem)) {
+            if (!$this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
                 continue; // Skip groups that do not satisfy HAVING
             }
 

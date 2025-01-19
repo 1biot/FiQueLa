@@ -12,7 +12,7 @@ final class CoalesceNotEmpty extends Coalesce
     {
         foreach ($this->fields as $field) {
             $field = trim($field);
-            $value = $this->getFieldValue($field, $item, $resultItem) ?? $field;
+            $value = $this->getFieldValue($field, $item, $resultItem) ?? '';
             if (!empty($value)) {
                 return $value;
             }

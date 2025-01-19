@@ -2,19 +2,14 @@
 
 namespace FQL\Stream;
 
-use League\Csv\CharsetConverter;
-use League\Csv\Exception;
-use League\Csv\InvalidArgument;
-use League\Csv\Reader;
-use League\Csv\UnavailableFeature;
-use League\Csv\UnavailableStream;
-use FQL\Enum\Type;
-use FQL\Exceptions\UnableOpenFileException;
+use FQL\Enum;
+use FQL\Exceptions;
+use League\Csv;
 
 /**
- * @implements Stream<\Generator>
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  */
-abstract class CsvProvider extends StreamProvider implements Stream
+abstract class CsvProvider extends StreamProvider
 {
     protected bool $useHeader = true;
     private ?string $inputEncoding = null;
@@ -42,7 +37,8 @@ abstract class CsvProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws UnableOpenFileException
+     * @return ?StreamProviderArrayIterator
+     * @throws Exceptions\UnableOpenFileException
      */
     public function getStream(?string $query): ?\ArrayIterator
     {
@@ -51,30 +47,33 @@ abstract class CsvProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws UnableOpenFileException
+     * @throws Exceptions\UnableOpenFileException
      */
     public function getStreamGenerator(?string $query): ?\Generator
     {
         try {
-            $csv = Reader::createFromPath($this->csvFilePath);
+            $csv = Csv\Reader::createFromPath($this->csvFilePath);
             $csv->setDelimiter($this->delimiter);
             if ($this->inputEncoding !== null && $this->inputEncoding !== '' && $this->inputEncoding !== 'UTF-8') {
-                $csv->addStreamFilter(sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding));
+                $csv->appendStreamFilterOnRead(sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding));
             }
 
             if ($this->useHeader) {
                 $csv->setHeaderOffset(0);
             }
 
-            $encoder = new CharsetConverter();
+            $encoder = new Csv\CharsetConverter();
             $encoder->inputEncoding('ASCII');
             $encoder->outputEncoding('UTF-8');
 
             foreach ($csv->getRecords() as $row) {
-                yield array_map(fn ($value) => is_string($value) ? Type::matchByString($value) : $value, $row);
+                yield array_map(fn ($value) => is_string($value) ? Enum\Type::matchByString($value) : $value, $row);
             }
         } catch (\Exception $e) {
-            throw new UnableOpenFileException(sprintf('Unexpected error: %s', $e->getMessage()), previous: $e);
+            throw new Exceptions\UnableOpenFileException(
+                sprintf('Unexpected error: %s', $e->getMessage()),
+                previous: $e
+            );
         }
     }
 
@@ -102,14 +101,7 @@ abstract class CsvProvider extends StreamProvider implements Stream
     {
         $source = '';
         if ($this->csvFilePath !== '') {
-            if (pathinfo($this->csvFilePath, PATHINFO_EXTENSION) !== 'csv') {
-                $source .= 'csv://';
-            }
-            $source .= basename($this->csvFilePath);
-            $source = sprintf('[%s]', $source);
-            if ($this->inputEncoding !== null && $this->inputEncoding !== '') {
-                $source .= "({$this->inputEncoding})";
-            }
+            $source = sprintf('[csv](%s)', basename($this->csvFilePath));
         }
         return $source;
     }

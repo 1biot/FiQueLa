@@ -3,16 +3,15 @@
 namespace FQL\Stream;
 
 use FQL\Exceptions;
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Interfaces;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
  * @codingStandardsIgnoreStart
  * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
  * @codingStandardsIgnoreEnd
- * @implements Stream<StreamProviderArrayIterator>
  */
-abstract class ArrayStreamProvider extends StreamProvider implements Stream
+abstract class ArrayStreamProvider extends StreamProvider
 {
     /**
      * @param StreamProviderArrayIterator $stream
@@ -24,13 +23,13 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
     /**
      * @param string|null $query
      * @return StreamProviderArrayIterator|null
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     public function getStream(?string $query): ?\ArrayIterator
     {
         $keys = $query !== null ? explode('.', $query) : [];
         $lastKey = array_key_last($keys);
-        $stream = new \ArrayIterator($this->stream->getArrayCopy());
+        $stream = $this->stream;
         foreach ($keys as $index => $key) {
             $stream = $this->applyKeyFilter($stream, $key, ($index === $lastKey));
         }
@@ -38,7 +37,7 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     public function getStreamGenerator(?string $query): ?\Generator
     {
@@ -53,7 +52,7 @@ abstract class ArrayStreamProvider extends StreamProvider implements Stream
      * @param string $key
      * @param bool $isLast
      * @return StreamProviderArrayIterator
-     * @throws InvalidArgumentException
+     * @throws Exceptions\InvalidArgumentException
      */
     protected function applyKeyFilter(\ArrayIterator $stream, string $key, bool $isLast): \ArrayIterator
     {

@@ -1,17 +1,21 @@
 <?php
 
-namespace FQL\Parser;
+namespace FQL\Sql;
 
+use FQL\Conditions\Condition;
 use FQL\Enum;
 use FQL\Exceptions\SortException;
 use FQL\Exceptions\UnexpectedValueException;
 use FQL\Functions;
-use FQL\Query\Query;
+use FQL\Interfaces\Parser;
+use FQL\Interfaces\Query;
 use FQL\Traits\Helpers\StringOperations;
 
 class Sql implements Parser
 {
     use StringOperations;
+
+    private const CONTROL_KEYWORDS = ['SELECT', 'FROM', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'LIMIT', 'OFFSET'];
 
     /** @var string[] */
     private array $tokens = [];
@@ -72,7 +76,7 @@ class Sql implements Parser
 
     private function parseFields(Query $query): void
     {
-        while (!$this->isEOF() && strtoupper($this->peekToken()) !== 'FROM') {
+        while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
             if ($field === ',') {
                 continue;
@@ -132,7 +136,7 @@ class Sql implements Parser
         $functionName = $this->getFunction($field);
         $arguments = $this->getFunctionArguments($field);
 
-        match ($functionName) {
+        match (strtoupper($functionName)) {
             // aggregate
             'AVG' => $query->avg($arguments[0] ?? ''),
             'COUNT' => $query->count($arguments[0] ?? null),
@@ -174,16 +178,9 @@ class Sql implements Parser
 
     private function parseConditions(Query $query, string $context): void
     {
-        $peekTokens = [];
-        if ($context === 'where') {
-            $peekTokens = ['GROUP', 'HAVING', 'ORDER', 'LIMIT', 'OFFSET'];
-        } elseif ($context === 'having') {
-            $peekTokens = ['ORDER', 'LIMIT', 'OFFSET'];
-        }
-
         $logicalOperator = Enum\LogicalOperator::AND;
-        $firstIteration = true;
-        while (!$this->isEOF() && !in_array(strtoupper($this->peekToken()), $peekTokens)) {
+        $firstIter = true;
+        while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $token = strtoupper($this->peekToken());
 
             if ($token === 'AND') {
@@ -198,34 +195,49 @@ class Sql implements Parser
                 continue;
             }
 
+            if ($token === 'XOR') {
+                $logicalOperator = Enum\LogicalOperator::XOR;
+                $this->nextToken(); // Consume "OR"
+                continue;
+            }
+
             // Parse a single condition
             $field = $this->nextToken();
-
             $operator = $this->nextToken();
-            $operator = Enum\Operator::fromOrFail($operator);
+            if (in_array($operator, ['IS', 'NOT', 'LIKE', 'IN'])) {
+                $nextToken = $this->nextToken();
+                if (in_array($nextToken, ['NOT', 'LIKE', 'IN'])) {
+                    $operator .= ' ' . $nextToken;
+                } else {
+                    $this->rewindToken();
+                }
+            }
 
+            $operator = Enum\Operator::fromOrFail($operator);
             $value = Enum\Type::matchByString($this->nextToken());
-            if ($firstIteration && $context === 'where' && $logicalOperator === Enum\LogicalOperator::AND) {
+            if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
-                $firstIteration = false;
+                $firstIter = false;
                 continue;
-            } elseif ($firstIteration && $context === 'having' && $logicalOperator === Enum\LogicalOperator::AND) {
+            } elseif ($firstIter && $context === Condition::HAVING && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->having($field, $operator, $value);
-                $firstIteration = false;
+                $firstIter = false;
                 continue;
             }
 
             if ($logicalOperator === Enum\LogicalOperator::AND) {
                 $query->and($field, $operator, $value);
-            } else {
+            } elseif ($logicalOperator === Enum\LogicalOperator::OR) {
                 $query->or($field, $operator, $value);
+            } else {
+                $query->xor($field, $operator, $value);
             }
         }
     }
 
     private function parseGroupBy(Query $query): void
     {
-        while (!$this->isEOF() && !in_array(strtoupper($this->peekToken()), ['HAVING', 'ORDER', 'LIMIT', 'OFFSET'])) {
+        while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
             if ($field === ',') {
                 continue;
@@ -237,7 +249,7 @@ class Sql implements Parser
 
     private function parseSort(Query $query): void
     {
-        while (!$this->isEOF() && !in_array(strtoupper($this->peekToken()), ['LIMIT', 'OFFSET'])) {
+        while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
             if ($field === ',') {
                 continue;
@@ -260,6 +272,11 @@ class Sql implements Parser
         return $this->tokens[$this->position++] ?? '';
     }
 
+    private function rewindToken(): string
+    {
+        return $this->tokens[$this->position--] ?? '';
+    }
+
     private function peekToken(): string
     {
         return $this->tokens[$this->position] ?? '';
@@ -279,5 +296,10 @@ class Sql implements Parser
     private function isEOF(): bool
     {
         return $this->position >= count($this->tokens);
+    }
+
+    private function isNextControlledKeyword(): bool
+    {
+        return in_array(strtoupper($this->peekToken()), self::CONTROL_KEYWORDS);
     }
 }

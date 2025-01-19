@@ -7,21 +7,29 @@ use FQL\Exceptions\InvalidArgumentException;
 enum Type: string
 {
     case BOOLEAN = 'boolean';
+    case TRUE = 'TRUE';
+    case FALSE = 'FALSE';
+
+    case NUMBER = 'number';
     case INTEGER = 'int';
     case FLOAT = 'double';
+
     case STRING = 'string';
+    case NULL = 'NULL';
+
     case ARRAY = 'array';
     case OBJECT = 'object';
+
     case RESOURCE = 'resource';
     case RESOURCE_CLOSED = 'resource (closed)';
-    case NULL = 'NULL';
+
     case UNKNOWN = 'unknown type';
 
     public static function castValue(mixed $value, ?Type $type = null): mixed
     {
-        $type = $type ?? self::matchByValue($value);
+        $type = $type ?? self::match($value);
         return match ($type) {
-            self::STRING, self::UNKNOWN => (string) $value,
+            self::STRING, self::UNKNOWN => self::toString($value),
             self::INTEGER => is_numeric($value) ? (int) $value : 0,
             self::FLOAT => is_numeric($value) ? (float) $value : 0.0,
             self::BOOLEAN => (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
@@ -34,7 +42,7 @@ enum Type: string
         };
     }
 
-    public static function matchByValue(mixed $value): self
+    public static function match(mixed $value): self
     {
         return match (gettype($value)) {
             'boolean' => self::BOOLEAN,
@@ -111,5 +119,18 @@ enum Type: string
         $value = str_replace(',', '.', $value);
 
         return is_numeric($value);
+    }
+
+    private static function toString(mixed $value): string
+    {
+        $type = self::match($value);
+        return match ($type) {
+            self::NULL => 'null',
+            self::TRUE => 'true',
+            self::FALSE => 'false',
+            self::ARRAY => 'array',
+            self::OBJECT => 'object',
+            default => (string) $value,
+        };
     }
 }

@@ -2,27 +2,24 @@
 
 namespace FQL\Stream;
 
-use ArrayIterator;
-use FQL\Exceptions\FileNotFoundException;
-use FQL\Exceptions\InvalidFormatException;
-use FQL\Query\Provider;
-use FQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Interfaces;
 
 final class Json extends ArrayStreamProvider
 {
     /**
-     * @throws InvalidFormatException
-     * @throws FileNotFoundException
+     * @throws Exceptions\InvalidFormatException
+     * @throws Exceptions\FileNotFoundException
      */
-    public static function open(string $path): self
+    public static function open(string $path): Interfaces\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new FileNotFoundException("File not found or not readable.");
+            throw new Exceptions\FileNotFoundException("File not found or not readable.");
         }
 
         $handle = fopen($path, 'r');
         if ($handle === false) {
-            throw new FileNotFoundException("Could not open file");
+            throw new Exceptions\FileNotFoundException("Could not open file");
         }
 
         $content = '';
@@ -35,9 +32,9 @@ final class Json extends ArrayStreamProvider
     }
 
     /**
-     * @throws InvalidFormatException
+     * @throws Exceptions\InvalidFormatException
      */
-    public static function string(string $data): self
+    public static function string(string $data): Interfaces\Stream
     {
         // if (json_validate($json) === false) { // only php >= 8.3
         //     throw new InvalidJson("Invalid JSON string: " . json_last_error_msg());
@@ -47,20 +44,15 @@ final class Json extends ArrayStreamProvider
 
         $decoded = json_decode($data, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new InvalidFormatException("Invalid JSON string: " . json_last_error_msg());
+            throw new Exceptions\InvalidFormatException("Invalid JSON string: " . json_last_error_msg());
         }
 
-        $stream = is_array($decoded) ? new ArrayIterator($decoded) : new ArrayIterator([$decoded]);
+        $stream = is_array($decoded) ? new \ArrayIterator($decoded) : new \ArrayIterator([$decoded]);
         return new self($stream);
-    }
-
-    public function query(): Query
-    {
-        return new Provider($this);
     }
 
     public function provideSource(): string
     {
-        return '[json://memory]';
+        return '[json](memory)';
     }
 }

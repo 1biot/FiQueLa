@@ -5,8 +5,8 @@
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_115-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_409-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_162-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_524-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
 ![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
@@ -83,6 +83,12 @@ Install packages for optional features:
 composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tracy
 ```
 
+- **`league/csv`**: Required for CSV file support.
+- **`halaxa/json-machine`**: Required for JSON stream support.
+- **`symfony/yaml`**: Required for YAML file support.
+- **`nette/neon`**: Required for NEON file support.
+- **`tracy/tracy`**: Optional for using Debugger
+
 ## III. Getting Started
 
 ### III.A. Supported Formats
@@ -147,7 +153,7 @@ XML support requires only standard PHP extensions (`libxml`, `simplexml` and `xm
 use FQL\Stream\Xml;
 
 $xml = Xml::open('data.xml');
-$xml->setEncoding('windows-1250');
+$xml->setInputEncoding('windows-1250');
 ```
 
 #### YAML and NEON
@@ -168,19 +174,31 @@ $neon = Neon::open('data.neon');
 
 ### III.B. Basic Querying
 
-It is example how you can easily query data from files. 
+It is example how you can easily query data from files.
+In previous examples we have loaded data from files, now we can query them and try alternative way to load data.
 
 ```php
-use FQL\Enum\Operator;
+use FQL\EnumEnum;
+use FQL\Enum\Operator as Op;
+use FQL\Query;
 
 $scannedIdFromRFID = '1234567890';
-
 // creating query
-$query = $xml->query()
+$query = Query\Provider::fromFileQuery('(path/to/file.json).users.user')
+    ->select('name, age')
+    ->where('age', Op::GREATER_THAN_OR_EQUAL, 18)
+    ->and('id', Op::EQUAL_STRICT, $scannedIdFromRFID);
+```
+
+Or only file for creating more queries from one file:
+
+```php
+$json = Query\Provider::fromFile('path/to/file.json', Enum\Format::JSON);
+$query = $json->query()
     ->select('name, age')
     ->from('users.user')
-    ->where('age', Operator::GREATER_THAN_OR_EQUAL, 18)
-    ->and('id', Operator::EQUAL_STRICT, $scannedIdFromRFID);
+    ->where('age', Op::GREATER_THAN_OR_EQUAL, 18)
+    ->and('id', Op::EQUAL_STRICT, $scannedIdFromRFID);
 ```
 
 ### III.C. Fetching Data
@@ -411,7 +429,7 @@ For the query:
 
 ```sql
 SELECT name, SUM(sales) AS total_sales
-FROM [employees.xml].employees.employee
+FROM (employees.xml).employees.employee
 WHERE age > 30
 GROUP BY name
 HAVING total_sales > 1000
@@ -440,32 +458,23 @@ LIMIT 10;
 ### V.A. Joining Data Sources
 
 Joining data sources is possible with `leftJoin` and `innerJoin` methods. The following example demonstrates a
-left join between **XML** and **JSON** file.
+left join between **JSON** and **XML** file.
 
 ```php
-use FQL\Stream\JsonStream as Json;
-use FQL\Stream\Xml;
-use FQL\Enum\Operator;
-use FQL\Query\Debugger;
+use FQL\Enum\Operator as Op;
+use FQL\Query;
 
-$ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
-$orders = $ordersFile->query()
-    ->select('id')->as('orderId')
-    ->select('user_id')->as('userId')
-    ->select('total_price')->as('totalPrice')
-    ->from('orders.order');
-    
-Debugger::inspectQuery($orders);
-
-$usersFile = Json::open(__DIR__ . '/data/users.json');
-$users = $usersFile->query()
-    ->selectAll()
-    ->from('data.users')
+$orders = Query\Provider::fromFileQuery('(./examples/data/orders.xml).orders.order');
+$users = Query\Provider::fromFileQuery('(./examples/data/users.json).data.users')
+    ->select('id, name')
+    ->select('o.id')->as('orderId')
+    ->select('o.total_price')->as('totalPrice')
     ->leftJoin($orders, 'o')
-        ->on('id', Operator::EQUAL, 'userId')
-    ->where('o.totalPrice', Operator::EQUAL_STRICT, null);
+        ->on('id', Op::EQUAL, 'user_id')
+    ->groupBy('o.id')
+    ->orderBy('totalPrice')->desc();
 
-Debugger::inspectQuery($users);
+Query\Debugger::inspectQuery($users);
 ```
 
 For results try the `composer example:join` command.
@@ -788,7 +797,7 @@ Using `HAVING` is useful when you want to filter data based on final row or aggr
 nested values, but `WHERE` clause does.
 
 ```php
-use FQL\Enum\Operator;
+use FQL\Enum\Operator as Op;
 
 $query = $json->query();
 
@@ -797,9 +806,9 @@ $results = $query
     ->round('price', 0)->as('roundedPrice')
     ->avg('price')->as('avgPrice')
     ->from('products')
-    ->where('currency.code', Operator::EQUAL_STRICT, 'USD')
-    ->having('roundedPrice', Operator::GREATER_THAN, 125)
-        ->and('avgPrice', Operator::GREATER_THAN, 90);
+    ->where('currency.code', Op::EQUAL_STRICT, 'USD')
+    ->having('roundedPrice', Op::GREATER_THAN, 125)
+        ->and('avgPrice', Op::GREATER_THAN, 90);
 ```
 
 ### V.D. Pagination and Limits
@@ -868,8 +877,7 @@ Parse SQL strings directly into queries for all supported file formats. Idea is 
 without fluent syntax. Now it could be used only for simple queries directly to files. Newly support `GROUP BY`, `OFFSET`,
 multiple sorting and `SELECT` [functions](#vb-aggregations-and-functions) (All of them).
 
-> ⚠️ Parser still does not support `JOIN` clause and some logical operators `IN`, `NOT_IN`,
-`CONTAINS`, `STARTS_WITH` and `ENDS_WITH`.
+> ⚠️ Sql still does not support `JOIN` clause and some logical operators `IN`, `NOT IN`, `IS`, `IS NOT`, `LIKE` and `NOT LIKE`.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -915,7 +923,7 @@ WHERE
 ORDER BY productName DESC
 SQL;
 
-$results = $xml->sql($sql)
+$results = $xml->fql($sql)
     ->fetchAll();
 Debugger::dump(iterator_to_array($results));
 ```
@@ -1024,27 +1032,26 @@ Runs `composer example:join` and output will look like this:
 '=================='
 '*** SQL query: ***'
 '=================='
->> SELECT 
->>   id,
->>   name,
->>   o.orderId AS orderId,
->>   o.totalPrice AS totalPrice
->> FROM [json://memory].data.users
->> LEFT JOIN 
->> (
->>   SELECT 
->>     id AS orderId,
->>     user_id AS userId,
->>     total_price AS totalPrice
->>   FROM [orders.xml].orders.order
->> ) AS o ON id = userId
->> GROUP BY o.orderId
->> ORDER BY totalPrice DESC
+> SELECT
+>     id ,
+>     name ,
+>     o.id  AS  orderId ,
+>     o.total_price  AS  totalPrice
+> FROM  [json](memory).data.users
+> LEFT  JOIN
+>  (
+>     SELECT  *
+>     FROM  [xml](orders.xml).orders.order
+>  )  AS  o  ON  id   =  user_id
+> GROUP  BY  o.id
+> ORDER  BY
+>     totalPrice  DESC
 '================'
 '*** Results: ***'
 '================'
 > Result class: FQL\Results\InMemory
-> Count: 5
+> Result exists: 1
+> Result count: 5
 '=================='
 '*** First row: ***'
 '=================='
@@ -1055,12 +1062,12 @@ array (4)
    'totalPrice' => 600
 
 '------------------------------'
-> Memory usage: 2.0601MB (emalloc)
-> Memory peak usage: 2.1227MB (emalloc)
+> Memory usage: 2.1033MB (emalloc)
+> Memory peak usage: 2.1655MB (emalloc)
 '------------------------------'
-> Execution time (s): 0.021444
-> Execution time (ms): 21.444
-> Execution time (µs): 21444
+> Execution time (s): 0.02847
+> Execution time (ms): 28.47
+> Execution time (µs): 28470
 '========================'
 '*** Benchmark Query: ***'
 '========================'
@@ -1068,59 +1075,56 @@ array (4)
 '=================='
 '*** SQL query: ***'
 '=================='
->> SELECT 
->>   id,
->>   name,
->>   o.orderId AS orderId,
->>   o.totalPrice AS totalPrice
->> FROM [json://memory].data.users
->> LEFT JOIN 
->> (
->>   SELECT 
->>     id AS orderId,
->>     user_id AS userId,
->>     total_price AS totalPrice
->>   FROM [orders.xml].orders.order
->> ) AS o ON id = userId
->> GROUP BY o.orderId
->> ORDER BY totalPrice DESC
+> SELECT
+>     id ,
+>     name ,
+>     o.id  AS  orderId ,
+>     o.total_price  AS  totalPrice
+> FROM  [json](memory).data.users
+> LEFT  JOIN
+>  (
+>     SELECT  *
+>     FROM  [xml](orders.xml).orders.order
+>  )  AS  o  ON  id   =  user_id
+> GROUP  BY  o.id
+> ORDER  BY
+>     totalPrice  DESC
 '========================='
 '*** STREAM BENCHMARK: ***'
 '========================='
-> Size (KB): 2.8
+> Size (KB): 3.42
 > Count: 5
 > Iterated results: 500
 '------------------------------'
-> Memory usage: 2.0583MB (emalloc)
-> Memory peak usage: 2.1227MB (emalloc)
+> Memory usage: 2.1015MB (emalloc)
+> Memory peak usage: 2.1655MB (emalloc)
 '------------------------------'
-> Execution time (s): 0.026855
-> Execution time (ms): 26.855
-> Execution time (µs): 26855
+> Execution time (s): 0.028661
+> Execution time (ms): 28.661
+> Execution time (µs): 28661
 '========================'
 '*** PROXY BENCHMARK: ***'
 '========================'
-> Size (KB): 0.72
+> Size (KB): 0.57
 > Count: 5
 > Iterated results: 500
 '------------------------------'
-> Memory usage: 2.0603MB (emalloc)
-> Memory peak usage: 2.1227MB (emalloc)
+> Memory usage: 2.1034MB (emalloc)
+> Memory peak usage: 2.1655MB (emalloc)
 '------------------------------'
-> Execution time (s): 0.001072
-> Execution time (ms): 1.072
-> Execution time (µs): 1072
+> Execution time (s): 0.000725
+> Execution time (ms): 0.725
+> Execution time (µs): 725
 '=============================='
-> Memory usage: 2.058MB (emalloc)
-> Memory peak usage: 2.1227MB (emalloc)
->> Final execution time (s): 0.049452
->> Final execution time (ms): 49.452
->> Final execution time (µs): 49452
+> Memory usage: 2.1012MB (emalloc)
+> Memory peak usage: 2.1655MB (emalloc)
+>> Final execution time (s): 0.057894
+>> Final execution time (ms): 57.894
+>> Final execution time (µs): 57894
 ```
 
 ## VII. Knowing issues
 
-- ⚠️ You can use `WHERE` clause only for one logical group. Nesting groups is not supported yet.
 - ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 - ⚠️ SQL - Supports SQL string queries inspired with SQL-like syntax. Syntax does not support yet all SQL fluent features.
@@ -1132,6 +1136,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like
 `FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent
 **F**i**Q**ue**L**a.
+- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for memory efficient data processing.
 - [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage.

@@ -1,6 +1,6 @@
 <?php
 
-namespace FQL\Functions\Core;
+namespace FQL\Interfaces;
 
 use FQL\Stream\ArrayStreamProvider;
 

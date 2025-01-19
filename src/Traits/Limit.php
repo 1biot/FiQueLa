@@ -2,7 +2,7 @@
 
 namespace FQL\Traits;
 
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 
 trait Limit
 {
@@ -42,7 +42,7 @@ trait Limit
 
     private function limitToString(): string
     {
-        return $this->limit ? (PHP_EOL . Query::LIMIT . ' ' . $this->limit) : '';
+        return $this->limit ? PHP_EOL . Query::LIMIT . ' ' . $this->limit : '';
     }
 
     private function offsetToString(): string

@@ -3,6 +3,7 @@
 namespace FQL\Functions\Core;
 
 use FQL\Exceptions\UnexpectedValueException;
+use FQL\Interfaces\InvokableAggregate;
 use FQL\Stream\ArrayStreamProvider;
 use FQL\Traits\Helpers\NestedArrayAccessor;
 use FQL\Traits\Helpers\StringOperations;

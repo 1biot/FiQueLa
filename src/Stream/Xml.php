@@ -2,44 +2,42 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions\FileNotFoundException;
-use FQL\Exceptions\InvalidFormatException;
-use FQL\Exceptions\NotImplementedException;
-use FQL\Query\Provider;
-use FQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Interfaces;
+use FQL\Query;
 
-class Xml extends XmlProvider
+class Xml extends XmlProvider implements Interfaces\Stream
 {
     /**
-     * @throws FileNotFoundException
+     * @throws Exceptions\FileNotFoundException
      */
-    public static function openWithEncoding(string $path, ?string $encoding = null): self
+    public static function openWithEncoding(string $path, ?string $encoding = null): Interfaces\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new FileNotFoundException("File not found or not readable.");
+            throw new Exceptions\FileNotFoundException("File not found or not readable.");
         }
 
-        return new self($path, $encoding);
+        $class = new self($path);
+        if ($encoding !== null) {
+            $class->setInputEncoding($encoding);
+        }
+
+        return $class;
     }
 
     /**
-     * @throws FileNotFoundException
+     * @throws Exceptions\FileNotFoundException
      */
-    public static function open(string $path): self
+    public static function open(string $path): Interfaces\Stream
     {
         return self::openWithEncoding($path);
     }
 
     /**
-     * @throws NotImplementedException
+     * @throws Exceptions\NotImplementedException
      */
-    public static function string(string $data): Stream
+    public static function string(string $data): Interfaces\Stream
     {
-        throw new NotImplementedException("Method not yet implemented.");
-    }
-
-    public function query(): Query
-    {
-        return new Provider($this);
+        throw new Exceptions\NotImplementedException([__CLASS__, __FUNCTION__]);
     }
 }

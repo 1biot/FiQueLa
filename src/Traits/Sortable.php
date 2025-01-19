@@ -2,9 +2,9 @@
 
 namespace FQL\Traits;
 
-use FQL\Exceptions;
 use FQL\Enum;
-use FQL\Query\Query;
+use FQL\Exceptions;
+use FQL\Interfaces\Query;
 
 trait Sortable
 {
@@ -61,12 +61,12 @@ trait Sortable
         }
 
         $orderings = array_map(
-            fn($field, Enum\Sort $type) => sprintf('%s %s', $field, strtoupper($type->value)),
+            fn($field, Enum\Sort $type) => sprintf('%s %s', trim($field), trim(strtoupper($type->value))),
             array_keys($this->orderings),
             $this->orderings
         );
 
-        return sprintf(PHP_EOL . "ORDER BY %s", implode(', ', $orderings));
+        return PHP_EOL . sprintf('ORDER BY %s', implode(', ', $orderings));
     }
 
     private function setLastSortType(Enum\Sort $type): Query

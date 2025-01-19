@@ -1,8 +1,6 @@
 <?php
 
-namespace FQL\Parser;
-
-use FQL\Query\Query;
+namespace FQL\Interfaces;
 
 interface Parser
 {

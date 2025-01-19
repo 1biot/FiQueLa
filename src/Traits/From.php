@@ -2,7 +2,7 @@
 
 namespace FQL\Traits;
 
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 
 trait From
 {
@@ -21,8 +21,8 @@ trait From
 
     private function fromToString(string $source): string
     {
-        return sprintf(
-            PHP_EOL . "%s %s%s",
+        return PHP_EOL . sprintf(
+            '%s %s%s',
             Query::FROM,
             $source === '' ? '' : ($source . '.'),
             $this->from ?? Query::FROM_ALL

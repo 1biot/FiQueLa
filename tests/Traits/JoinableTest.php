@@ -33,7 +33,7 @@ class JoinableTest extends TestCase
             ->from('data.users')
             ->innerJoin($orders, 'o')
                 ->on('id', Operator::EQUAL, 'userId')
-            ->having('totalPrice', Operator::GREATER_THAN, 200)
+            ->where('o.totalPrice', Operator::GREATER_THAN, 200)
             ->orderBy('totalPrice')->desc();
 
         $results = $query->execute();

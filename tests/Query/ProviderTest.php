@@ -2,6 +2,7 @@
 
 namespace Query;
 
+use FQL\Enum\Type;
 use PHPUnit\Framework\TestCase;
 use FQL\Enum\Operator;
 use FQL\Exceptions\InvalidArgumentException;
@@ -169,7 +170,7 @@ class ProviderTest extends TestCase
         $query = $this->json->query()
             ->from('data.products')
             ->where('price', Operator::GREATER_THAN, 200)
-            ->orIsNull('description');
+            ->or('description', Operator::IS, Type::NULL);
 
         $results = $query->execute();
         $data = iterator_to_array($results->fetchAll());

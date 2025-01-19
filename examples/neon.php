@@ -1,30 +1,35 @@
 <?php
 
-use FQL\Enum\Operator;
-use FQL\Query\Debugger;
-use FQL\Stream\Neon;
+use FQL\Enum\Operator as Op;
+use FQL\Query;
 
 require __DIR__ . '/bootstrap.php';
 
-$neon = Neon::open(__DIR__ . '/data/products.neon');
+try {
+    $query = Query\Provider::fromFileQuery('(./examples/data/products.neon).data.paginator')
+        ->select('totalCount')->as('totalPages')
+        ->select('page')->as('actualPage')
+        ->from('data.paginator');
 
-$query = $neon->query()
-    ->select('name, price')
-    ->select('manufacturer')->as('brand')
-    ->from('data.products')
-    ->where('manufacturer', Operator::EQUAL, 'Manufacturer 3')
-    ->or('name', Operator::EQUAL, 'Product 2')
-    ->or('price', Operator::GREATER_THAN, 200);
+    Query\Debugger::inspectQuery($query);
+    Query\Debugger::benchmarkQuery($query);
 
-Debugger::inspectQuery($query);
-Debugger::benchmarkQuery($query);
+    $neon = Query\Provider::fromFile('./examples/data/products.neon');
+    $query = $neon->query()
+        ->select('name, price')
+        ->select('manufacturer')->as('brand')
+        ->from('data.products')
+        ->where('manufacturer', Op::EQUAL, 'Manufacturer 3')
+        ->or('name', Op::EQUAL, 'Product 2')
+        ->or('price', Op::GREATER_THAN, 200);
 
-$query = $neon->query()
-    ->select('totalCount')->as('totalPages')
-    ->select('page')->as('actualPage')
-    ->from('data.paginator');
+    Query\Debugger::inspectQuery($query);
+    Query\Debugger::benchmarkQuery($query);
 
-Debugger::inspectQuery($query);
-Debugger::benchmarkQuery($query);
-
-Debugger::end();
+    Query\Debugger::end();
+} catch (\Exception $e) {
+    Query\Debugger::echoSection($e::class);
+    Query\Debugger::echoLine($e->getMessage());
+    Query\Debugger::dump($e->getTraceAsString());
+    Query\Debugger::split();
+}

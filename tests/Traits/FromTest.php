@@ -2,9 +2,9 @@
 
 namespace Traits;
 
-use PHPUnit\Framework\TestCase;
-use FQL\Query\Query;
+use FQL\Interfaces\Query;
 use FQL\Query\TestProvider;
+use PHPUnit\Framework\TestCase;
 
 class FromTest extends TestCase
 {

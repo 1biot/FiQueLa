@@ -2,7 +2,7 @@
 
 namespace FQL\Query;
 
-use FQL\Parser\Sql;
+use FQL\Sql\Sql;
 use FQL\Results\InMemory;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
@@ -11,7 +11,6 @@ use FQL\Stream\JsonStream;
 use FQL\Stream\Neon;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
-use FQL\Traits\Helpers\StringOperations;
 
 class Debugger
 {
@@ -98,7 +97,7 @@ class Debugger
     public static function inspectQuery(Query $query, bool $listResults = false): void
     {
         self::echoSection('SQL query');
-        self::queryToOutput($query->test());
+        self::queryToOutput((string) $query);
 
         $results = $query->execute();
         self::echoSection('Results');
@@ -126,6 +125,7 @@ class Debugger
         self::echoSection('Original SQL query');
         self::queryToOutput($sql);
 
+        /** @var Query $query */
         $query = (new Sql())
             ->parse(trim($sql), $stream->query());
 
@@ -139,7 +139,7 @@ class Debugger
         self::echoLine(sprintf('%s iterations', number_format($iterations, 0, ',', ' ')));
 
         self::echoSection('SQL query');
-        self::queryToOutput($query->test());
+        self::queryToOutput((string) $query);
 
         self::benchmarkStream($query, $iterations);
         self::benchmarkProxy($query, $iterations);
@@ -204,21 +204,23 @@ class Debugger
     public static function highlightSQL(string $sql): string
     {
         $keywords = [
-            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING',
-            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC',
+            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
+            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'SHUFFLE', 'NATURAL', 'LEFT', 'INNER'
         ];
 
+        $fromPattern = '((\[(?<e>[a-z]{2,8})])?(\((?<fp>[\w,\s\.-\/\\\]+(\.\w{2,5})?)\))?(?<q>[\w*\.\-\_]+)?)';
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
-        $functionPattern = '/\b([A-Z0-9_]{2,})(?<!_)\\((.*?)\\)/';
+        $functionPattern = '([A-Z0-9_]{2,})(?<!_)\\((.*?)\\)';
 
-        // Tokenization with respect to brackets, quotes and multi-line input
+        // Tokenization with respect to brackets, quotes and multi-line input ((\[([a-z]+:\/\/)?(.*)])(.*))
         $regex = '/
-        \b([A-Z0-9_]{2,})(?<!_)\\((.*?)\\) # function
-        |(\'[^\']*\' # simple quoted string
+        \b' . $functionPattern . ' # function
+        | ' . $fromPattern . ' # FROM
+        | (\'[^\']*\' # simple quoted string
         | "[^"]*" # double quotes
         | [(),] # bracket or comma
-        | \b(AND|OR|SELECT|FROM|WHERE|GROUP|HAVING|ORDER|BY|AS|DESC|ASC|IN|ON|LIMIT|OFFSET|SHUFFLE|NATURAL|LEFT|INNER)\b
+        | \b(' . implode('|', $keywords) . ')\b # operators
         | [^\s\'"(),]+ # other than spaces and quoteshe
         )/xi';
 
@@ -231,56 +233,89 @@ class Debugger
             $indentation = $matches[1] ?? '';
 
             preg_match_all($regex, $line, $matches);
-            $tokens = $matches[0];
+            $tokens = array_filter($matches[0]);
 
-            $highlightedTokens = array_map(function ($token) use ($keywords, $functionPattern) {
-                // Keywords
-                if (in_array(strtoupper($token), $keywords)) {
-                    return "\033[1;34m{$token}\033[0m"; // Blue
-                }
+            $hasFrom = false;
+            $highlightedTokens = array_map(
+                function ($token) use ($keywords, $functionPattern, $fromPattern, &$hasFrom) {
+                    if (trim($token) === '') {
+                        return '';
+                    }
 
-                // Functions
-                if (preg_match($functionPattern, $token, $matches)) {
-                    $functionName = $matches[1];
-                    $innerContent = $matches[2];
+                    // Keywords
+                    if (in_array(strtoupper($token), $keywords)) {
+                        if (strtoupper($token) === 'FROM') {
+                            $hasFrom = true;
+                        }
+                        return "\033[1;34m{$token}\033[0m"; // Blue
+                    }
 
-                    // Highlight parameters in content
-                    $highlightedContent = implode(
-                        ', ',
-                        array_map(
-                            fn ($param) => self::isQuoted(trim($param))
-                                ? "\033[0;32m" . trim($param) . "\033[0m"
-                                : trim($param),
-                            explode(',', $innerContent)
-                        )
-                    );
+                    // FROM [].data.item
+                    if ($hasFrom && preg_match('/^' . $fromPattern . '$/', $token, $matches)) {
+                        $ext = $matches['e'] ?? '';
+                        $file = $matches['fp'] ?? '';
+                        $query = $matches['q'] ?? '';
+                        if ($file === '' && $query === '') {
+                            return ''; // Cyan
+                        }
 
-                    return "\033[0;35m{$functionName}\033[0m({$highlightedContent})";
-                }
+                        $highlightedString = "\033[1;35m" . sprintf('[%s]', $ext) . "\033[0m";
+                        if ($file !== '') {
+                            $highlightedString .= "\033[1;31m({$file})\033[0m";
+                        }
 
-                // Numbers
-                if (is_numeric($token)) {
-                    return "\033[0;33m{$token}\033[0m"; // Yellow
-                }
+                        if ($query !== '') {
+                            $highlightedString .= "\033[1;36m{$query}\033[0m";
+                        }
 
-                // Strings
-                if (preg_match("/^['\"].*['\"]$/", $token)) {
-                    return "\033[0;32m{$token}\033[0m"; // Cyan
-                }
+                        $hasFrom = false;
+                        return $highlightedString;
+                    }
 
-                // Operators
-                if (preg_match('/^(>=|<=|<>|!=|=|<|>|!==|==)$/', $token)) {
-                    return "\033[4;36m{$token}\033[0m"; // Azure
-                }
+                    // Functions
+                    if (preg_match('/\b' . $functionPattern . '/', $token, $matches)) {
+                        $functionName = $matches[1];
+                        $innerContent = $matches[2];
 
-                // Return token unchanged
-                return $token;
-            }, $tokens);
+                        // Highlight parameters in content
+                        $highlightedContent = implode(
+                            ', ',
+                            array_map(
+                                fn ($param) => self::isQuoted(trim($param))
+                                    ? "\033[0;32m" . trim($param) . "\033[0m"
+                                    : trim($param),
+                                explode(',', $innerContent)
+                            )
+                        );
+
+                        return "\033[0;31m{$functionName}\033[0m({$highlightedContent})";
+                    }
+
+                    // Numbers
+                    if (is_numeric($token)) {
+                        return "\033[0;35m{$token}\033[0m"; // Yellow
+                    }
+
+                    // Strings
+                    if (preg_match("/^['\"].*['\"]$/", $token)) {
+                        return "\033[0;32m{$token}\033[0m"; // Cyan
+                    }
+
+                    // Operators
+                    if (preg_match('/^(>=|<=|<>|!=|=|<|>|!==|==)$/', $token)) {
+                        return "\033[4;33m{$token}\033[0m";
+                    }
+
+                    // Return token unchanged
+                    return $token;
+                },
+                $tokens
+            );
 
             $highlightedLines[] = $indentation . implode(' ', $highlightedTokens);
         }
 
-        return str_replace([" ," . PHP_EOL, ' , '], [',' . PHP_EOL, ', '], implode(PHP_EOL, $highlightedLines));
+        return implode(PHP_EOL, $highlightedLines);
     }
 
     private static function isQuoted(string $input): bool
