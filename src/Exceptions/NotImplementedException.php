@@ -4,7 +4,7 @@ namespace FQL\Exceptions;
 
 class NotImplementedException extends Exception
 {
-    public function __construct(callable $notImplemented, int $code = 0, \Throwable $previous = null)
+    public function __construct(callable $notImplemented, int $code = 0, ?\Throwable $previous = null)
     {
         $message = $this->analyzeCallable($notImplemented);
         parent::__construct(sprintf('%s not implemented yet.', $message), $code, $previous);
