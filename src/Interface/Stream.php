@@ -1,6 +1,6 @@
 <?php
 
-namespace FQL\Interfaces;
+namespace FQL\Interface;
 
 use FQL\Stream\ArrayStreamProvider;
 
@@ -15,10 +15,10 @@ interface Stream
 
     /**
      * @param string|null $query
-     * @return StreamProviderArrayIterator|null
+     * @return StreamProviderArrayIterator
      */
-    public function getStream(?string $query): ?\ArrayIterator;
-    public function getStreamGenerator(?string $query): ?\Generator;
+    public function getStream(?string $query): \ArrayIterator;
+    public function getStreamGenerator(?string $query): \Generator;
     public function provideSource(): string;
 
     public function query(): Query;

@@ -1,11 +1,11 @@
 <?php
 
-namespace FQL\Interfaces;
+namespace FQL\Interface;
 
 use FQL\Enum\LogicalOperator;
 use FQL\Enum\Operator;
 use FQL\Enum\Sort;
-use FQL\Exceptions;
+use FQL\Exception;
 use FQL\Results;
 use FQL\Results\ResultsProvider;
 
@@ -46,7 +46,7 @@ interface Query extends \Stringable
      * method multiple times, the fields will be merged into a single selection.
      *
      * @param string $fields The fields to include in the selection.
-     * @throws Exceptions\SelectException
+     * @throws Exception\SelectException
      *
      * Example with simple fields:
      *

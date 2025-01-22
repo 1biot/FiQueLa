@@ -3,7 +3,7 @@
 namespace FQL\Query;
 
 use FQL\Enum;
-use FQL\Exceptions;
+use FQL\Exception;
 
 final class FileQuery
 {
@@ -14,22 +14,27 @@ final class FileQuery
     public readonly ?string $query;
 
     /**
-     * @throws Exceptions\FileQueryException
-     * @throws Exceptions\InvalidFormatException
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
      */
     public function __construct(private readonly string $queryPath)
     {
         if (!preg_match('/^' . self::REGEXP . '$/', $this->queryPath, $matches)) {
-            throw new Exceptions\FileQueryException('Invalid query path');
+            throw new Exception\FileQueryException('Invalid query path');
         }
 
-        $extension = $matches['e'] === '' ? null : $matches['e'];
-        if ($extension !== null) {
-            $extension = Enum\Format::fromString(ltrim($extension, '.'));
+        $extension = $matches['e'] ?? null;
+        if ($extension === null || $extension === '') {
+            $extension = null;
         }
+        $this->extension = $extension !== null ? Enum\Format::fromString($extension) : null;
 
-        $this->extension = $extension;
-        $this->file = $matches['fp'] === '' ? null : $matches['fp'];
+        $filePath = $matches['fp'] ?? null;
+        if ($filePath === null || $filePath === '') {
+            $filePath = null;
+        }
+        $this->file = $filePath ?? null;
+
         $query = $matches['q'] ?? null;
         if ($query !== null) {
             $query = ltrim($query, '.');

@@ -2,7 +2,7 @@
 
 namespace FQL\Traits\Helpers;
 
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exception\InvalidArgumentException;
 
 trait NestedArrayAccessor
 {

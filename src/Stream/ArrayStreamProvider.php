@@ -2,8 +2,8 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions;
-use FQL\Interfaces;
+use FQL\Exception;
+use FQL\Interface;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -22,10 +22,10 @@ abstract class ArrayStreamProvider extends StreamProvider
 
     /**
      * @param string|null $query
-     * @return StreamProviderArrayIterator|null
-     * @throws Exceptions\InvalidArgumentException
+     * @return StreamProviderArrayIterator
+     * @throws Exception\InvalidArgumentException
      */
-    public function getStream(?string $query): ?\ArrayIterator
+    public function getStream(?string $query): \ArrayIterator
     {
         $keys = $query !== null ? explode('.', $query) : [];
         $lastKey = array_key_last($keys);
@@ -37,9 +37,9 @@ abstract class ArrayStreamProvider extends StreamProvider
     }
 
     /**
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
-    public function getStreamGenerator(?string $query): ?\Generator
+    public function getStreamGenerator(?string $query): \Generator
     {
         $stream = $this->getStream($query);
         foreach ($stream as $item) {
@@ -52,7 +52,7 @@ abstract class ArrayStreamProvider extends StreamProvider
      * @param string $key
      * @param bool $isLast
      * @return StreamProviderArrayIterator
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
     protected function applyKeyFilter(\ArrayIterator $stream, string $key, bool $isLast): \ArrayIterator
     {
@@ -72,6 +72,6 @@ abstract class ArrayStreamProvider extends StreamProvider
                 return is_iterable($v) ? new \ArrayIterator($v) : new \ArrayIterator([$v]);
             }
         }
-        throw new Exceptions\InvalidArgumentException("Key '$key' not found.");
+        throw new Exception\InvalidArgumentException("Key '$key' not found.");
     }
 }

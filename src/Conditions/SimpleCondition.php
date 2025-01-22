@@ -3,7 +3,7 @@
 namespace FQL\Conditions;
 
 use FQL\Enum;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Traits\Helpers;
 
 class SimpleCondition extends Condition

@@ -7,8 +7,8 @@ use FQL\Conditions\Condition;
 use FQL\Conditions\GroupCondition;
 use FQL\Conditions\SimpleCondition;
 use FQL\Enum;
-use FQL\Exceptions;
-use FQL\Interfaces\Query;
+use FQL\Exception;
+use FQL\Interface\Query;
 
 trait Conditions
 {
@@ -111,7 +111,7 @@ trait Conditions
     public function endGroup(): Query
     {
         if ($this->currentGroup instanceof BaseConditionGroup) {
-            throw new Exceptions\UnexpectedValueException('No group to end');
+            throw new Exception\UnexpectedValueException('No group to end');
         }
 
         $this->currentGroup = $this->currentGroup->getParent();

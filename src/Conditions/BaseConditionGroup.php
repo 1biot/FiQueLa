@@ -3,7 +3,7 @@
 namespace FQL\Conditions;
 
 use FQL\Enum;
-use FQL\Exceptions;
+use FQL\Exception;
 
 final class BaseConditionGroup extends GroupCondition
 {
@@ -12,7 +12,7 @@ final class BaseConditionGroup extends GroupCondition
     public function __construct(string $context)
     {
         if (!in_array($context, [Condition::WHERE, Condition::HAVING])) {
-            throw new Exceptions\UnexpectedValueException(sprintf('Invalid context %s', $context));
+            throw new Exception\UnexpectedValueException(sprintf('Invalid context %s', $context));
         }
 
         $this->context = $context;

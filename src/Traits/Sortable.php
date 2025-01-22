@@ -3,8 +3,8 @@
 namespace FQL\Traits;
 
 use FQL\Enum;
-use FQL\Exceptions;
-use FQL\Interfaces\Query;
+use FQL\Exception;
+use FQL\Interface\Query;
 
 trait Sortable
 {
@@ -16,7 +16,7 @@ trait Sortable
     public function sortBy(string $field, ?Enum\Sort $type = null): Query
     {
         if (isset($this->orderings[$field])) {
-            throw new Exceptions\OrderByException(sprintf('Field "%s" is already used for sorting.', $field));
+            throw new Exception\OrderByException(sprintf('Field "%s" is already used for sorting.', $field));
         }
 
         $this->orderings[$field] = $type ?? Enum\Sort::ASC;
@@ -73,7 +73,7 @@ trait Sortable
     {
         $lastField = array_key_last($this->orderings);
         if ($lastField === null) {
-            throw new Exceptions\OrderByException(
+            throw new Exception\OrderByException(
                 sprintf('No field available to set sorting type "%s".', $type->value)
             );
         }

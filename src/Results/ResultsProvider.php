@@ -2,9 +2,9 @@
 
 namespace FQL\Results;
 
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exception\InvalidArgumentException;
 use FQL\Functions;
-use FQL\Interfaces\Results;
+use FQL\Interface\Results;
 use FQL\Traits\Helpers\NestedArrayAccessor;
 
 /**
@@ -83,7 +83,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     {
         $sum = 0;
         foreach ($this->getIterator() as $item) {
-            $sum += $item[$key] ?? 0;
+            $value = $item[$key] ?? 0;
+            $sum += is_numeric($value) ? $value : 0;
         }
 
         return $sum;
@@ -98,7 +99,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     {
         $min = PHP_INT_MAX;
         foreach ($this->getIterator() as $item) {
-            $min = min($min, $item[$key] ?? PHP_INT_MAX);
+            $value = $item[$key] ?? 0;
+            $min = min($min, is_numeric($value) ? (float) $value : PHP_INT_MAX);
         }
 
         return $min;
@@ -108,7 +110,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     {
         $max = PHP_INT_MIN;
         foreach ($this->getIterator() as $item) {
-            $max = max($max, $item[$key] ?? PHP_INT_MIN);
+            $value = $item[$key] ?? 0;
+            $max = max($max, is_numeric($value) ? (float) $value : PHP_INT_MIN);
         }
 
         return $max;
@@ -117,6 +120,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     /**
      * @template T of mixed
      * @param StreamProviderArrayIteratorValue $data
+     * @param ?class-string $className
      * @return ($className is class-string<T> ? T : StreamProviderArrayIteratorValue)
      */
     private function mapArrayToObject(array $data, ?string $className = null): mixed
@@ -127,7 +131,6 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 
         try {
             $reflectionClass = new \ReflectionClass($className);
-
             $constructor = $reflectionClass->getConstructor();
             if ($constructor) {
                 $params = $constructor->getParameters();

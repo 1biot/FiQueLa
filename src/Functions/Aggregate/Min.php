@@ -3,7 +3,7 @@
 namespace FQL\Functions\Aggregate;
 
 use FQL\Enum\Type;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Core\SingleFieldAggregateFunction;
 
 class Min extends SingleFieldAggregateFunction

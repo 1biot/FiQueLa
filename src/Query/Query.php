@@ -2,8 +2,8 @@
 
 namespace FQL\Query;
 
-use FQL\Exceptions\QueryLogicException;
-use FQL\Interfaces;
+use FQL\Exception\QueryLogicException;
+use FQL\Interface;
 use FQL\Results;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
@@ -13,7 +13,7 @@ use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
 
-class Query implements Interfaces\Query
+class Query implements Interface\Query
 {
     use Traits\Conditions {
         initialize as initializeConditions;
@@ -30,14 +30,14 @@ class Query implements Interfaces\Query
     use Traits\Sortable;
 
     /**
-     * @implements Interfaces\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
+     * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
      */
-    public function __construct(private readonly Interfaces\Stream $stream)
+    public function __construct(private readonly Interface\Stream $stream)
     {
         $this->initializeConditions();
     }
 
-    public function distinct(bool $distinct = true): Interfaces\Query
+    public function distinct(bool $distinct = true): Interface\Query
     {
         if ($this->groupByFields !== []) {
             throw new QueryLogicException('DISTINCT is not allowed with GROUP BY clause');

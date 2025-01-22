@@ -3,7 +3,7 @@
 namespace Conditions;
 
 use FQL\Conditions\ConditionEnvelope;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use PHPUnit\Framework\TestCase;
 use FQL\Conditions\GroupCondition;
 use FQL\Conditions\SimpleCondition;

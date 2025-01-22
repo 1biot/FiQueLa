@@ -2,28 +2,28 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions;
-use FQL\Interfaces;
+use FQL\Exception;
+use FQL\Interface;
 
-class JsonStream extends JsonProvider implements Interfaces\Stream
+class JsonStream extends JsonProvider implements Interface\Stream
 {
     /**
-     * @throws Exceptions\FileNotFoundException
+     * @throws Exception\FileNotFoundException
      */
-    public static function open(string $path): Interfaces\Stream
+    public static function open(string $path): Interface\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new Exceptions\FileNotFoundException("File not found or not readable.");
+            throw new Exception\FileNotFoundException("File not found or not readable.");
         }
 
         return new self($path);
     }
 
     /**
-     * @throws Exceptions\NotImplementedException
+     * @throws Exception\NotImplementedException
      */
-    public static function string(string $data): Interfaces\Stream
+    public static function string(string $data): Interface\Stream
     {
-        throw new Exceptions\NotImplementedException([__CLASS__, __FUNCTION__]);
+        throw new Exception\NotImplementedException([__CLASS__, __FUNCTION__]);
     }
 }

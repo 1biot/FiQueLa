@@ -3,7 +3,7 @@
 namespace Stream;
 
 use PHPUnit\Framework\TestCase;
-use FQL\Exceptions\FileNotFoundException;
+use FQL\Exception\FileNotFoundException;
 use FQL\Stream\Xml;
 
 class XmlTest extends TestCase

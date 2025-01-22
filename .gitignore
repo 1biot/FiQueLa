@@ -1,5 +1,6 @@
 .idea
 .run
+docs
 vendor
 .phpunit.result.cache
 .DS_Store

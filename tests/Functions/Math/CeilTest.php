@@ -3,7 +3,7 @@
 namespace Functions\Math;
 
 use PHPUnit\Framework\TestCase;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Math\Ceil;
 
 class CeilTest extends TestCase

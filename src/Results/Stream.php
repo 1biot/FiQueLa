@@ -5,11 +5,11 @@ namespace FQL\Results;
 use FQL\Conditions\BaseConditionGroup;
 use FQL\Conditions\Condition;
 use FQL\Enum;
-use FQL\Exceptions;
+use FQL\Exception;
 use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\NoFieldFunction;
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
@@ -46,14 +46,14 @@ class Stream extends ResultsProvider
     private ?int $innerCounter = null;
 
     /**
-     * @implements \FQL\Interfaces\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
+     * @implements \FQL\Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
      * @param array<string, SelectedField> $selectedFields
      * @param JoinAbleArray[] $joins
      * @param string[] $groupByFields
      * @param array<string, Enum\Sort> $orderings
      */
     public function __construct(
-        private readonly \FQL\Interfaces\Stream $stream,
+        private readonly \FQL\Interface\Stream $stream,
         private readonly bool $distinct,
         private readonly array $selectedFields,
         private readonly string $from,
@@ -69,8 +69,8 @@ class Stream extends ResultsProvider
 
     /**
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\InvalidArgumentException
-     * @throws Exceptions\UnableOpenFileException
+     * @throws Exception\InvalidArgumentException
+     * @throws Exception\UnableOpenFileException
      */
     public function getIterator(): \Traversable
     {
@@ -119,8 +119,6 @@ class Stream extends ResultsProvider
 
     /**
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\InvalidArgumentException
-     * @throws Exceptions\UnableOpenFileException
      */
     private function applyStreamSource(): \Traversable
     {
@@ -203,8 +201,8 @@ class Stream extends ResultsProvider
     /**
      * @implements \Traversable<StreamProviderArrayIteratorValue>
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\UnableOpenFileException
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\UnableOpenFileException
+     * @throws Exception\InvalidArgumentException
      */
     private function buildStream(): \Traversable
     {
@@ -244,7 +242,7 @@ class Stream extends ResultsProvider
     /**
      * @param array<string|int, mixed> $item
      * @return array<string|int, mixed>
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
     private function applySelect(array $item): array
     {
@@ -279,7 +277,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Traversable<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
     private function applyBaseStream(\Traversable $stream): \Traversable
     {
@@ -323,7 +321,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
     private function applyGrouping(\Traversable $stream): \Traversable
     {
@@ -393,7 +391,7 @@ class Stream extends ResultsProvider
     /**
      * @param \Generator<StreamProviderArrayIteratorValue> $iterator
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exceptions\SortException
+     * @throws Exception\SortException
      */
     private function applySorting(\Generator $iterator): \Generator
     {
@@ -425,7 +423,7 @@ class Stream extends ResultsProvider
                     break;
 
                 default:
-                    throw new Exceptions\SortException(
+                    throw new Exception\SortException(
                         sprintf('Unsupported sort type: %s', $type->value)
                     );
             }

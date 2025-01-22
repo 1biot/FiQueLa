@@ -2,7 +2,7 @@
 
 namespace FQL\Traits;
 
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 
 trait From
 {

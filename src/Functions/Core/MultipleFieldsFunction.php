@@ -2,7 +2,7 @@
 
 namespace FQL\Functions\Core;
 
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 
 abstract class MultipleFieldsFunction extends BaseFunction
 {

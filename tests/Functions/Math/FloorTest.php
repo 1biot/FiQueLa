@@ -2,7 +2,7 @@
 
 namespace Functions\Math;
 
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Math\Floor;
 use PHPUnit\Framework\TestCase;
 

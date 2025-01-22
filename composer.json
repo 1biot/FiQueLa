@@ -21,7 +21,8 @@
     "symfony/yaml": "^7.2",
     "league/csv": "^9.20",
     "halaxa/json-machine": "^1.2",
-    "phpstan/phpstan": "1.12.13"
+    "phpstan/phpstan": "1.12.13",
+    "symfony/var-dumper": "^7.2"
   },
   "minimum-stability": "stable",
   "autoload": {

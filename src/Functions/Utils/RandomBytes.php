@@ -2,7 +2,7 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Core\NoFieldFunction;
 
 /**
@@ -23,7 +23,7 @@ final class RandomBytes extends NoFieldFunction
     public function __invoke(): mixed
     {
         try {
-            return random_bytes($this->length);
+            return random_bytes(max(1, $this->length));
         } catch (\Exception $e) {
             throw new UnexpectedValueException('Failed to generate random bytes', previous: $e);
         }

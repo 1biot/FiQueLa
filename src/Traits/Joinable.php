@@ -3,8 +3,8 @@
 namespace FQL\Traits;
 
 use FQL\Enum;
-use FQL\Exceptions;
-use FQL\Interfaces\Query;
+use FQL\Exception;
+use FQL\Interface\Query;
 use FQL\Stream\ArrayStreamProvider;
 
 /**
@@ -52,7 +52,7 @@ trait Joinable
     {
         $joinKey = array_key_last($this->joins);
         if ($joinKey === null) {
-            throw new Exceptions\JoinException('Cannot use "ON" condition without a join');
+            throw new Exception\JoinException('Cannot use "ON" condition without a join');
         }
 
         $join = &$this->joins[$joinKey];
@@ -66,7 +66,7 @@ trait Joinable
     private function addJoin(Query $query, Enum\Join $type, string $alias): void
     {
         if ($alias === '') {
-            throw new Exceptions\JoinException('Set alias for join');
+            throw new Exception\JoinException('Set alias for join');
         }
 
         $this->joins[] = [

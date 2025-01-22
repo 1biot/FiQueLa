@@ -3,8 +3,8 @@
 namespace Stream;
 
 use PHPUnit\Framework\TestCase;
-use FQL\Exceptions\FileNotFoundException;
-use FQL\Exceptions\InvalidFormatException;
+use FQL\Exception\FileNotFoundException;
+use FQL\Exception\InvalidFormatException;
 use FQL\Stream\Json;
 
 class JsonTest extends TestCase

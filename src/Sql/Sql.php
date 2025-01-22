@@ -4,11 +4,11 @@ namespace FQL\Sql;
 
 use FQL\Conditions\Condition;
 use FQL\Enum;
-use FQL\Exceptions\SortException;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\SortException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions;
-use FQL\Interfaces\Parser;
-use FQL\Interfaces\Query;
+use FQL\Interface\Parser;
+use FQL\Interface\Query;
 use FQL\Traits\Helpers\StringOperations;
 
 class Sql implements Parser
@@ -120,7 +120,7 @@ class Sql implements Parser
             array_filter(
                 array_map(
                     fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
-                    array_map('trim', explode(',', $matches[1]))
+                    array_map('trim', explode(',', $matches[1] ?? ''))
                 )
             )
         );
@@ -138,40 +138,40 @@ class Sql implements Parser
 
         match (strtoupper($functionName)) {
             // aggregate
-            'AVG' => $query->avg($arguments[0] ?? ''),
-            'COUNT' => $query->count($arguments[0] ?? null),
-            'GROUP_CONCAT' => $query->groupConcat($arguments[0] ?? '', $arguments[1] ?? ','),
-            'MAX' => $query->max($arguments[0] ?? ''),
-            'MIN' => $query->min($arguments[0] ?? ''),
-            'SUM' => $query->sum($arguments[0] ?? ''),
+            'AVG' => $query->avg((string) ($arguments[0] ?? '')),
+            'COUNT' => $query->count((string) ($arguments[0] ?? '')),
+            'GROUP_CONCAT' => $query->groupConcat((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
+            'MAX' => $query->max((string) ($arguments[0] ?? '')),
+            'MIN' => $query->min((string) ($arguments[0] ?? '')),
+            'SUM' => $query->sum((string) ($arguments[0] ?? '')),
 
             // hashing
-            'MD5' => $query->md5($arguments[0] ?? ''),
-            'SHA1' => $query->sha1($arguments[0] ?? ''),
+            'MD5' => $query->md5((string) ($arguments[0] ?? '')),
+            'SHA1' => $query->sha1((string) ($arguments[0] ?? '')),
 
             // math
-            'CEIL' => $query->ceil($arguments[0] ?? ''),
-            'FLOOR' => $query->floor($arguments[0] ?? ''),
-            'MOD' => $query->modulo($arguments[0] ?? '', (int) ($arguments[1] ?? '0')),
-            'ROUND' => $query->round($arguments[0] ?? '', (int) ($arguments[1] ?? '0')),
+            'CEIL' => $query->ceil((string) ($arguments[0] ?? '')),
+            'FLOOR' => $query->floor((string) ($arguments[0] ?? '')),
+            'MOD' => $query->modulo((string) ($arguments[0] ?? ''), (int) ($arguments[1] ?? 0)),
+            'ROUND' => $query->round((string) ($arguments[0] ?? ''), (int) ($arguments[1] ?? 0)),
 
             // string
-            'BASE64_DECODE' => $query->toBase64($arguments[0] ?? ''),
-            'BASE64_ENCODE' => $query->fromBase64($arguments[0] ?? ''),
+            'BASE64_DECODE' => $query->toBase64((string) ($arguments[0] ?? '')),
+            'BASE64_ENCODE' => $query->fromBase64((string) ($arguments[0] ?? '')),
             'CONCAT' => $query->concat(...$arguments),
-            'CONCAT_WS' => $query->concatWithSeparator($arguments[0] ?? '', ...array_slice($arguments, 1)),
-            'EXPLODE' => $query->explode($arguments[0] ?? '', $arguments[1] ?? ','),
-            'IMPLODE' => $query->implode($arguments[0] ?? '', $arguments[1] ?? ','),
-            'LENGTH' => $query->length($arguments[0] ?? ''),
-            'LOWER' => $query->lower($arguments[0] ?? ''),
-            'RANDOM_STRING' => $query->randomString($arguments[0] ?? 10),
-            'REVERSE' => $query->reverse($arguments[0] ?? ''),
-            'UPPER' => $query->upper($arguments[0] ?? ''),
+            'CONCAT_WS' => $query->concatWithSeparator((string) ($arguments[0] ?? ''), ...array_slice($arguments, 1)),
+            'EXPLODE' => $query->explode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
+            'IMPLODE' => $query->implode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
+            'LENGTH' => $query->length((string) ($arguments[0] ?? '')),
+            'LOWER' => $query->lower((string) ($arguments[0] ?? '')),
+            'RANDOM_STRING' => $query->randomString((int) ($arguments[0] ?? 10)),
+            'REVERSE' => $query->reverse((string) ($arguments[0] ?? '')),
+            'UPPER' => $query->upper((string) ($arguments[0] ?? '')),
 
             // utils
             'COALESCE' => $query->coalesce(...$arguments),
             'COALESCE_NE' => $query->coalesceNotEmpty(...$arguments),
-            'RANDOM_BYTES' => $query->randomBytes($arguments[0] ?? 10),
+            'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
             default => throw new UnexpectedValueException("Unknown function: $functionName"),
         };
     }

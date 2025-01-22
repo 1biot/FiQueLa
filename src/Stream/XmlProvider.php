@@ -3,7 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Enum;
-use FQL\Exceptions;
+use FQL\Exception;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
@@ -25,19 +25,18 @@ abstract class XmlProvider extends StreamProvider
 
     /**
      * @param string|null $query
-     * @return ?StreamProviderArrayIterator
+     * @return StreamProviderArrayIterator
      */
-    public function getStream(?string $query): ?\ArrayIterator
+    public function getStream(?string $query): \ArrayIterator
     {
-        $generator = $this->getStreamGenerator($query);
-        return $generator ? new \ArrayIterator(iterator_to_array($generator)) : null;
+        return new \ArrayIterator(iterator_to_array($this->getStreamGenerator($query)));
     }
 
     /**
-     * @throws Exceptions\UnexpectedValueException
-     * @throws Exceptions\InvalidArgumentException
+     * @throws Exception\UnexpectedValueException
+     * @throws Exception\UnableOpenFileException
      */
-    public function getStreamGenerator(?string $query): ?\Generator
+    public function getStreamGenerator(?string $query): \Generator
     {
         if ($query === null) {
             throw $this->createEmptyQueryException();
@@ -45,7 +44,7 @@ abstract class XmlProvider extends StreamProvider
 
         $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
         if (!$xmlReader) {
-            throw new Exceptions\InvalidArgumentException('Unable to open XML file.');
+            throw new Exception\UnableOpenFileException('Unable to open XML file.');
         }
 
         $depth = substr_count($query, '.');
@@ -60,11 +59,11 @@ abstract class XmlProvider extends StreamProvider
                 && $xmlReader->depth === $depth
             ) {
                 try {
-                    $item = new \SimpleXMLElement($xmlReader->readOuterXml(), LIBXML_NOCDATA);
-                    yield $this->itemToArray($item);
+                    yield $this->itemToArray(
+                        new \SimpleXMLElement($xmlReader->readOuterXml(), LIBXML_NOCDATA)
+                    );
                 } catch (\Exception $e) {
-                    trigger_error($e->getMessage(), E_USER_WARNING);
-                    break;
+                    throw new Exception\UnexpectedValueException($e->getMessage());
                 }
             }
         }
@@ -102,7 +101,9 @@ abstract class XmlProvider extends StreamProvider
                 }
                 $result[$childName][] = $childArray;
             } else {
-                $result[$childName] = is_string($childArray) ? Enum\Type::matchByString($childArray) : $childArray;
+                $result[$childName] = is_string($childArray) ? Enum\Type::matchByString($childArray) : (
+                    empty($childArray) ? '' : $childArray
+                );
             }
         }
 
@@ -156,13 +157,13 @@ abstract class XmlProvider extends StreamProvider
     }
 
     /**
-     * @return Exceptions\UnexpectedValueException
+     * @return Exception\UnexpectedValueException
      */
-    private function createEmptyQueryException(): Exceptions\UnexpectedValueException
+    private function createEmptyQueryException(): Exception\UnexpectedValueException
     {
         $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
         if (!$xmlReader) {
-            throw new Exceptions\InvalidArgumentException('Unable to open XML file.');
+            throw new Exception\InvalidArgumentException('Unable to open XML file.');
         }
 
         $elements = [];
@@ -175,7 +176,7 @@ abstract class XmlProvider extends StreamProvider
             }
         }
 
-        return new Exceptions\UnexpectedValueException(
+        return new Exception\UnexpectedValueException(
             sprintf('Empty query. Try to use "%s" query', implode('.', $elements))
         );
     }

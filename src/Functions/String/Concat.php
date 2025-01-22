@@ -2,7 +2,7 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 
 final class Concat extends ConcatWS
 {

@@ -2,8 +2,8 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions;
-use FQL\Interfaces;
+use FQL\Exception;
+use FQL\Interface;
 use Symfony\Component\Yaml as SymfonyYaml;
 
 class Yaml extends ArrayStreamProvider
@@ -11,13 +11,13 @@ class Yaml extends ArrayStreamProvider
     /**
      * @param string $path
      * @return Yaml
-     * @throws Exceptions\FileNotFoundException
-     * @throws Exceptions\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     * @throws Exception\InvalidFormatException
      */
-    public static function open(string $path): Interfaces\Stream
+    public static function open(string $path): Interface\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new Exceptions\FileNotFoundException('File not found or not readable.');
+            throw new Exception\FileNotFoundException('File not found or not readable.');
         }
 
         try {
@@ -28,22 +28,22 @@ class Yaml extends ArrayStreamProvider
             $stream = is_array($parsedData) ? new \ArrayIterator($parsedData) : new \ArrayIterator([$parsedData]);
             return new self($stream);
         } catch (SymfonyYaml\Exception\ParseException $e) {
-            throw new Exceptions\InvalidFormatException("Invalid YAML string: " . $e->getMessage());
+            throw new Exception\InvalidFormatException("Invalid YAML string: " . $e->getMessage());
         }
     }
 
     /**
      * @return Yaml
-     * @throws Exceptions\InvalidFormatException
+     * @throws Exception\InvalidFormatException
      */
-    public static function string(string $data): Interfaces\Stream
+    public static function string(string $data): Interface\Stream
     {
         try {
             $parsedData = SymfonyYaml\Yaml::parse($data);
             $stream = is_array($parsedData) ? new \ArrayIterator($parsedData) : new \ArrayIterator([$parsedData]);
             return new self($stream);
         } catch (SymfonyYaml\Exception\ParseException $e) {
-            throw new Exceptions\InvalidFormatException("Invalid YAML string: " . $e->getMessage());
+            throw new Exception\InvalidFormatException("Invalid YAML string: " . $e->getMessage());
         }
     }
 

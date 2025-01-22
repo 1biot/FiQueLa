@@ -2,7 +2,7 @@
 
 namespace FQL\Query;
 
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 use FQL\Results;
 use FQL\Traits\Conditions;
 use FQL\Traits\From;

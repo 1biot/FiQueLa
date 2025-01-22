@@ -3,7 +3,7 @@
 namespace Enum;
 
 use FQL\Enum\Type;
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exception\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use FQL\Enum\Operator;
 

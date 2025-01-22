@@ -3,8 +3,7 @@
 namespace FQL\Functions\String;
 
 use FQL\Enum\Type;
-use FQL\Exceptions\InvalidArgumentException;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\InvalidArgumentException;
 use FQL\Functions\Core\SingleFieldFunction;
 
 class Base64Decode extends SingleFieldFunction

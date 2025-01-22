@@ -3,7 +3,7 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Aggregate\Sum;
 
 class SumTest extends TestCase

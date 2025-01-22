@@ -2,6 +2,7 @@
 
 namespace FQL\Query;
 
+use FQL\Enum\Type;
 use FQL\Sql\Sql;
 use FQL\Results\InMemory;
 use FQL\Results\ResultsProvider;
@@ -45,16 +46,16 @@ class Debugger
 
     public static function end(): void
     {
-        self::dump('==============================');
+        self::echoLine(self::echoRed(self::echoBold('===============================')));
+
         $start = constant('DEBUGGER_START');
         $end = microtime(true);
 
         $time = round(($end - $start) * 1e6); // µs
-        self::memoryUsage();
-        self::memoryPeakUsage();
-        self::echoLineNameValue('Final execution time (s)', $time / 1000 / 1000, 2);
-        self::echoLineNameValue('Final execution time (ms)', $time / 1000, 2);
-        self::echoLineNameValue('Final execution time (µs)', $time, 2);
+        self::memoryDebug();
+        self::echoLineNameValue('Final execution time (s)', $time / 1000 / 1000);
+        self::echoLineNameValue('Final execution time (ms)', $time / 1000);
+        self::echoLineNameValue('Final execution time (µs)', $time);
     }
 
     public static function memoryUsage(bool $realUsage = false): void
@@ -83,10 +84,10 @@ class Debugger
 
     public static function memoryDebug(): void
     {
-        self::dump('------------------------------');
+        self::echoLine(self::echoYellow(self::echoBold('------------------------------')));
         self::memoryUsage();
         self::memoryPeakUsage();
-        self::dump('------------------------------');
+        self::echoLine(self::echoYellow(self::echoBold('------------------------------')));
     }
 
     public static function dump(mixed $var): void
@@ -159,7 +160,7 @@ class Debugger
     private static function benchmarkProxy(Query $query, int $iterations = 2500): void
     {
         $results = $query->execute();
-        self::echoSection('PROXY BENCHMARK');
+        self::echoSection('IN_MEMORY BENCHMARK');
         self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
         self::echoLineNameValue('Count', $results->count());
 
@@ -180,10 +181,10 @@ class Debugger
 
     public static function echoSection(string $text): void
     {
-        $text = '*** ' . $text . ': ***';
-        self::dump(str_repeat('=', strlen($text)));
-        self::dump($text);
-        self::dump(str_repeat('=', strlen($text)));
+        $text = '### ' . $text . ': ###';
+        self::echoLine(self::echoCyan(self::echoBold(str_repeat('=', strlen($text)))), 0);
+        self::echoLine(self::echoCyan(self::echoBold($text)), 0);
+        self::echoLine(self::echoCyan(self::echoBold(str_repeat('=', strlen($text)))), 0);
     }
 
     public static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
@@ -193,7 +194,7 @@ class Debugger
 
     public static function echoLine(string $text, int $beginCharRepeat = 1): void
     {
-        echo sprintf('%s %s', str_repeat('>', $beginCharRepeat), $text) . PHP_EOL;
+        echo sprintf('%s%s', str_repeat('>', $beginCharRepeat) . ($beginCharRepeat ? ' ' : ''), $text) . PHP_EOL;
     }
 
     private static function queryToOutput(string $query): void
@@ -209,7 +210,7 @@ class Debugger
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'SHUFFLE', 'NATURAL', 'LEFT', 'INNER'
         ];
 
-        $fromPattern = '((\[(?<e>[a-z]{2,8})])?(\((?<fp>[\w,\s\.-\/\\\]+(\.\w{2,5})?)\))?(?<q>[\w*\.\-\_]+)?)';
+        $fromPattern = '((\[(?<e>[a-z]{2,8})])?(\((?<fp>[\w,\s\.\-\/\\\]+(\.\w{2,5})?)\))?(?<q>[\w*\.\-\_]+)?)';
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
         $functionPattern = '([A-Z0-9_]{2,})(?<!_)\\((.*?)\\)';
 
@@ -247,7 +248,7 @@ class Debugger
                         if (strtoupper($token) === 'FROM') {
                             $hasFrom = true;
                         }
-                        return "\033[1;34m{$token}\033[0m"; // Blue
+                        return self::echoBlue(self::echoBold($token));
                     }
 
                     // FROM [].data.item
@@ -259,13 +260,13 @@ class Debugger
                             return ''; // Cyan
                         }
 
-                        $highlightedString = "\033[1;35m" . sprintf('[%s]', $ext) . "\033[0m";
+                        $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s]', $ext)));
                         if ($file !== '') {
-                            $highlightedString .= "\033[1;31m({$file})\033[0m";
+                            $highlightedString .= self::echoLightRed(self::echoBold("({$file})"));
                         }
 
                         if ($query !== '') {
-                            $highlightedString .= "\033[1;36m{$query}\033[0m";
+                            $highlightedString .= self::echoCyan(self::echoBold($query));
                         }
 
                         $hasFrom = false;
@@ -282,28 +283,28 @@ class Debugger
                             ', ',
                             array_map(
                                 fn ($param) => self::isQuoted(trim($param))
-                                    ? "\033[0;32m" . trim($param) . "\033[0m"
+                                    ? self::echoGreen(trim($param))
                                     : trim($param),
                                 explode(',', $innerContent)
                             )
                         );
 
-                        return "\033[0;31m{$functionName}\033[0m({$highlightedContent})";
+                        return self::echoRed($functionName) . "({$highlightedContent})";
                     }
 
                     // Numbers
                     if (is_numeric($token)) {
-                        return "\033[0;35m{$token}\033[0m"; // Yellow
+                        return self::echoMagenta($token);
                     }
 
                     // Strings
                     if (preg_match("/^['\"].*['\"]$/", $token)) {
-                        return "\033[0;32m{$token}\033[0m"; // Cyan
+                        return self::echoGreen($token);
                     }
 
                     // Operators
                     if (preg_match('/^(>=|<=|<>|!=|=|<|>|!==|==)$/', $token)) {
-                        return "\033[4;33m{$token}\033[0m";
+                        return self::echoYellow(self::echoUnderline($token));
                     }
 
                     // Return token unchanged
@@ -321,5 +322,85 @@ class Debugger
     private static function isQuoted(string $input): bool
     {
         return preg_match('/^".*"$/', $input) === 1 || preg_match('/^\'.*\'$/', $input) === 1;
+    }
+
+    public static function echoBold(string $text): string
+    {
+        return "\033[1m{$text}\033[0m";
+    }
+
+    public static function echoUnderline(string $text): string
+    {
+        return "\033[4m{$text}\033[0m";
+    }
+
+    public static function echoItalic(string $text): string
+    {
+        return "\033[3m{$text}\033[0m";
+    }
+
+    public static function echoBlue(string $text): string
+    {
+        return "\033[0;34m{$text}\033[0m";
+    }
+
+    public static function echoCyan(string $text): string
+    {
+        return "\033[0;36m{$text}\033[0m";
+    }
+
+    public static function echoGreen(string $text): string
+    {
+        return "\033[0;32m{$text}\033[0m";
+    }
+
+    public static function echoRed(string $text): string
+    {
+        return "\033[0;31m{$text}\033[0m";
+    }
+
+    public static function echoYellow(string $text): string
+    {
+        return "\033[0;33m{$text}\033[0m";
+    }
+
+    public static function echoMagenta(string $text): string
+    {
+        return "\033[0;35m{$text}\033[0m";
+    }
+
+    public static function echoWhite(string $text): string
+    {
+        return "\033[0;37m{$text}\033[0m";
+    }
+
+    public static function echoBlack(string $text): string
+    {
+        return "\033[0;30m{$text}\033[0m";
+    }
+
+    public static function echoGray(string $text): string
+    {
+        return "\033[0;90m{$text}\033[0m";
+    }
+
+    public static function echoLightRed(string $text): string
+    {
+        return "\033[0;91m{$text}\033[0m";
+    }
+
+    public static function echoLightGreen(string $text): string
+    {
+        return "\033[0;92m{$text}\033[0m";
+    }
+
+    public static function echoLightYellow(string $text): string
+    {
+        return "\033[0;93m{$text}\033[0m";
+    }
+
+    public static function echoLightBlue(string $text): string
+    {
+        return "\033[0;94m{$text}\033[0m";
     }
 }

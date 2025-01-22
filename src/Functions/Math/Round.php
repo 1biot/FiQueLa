@@ -3,7 +3,7 @@
 namespace FQL\Functions\Math;
 
 use FQL\Enum\Type;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Core\SingleFieldFunction;
 
 final class Round extends SingleFieldFunction

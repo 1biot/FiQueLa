@@ -2,7 +2,7 @@
 
 namespace FQL\Stream;
 
-use FQL\Exceptions;
+use FQL\Exception;
 use JsonMachine as JM;
 
 /**
@@ -16,15 +16,14 @@ abstract class JsonProvider extends StreamProvider
 
     /**
      * @param string|null $query
-     * @return ?StreamProviderArrayIterator
+     * @return StreamProviderArrayIterator
      */
-    public function getStream(?string $query): ?\ArrayIterator
+    public function getStream(?string $query): \ArrayIterator
     {
-        $generator = $this->getStreamGenerator($query);
-        return $generator ? new \ArrayIterator(iterator_to_array($generator)) : null;
+        return new \ArrayIterator(iterator_to_array($this->getStreamGenerator($query)));
     }
 
-    public function getStreamGenerator(?string $query): ?\Generator
+    public function getStreamGenerator(?string $query): \Generator
     {
         if ($query === null) {
             return null;
@@ -39,7 +38,7 @@ abstract class JsonProvider extends StreamProvider
                 ]
             );
         } catch (JM\Exception\InvalidArgumentException $e) {
-            throw new Exceptions\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+            throw new Exception\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
         }
 
         yield from $items;

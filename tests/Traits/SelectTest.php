@@ -2,9 +2,9 @@
 
 namespace Traits;
 
-use FQL\Exceptions;
+use FQL\Exception;
 use FQL\Functions;
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 use FQL\Query\TestProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -63,7 +63,7 @@ class SelectTest extends TestCase
 
     public function testToDuplicateAliasField(): void
     {
-        $this->expectException(Exceptions\AliasException::class);
+        $this->expectException(Exception\AliasException::class);
         $this->expectExceptionMessage('AS: "brand" already defined');
 
         $this->query

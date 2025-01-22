@@ -2,8 +2,8 @@
 
 namespace FQL\Functions\Core;
 
-use FQL\Exceptions\UnexpectedValueException;
-use FQL\Interfaces\InvokableNoField;
+use FQL\Exception\UnexpectedValueException;
+use FQL\Interface\InvokableNoField;
 use FQL\Traits\Helpers\StringOperations;
 
 abstract class NoFieldFunction implements InvokableNoField, \Stringable

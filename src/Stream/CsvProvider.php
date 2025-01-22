@@ -3,7 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Enum;
-use FQL\Exceptions;
+use FQL\Exception;
 use League\Csv;
 
 /**
@@ -37,19 +37,18 @@ abstract class CsvProvider extends StreamProvider
     }
 
     /**
-     * @return ?StreamProviderArrayIterator
-     * @throws Exceptions\UnableOpenFileException
+     * @return StreamProviderArrayIterator
+     * @throws Exception\UnableOpenFileException
      */
-    public function getStream(?string $query): ?\ArrayIterator
+    public function getStream(?string $query): \ArrayIterator
     {
-        $generator = $this->getStreamGenerator($query);
-        return $generator ? new \ArrayIterator(iterator_to_array($generator)) : null;
+        return new \ArrayIterator(iterator_to_array($this->getStreamGenerator($query)));
     }
 
     /**
-     * @throws Exceptions\UnableOpenFileException
+     * @throws Exception\UnableOpenFileException
      */
-    public function getStreamGenerator(?string $query): ?\Generator
+    public function getStreamGenerator(?string $query): \Generator
     {
         try {
             $csv = Csv\Reader::createFromPath($this->csvFilePath);
@@ -70,7 +69,7 @@ abstract class CsvProvider extends StreamProvider
                 yield array_map(fn ($value) => is_string($value) ? Enum\Type::matchByString($value) : $value, $row);
             }
         } catch (\Exception $e) {
-            throw new Exceptions\UnableOpenFileException(
+            throw new Exception\UnableOpenFileException(
                 sprintf('Unexpected error: %s', $e->getMessage()),
                 previous: $e
             );
@@ -99,10 +98,6 @@ abstract class CsvProvider extends StreamProvider
 
     public function provideSource(): string
     {
-        $source = '';
-        if ($this->csvFilePath !== '') {
-            $source = sprintf('[csv](%s)', basename($this->csvFilePath));
-        }
-        return $source;
+        return sprintf('[csv](%s)', basename($this->csvFilePath));
     }
 }

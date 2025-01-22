@@ -3,8 +3,8 @@
 namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
-use FQL\Exceptions\InvalidArgumentException;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\InvalidArgumentException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Aggregate\Min;
 
 class MinTest extends TestCase

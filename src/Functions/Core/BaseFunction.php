@@ -2,9 +2,9 @@
 
 namespace FQL\Functions\Core;
 
-use FQL\Exceptions\InvalidArgumentException;
-use FQL\Exceptions\UnexpectedValueException;
-use FQL\Interfaces\Invokable;
+use FQL\Exception\InvalidArgumentException;
+use FQL\Exception\UnexpectedValueException;
+use FQL\Interface\Invokable;
 use FQL\Stream\ArrayStreamProvider;
 use FQL\Traits\Helpers\NestedArrayAccessor;
 use FQL\Traits\Helpers\StringOperations;

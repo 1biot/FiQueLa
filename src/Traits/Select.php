@@ -2,10 +2,10 @@
 
 namespace FQL\Traits;
 
-use FQL\Exceptions;
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions;
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 
 /**
  * @codingStandardsIgnoreStart
@@ -29,7 +29,7 @@ trait Select
     /**
      * @param string $fields
      * @return Query
-     * @throws Exceptions\SelectException
+     * @throws Exception\SelectException
      */
     public function select(string $fields): Query
     {
@@ -41,7 +41,7 @@ trait Select
             }
 
             if (isset($this->selectedFields[$field])) {
-                throw new Exceptions\SelectException(sprintf('Field "%s" already defined', $field));
+                throw new Exception\SelectException(sprintf('Field "%s" already defined', $field));
             }
 
             $this->addField($field);
@@ -59,25 +59,25 @@ trait Select
     /**
      * @param string $alias
      * @return Query
-     * @throws Exceptions\AliasException
+     * @throws Exception\AliasException
      */
     public function as(string $alias): Query
     {
         if ($alias === '') {
-            throw new Exceptions\AliasException('Alias cannot be empty');
+            throw new Exception\AliasException('Alias cannot be empty');
         }
 
         $select = array_key_last($this->selectedFields);
         if ($select === null) {
-            throw new Exceptions\AliasException(
+            throw new Exception\AliasException(
                 sprintf('Cannot use alias "%s" without any selected field', $alias)
             );
         } elseif ($this->selectedFields[$select]['alias']) {
-            throw new Exceptions\AliasException(
+            throw new Exception\AliasException(
                 sprintf('"%s" cannot be used for a field that is already aliased.', $alias)
             );
         } elseif (isset($this->selectedFields[$alias])) {
-            throw new Exceptions\AliasException(sprintf('"%s" already defined', $alias));
+            throw new Exception\AliasException(sprintf('"%s" already defined', $alias));
         }
 
         $function = $this->selectedFields[$select]['function'] ?? null;
@@ -176,14 +176,14 @@ trait Select
      * @param string $field
      * @param int $divisor
      * @return Query
-     * @throws Exceptions\SelectException
+     * @throws Exception\SelectException
      */
     public function modulo(string $field, int $divisor): Query
     {
         try {
             return $this->addFieldFunction(new Functions\Math\Mod($field, $divisor));
         } catch (UnexpectedValueException $e) {
-            throw new Exceptions\SelectException($e->getMessage());
+            throw new Exception\SelectException($e->getMessage());
         }
     }
 

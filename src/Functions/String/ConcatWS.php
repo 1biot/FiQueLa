@@ -2,7 +2,7 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Exceptions\UnexpectedValueException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Functions\Core\MultipleFieldsFunction;
 
 class ConcatWS extends MultipleFieldsFunction

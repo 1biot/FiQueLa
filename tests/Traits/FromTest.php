@@ -2,7 +2,7 @@
 
 namespace Traits;
 
-use FQL\Interfaces\Query;
+use FQL\Interface\Query;
 use FQL\Query\TestProvider;
 use PHPUnit\Framework\TestCase;
 

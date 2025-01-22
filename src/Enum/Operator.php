@@ -2,7 +2,7 @@
 
 namespace FQL\Enum;
 
-use FQL\Exceptions\InvalidArgumentException;
+use FQL\Exception\InvalidArgumentException;
 
 enum Operator: string
 {
