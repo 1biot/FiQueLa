@@ -4,5 +4,6 @@ namespace FQL\Interface;
 
 interface Parser
 {
-    public function parse(string $sql, Query $query): Query;
+    public function parseWithQuery(Query $query): Query;
+    public function parse(): Results;
 }

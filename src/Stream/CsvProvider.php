@@ -9,7 +9,7 @@ use League\Csv;
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  */
-abstract class CsvProvider extends StreamProvider
+abstract class CsvProvider extends AbstractStream
 {
     protected bool $useHeader = true;
     private ?string $inputEncoding = null;

@@ -2,6 +2,7 @@
 
 use FQL\Enum\Operator as Op;
 use FQL\Query;
+use FQL\Stream;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -14,7 +15,7 @@ try {
     Query\Debugger::inspectQuery($query);
     Query\Debugger::benchmarkQuery($query);
 
-    $neon = Query\Provider::fromFile('./examples/data/products.neon');
+    $neon = Stream\Provider::fromFile('./examples/data/products.neon');
     $query = $neon->query()
         ->select('name, price')
         ->select('manufacturer')->as('brand')
@@ -28,8 +29,5 @@ try {
 
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }

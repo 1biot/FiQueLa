@@ -4,32 +4,29 @@ namespace FQL\Query;
 
 use FQL\Enum;
 use FQL\Exception;
-use FQL\Exception\FileNotFoundException;
-use FQL\Exception\InvalidFormatException;
 use FQL\Interface;
 use FQL\Stream;
 use FQL\Query;
+use FQL\Sql;
 
 final class Provider
 {
     /**
-     * @implements Interface\Stream<Stream\Xml|Stream\Json|Stream\JsonStream|Stream\Yaml|Stream\Neon|Stream\Csv>
-     * @throws FileNotFoundException
-     * @throws InvalidFormatException
+     * @implements Interface\Query<Query\Query>
+     * @throws Exception\FileNotFoundException
+     * @throws Exception\InvalidFormatException
      */
-    public static function fromFile(string $path, ?Enum\Format $format = null): Interface\Stream
+    public static function fromFile(string $path, ?Enum\Format $format = null): Interface\Query
     {
-        $extension = $format ?? Enum\Format::fromString(pathinfo($path, PATHINFO_EXTENSION));
-        return $extension->openFile($path);
+        return Stream\Provider::fromFile($path, $format)->query();
     }
 
     /**
      * @implements Interface\Query<Query\Query>
-     *     | Interfaces\Stream<Stream\Xml|Stream\Json|Stream\JsonStream|Stream\Yaml|Stream\Neon|Stream\Csv>
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
      */
-    public static function fromFileQuery(string $fileQuery): Interface\Query|Interface\Stream
+    public static function fromFileQuery(string $fileQuery): Interface\Query
     {
         $queryPath = new FileQuery($fileQuery);
         $stream = self::fromFile($queryPath->file, $queryPath->extension);
@@ -37,7 +34,17 @@ final class Provider
             return $stream;
         }
 
-        return $stream->query()
-            ->from($queryPath->query);
+        return $stream->from($queryPath->query);
+    }
+
+    /**
+     * @implements Interface\Query<Query\Query>
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    public static function fql(string $sql): Interface\Query
+    {
+        return (new Sql\Sql(trim($sql)))
+            ->toQuery();
     }
 }

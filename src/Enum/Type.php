@@ -66,7 +66,7 @@ enum Type: string
         }
 
         // Boolean
-        if (in_array($value, ['true', 'TRUE', 'false', 'FALSE'], true)) {
+        if (in_array($value, ['true', self::TRUE->value, 'false', self::FALSE->value], true)) {
             return self::castValue(strtolower($value) === 'true' ? 1 : 0, self::BOOLEAN);
         }
 

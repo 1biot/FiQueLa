@@ -3,7 +3,6 @@
 namespace FQL\Enum;
 
 use FQL\Exception;
-use FQL\Exception\InvalidFormatException;
 use FQL\Interface;
 use FQL\Stream;
 
@@ -32,18 +31,18 @@ enum Format: string
     }
 
     /**
-     * @throws InvalidFormatException
+     * @throws Exception\InvalidFormatException
      */
-    public static function fromString(string $format): self
+    public static function fromExtension(string $extension): self
     {
-        return match ($format) {
+        return match ($extension) {
             'xml' => self::XML,
             'json' => self::JSON,
             'jsonFile' => self::JSON_STREAM,
             'csv' => self::CSV,
             'yaml' => self::YAML,
             'neon' => self::NEON,
-            default => throw new Exception\InvalidFormatException('Unsupported file format'),
+            default => throw new Exception\InvalidFormatException(sprintf('Unsupported file format "%s"', $extension)),
         };
     }
 
@@ -55,5 +54,18 @@ enum Format: string
     public function openFile(string $path): Interface\Stream
     {
         return $this->getFormatProviderClass()::open($path);
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     */
+    public function fromString(string $data): Interface\Stream
+    {
+        return match ($this) {
+            self::JSON => Stream\Json::string($data),
+            self::YAML => Stream\Yaml::string($data),
+            self::NEON => Stream\Neon::string($data),
+            default => throw new Exception\InvalidFormatException('Unsupported format'),
+        };
     }
 }

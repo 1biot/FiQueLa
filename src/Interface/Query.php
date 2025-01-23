@@ -439,6 +439,11 @@ interface Query extends \Stringable
      */
     public function randomBytes(int $length = 10): Query;
 
+    /** @param string[] $fields */
+    public function fulltext(array $fields, string $searchQuery): Query;
+    /** @param string[] $fields */
+    public function matchAgainst(array $fields, string $searchQuery): Query;
+
     /**
      * Specify a specific part of the data to select.
      *

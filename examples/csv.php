@@ -4,12 +4,13 @@ require __DIR__ . '/bootstrap.php';
 
 use FQL\Enum;
 use FQL\Query;
+use FQL\Stream;
 
 try {
-    $utf8 = Query\Provider::fromFile('./examples/data/products-utf-8.csv', Enum\Format::CSV)
+    $utf8 = Stream\Provider::fromFile('./examples/data/products-utf-8.csv', Enum\Format::CSV)
         ->useHeader(true);
 
-    $windows1250 = Query\Provider::fromFile('./examples/data/products-w-1250.csv', Enum\Format::CSV)
+    $windows1250 = Stream\Provider::fromFile('./examples/data/products-w-1250.csv')
         ->setInputEncoding('windows-1250')
         ->setDelimiter(';')
         ->useHeader(true);
@@ -22,15 +23,13 @@ try {
         ->round('price', 2)->as('price_rounded')
         ->modulo('price', 100)->as('modulo_100')
         ->modulo('price', 54)->as('modulo_54')
-        ->groupBy('defaultCategory');
+        ->groupBy('defaultCategory')
+        ->orderBy('defaultCategory')->desc();
 
     Query\Debugger::inspectQuery($query);
     Query\Debugger::benchmarkQuery($query);
 
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }

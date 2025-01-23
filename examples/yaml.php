@@ -2,6 +2,7 @@
 
 use FQL\Enum\Operator as Op;
 use FQL\Query;
+use FQL\Stream;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -13,8 +14,7 @@ try {
     Query\Debugger::inspectQuery($query);
     Query\Debugger::benchmarkQuery($query);
 
-    $yaml = Query\Provider::fromFile('./examples/data/products.yaml');
-
+    $yaml = Stream\Provider::fromFile('./examples/data/products.yaml');
     $query = $yaml->query();
     $query->select('name, price')
         ->select('brand.name')->as('brand')
@@ -26,11 +26,7 @@ try {
 
     Query\Debugger::inspectQuery($query);
     Query\Debugger::benchmarkQuery($query);
-
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }

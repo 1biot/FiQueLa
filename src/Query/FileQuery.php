@@ -5,9 +5,9 @@ namespace FQL\Query;
 use FQL\Enum;
 use FQL\Exception;
 
-final class FileQuery
+final class FileQuery implements \Stringable
 {
-    private const REGEXP = '((\[(?<e>[a-z]{2,8})])?(\((?<fp>[\w,\s\.-\/\\\]+(\.\w{2,5}))\))?(?<q>[\w*\.\-\_]+)?)';
+    private const REGEXP = '((?<fs>(\[(?<e>[a-zA-Z]{2,8})])?(\((?<fp>[\w,\s\.\-\/]+(\.\w{2,5})?)\)))?(?<q>[\w*\.\-\_]+)?)';
 
     public readonly ?Enum\Format $extension;
     public readonly ?string $file;
@@ -27,7 +27,7 @@ final class FileQuery
         if ($extension === null || $extension === '') {
             $extension = null;
         }
-        $this->extension = $extension !== null ? Enum\Format::fromString($extension) : null;
+        $this->extension = $extension !== null ? Enum\Format::fromExtension($extension) : null;
 
         $filePath = $matches['fp'] ?? null;
         if ($filePath === null || $filePath === '') {
@@ -40,5 +40,31 @@ final class FileQuery
             $query = ltrim($query, '.');
         }
         $this->query = $query;
+    }
+
+    public static function getRegexp(): string
+    {
+        return self::REGEXP;
+    }
+
+    public function __toString(): string
+    {
+        $fileQueryString = '';
+        if ($this->extension !== null) {
+            $fileQueryString .= "[{$this->extension->value}]";
+        }
+
+        if ($this->file !== null) {
+            $fileQueryString .= "({$this->file})";
+        }
+
+        if ($this->query !== null) {
+            if ($this->file !== null) {
+                $fileQueryString .= '.';
+            }
+            $fileQueryString .= $this->query;
+        }
+
+        return $fileQueryString;
     }
 }

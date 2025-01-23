@@ -1,12 +1,24 @@
 <?php
 
+use FQL\Enum;
 use FQL\Enum\Operator as Op;
 use FQL\Query;
+use FQL\Stream;
 
 require __DIR__ . '/bootstrap.php';
 
 try {
-    $json = Query\Provider::fromFile('./examples/data/marketing-campaigns.json');
+    $data = file_get_contents('./examples/data/marketing-campaigns.json');
+    $jsonMemory = Stream\Provider::fromString($data, Enum\Format::JSON);
+    $topFiveByRoi = $jsonMemory->query()
+        ->select('campaign_name, roi, revenue')
+        ->orderBy('roi')->desc()
+        ->orderBy('revenue')->desc()
+        ->limit(5);
+    Query\Debugger::inspectQuery($topFiveByRoi);
+    die;
+
+    $json = Stream\Provider::fromFile('./examples/data/marketing-campaigns.json');
 
     $topFiveByRoi = $json->query()
         ->select('campaign_name, roi, revenue')
@@ -79,8 +91,5 @@ try {
     Query\Debugger::inspectQuery($mostSuccessfullyCampaignsByRevenueAndConversionRate, true);
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }

@@ -11,7 +11,7 @@ use FQL\Interface;
  * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
  * @codingStandardsIgnoreEnd
  */
-abstract class ArrayStreamProvider extends StreamProvider
+abstract class ArrayStreamProvider extends AbstractStream
 {
     /**
      * @param StreamProviderArrayIterator $stream

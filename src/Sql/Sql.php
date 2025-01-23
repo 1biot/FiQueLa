@@ -4,30 +4,78 @@ namespace FQL\Sql;
 
 use FQL\Conditions\Condition;
 use FQL\Enum;
-use FQL\Exception\SortException;
-use FQL\Exception\UnexpectedValueException;
+use FQL\Exception;
 use FQL\Functions;
-use FQL\Interface\Parser;
-use FQL\Interface\Query;
-use FQL\Traits\Helpers\StringOperations;
+use FQL\Interface;
+use FQL\Query;
+use FQL\Stream;
+use FQL\Traits;
 
-class Sql implements Parser
+/**
+ * @implements \Iterator<string>
+ */
+class Sql implements Interface\Parser, \Iterator
 {
-    use StringOperations;
+    use Traits\Helpers\StringOperations;
 
-    private const CONTROL_KEYWORDS = ['SELECT', 'FROM', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'LIMIT', 'OFFSET'];
+    private const CONTROL_KEYWORDS = [
+        'SELECT', 'FROM', 'INNER', 'LEFT', 'JOIN',
+        'WHERE', 'GROUP', 'HAVING', 'ORDER',
+        'LIMIT', 'OFFSET'
+    ];
 
     /** @var string[] */
     private array $tokens = [];
     private int $position = 0;
 
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function parse(string $sql, Query $query): Query
+    public function __construct(private readonly string $sql)
     {
-        $this->position = 0;
-        $this->tokens = (new SqlLexer())->tokenize($sql);
+        $this->tokens = (new SqlLexer())->tokenize($this->sql);
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    public function parse(): Interface\Results
+    {
+        return $this->toQuery()->execute();
+    }
+
+    /**
+     * @throws Exception\FileNotFoundException
+     * @throws Exception\InvalidFormatException
+     */
+    public function toQuery(): Interface\Query
+    {
+        $this->rewind();
+        $stream = null;
+        while (!$this->isEOF()) {
+            $token = $this->nextToken();
+            if (strtoupper($token) !== 'FROM') {
+                continue;
+            }
+
+            $fileQuery = new Query\FileQuery($this->nextToken());
+            $stream = Stream\Provider::fromFile($fileQuery->file, $fileQuery->extension);
+            break;
+        }
+
+        if ($stream === null) {
+            throw new Exception\UnexpectedValueException('No query found');
+        }
+
+        return $this->parseWithQuery($stream->query());
+    }
+
+    /**
+     * @throws Exception\UnexpectedValueException
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    public function parseWithQuery(Interface\Query $query): Interface\Query
+    {
+        $this->rewind();
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             switch (strtoupper($token)) {
@@ -36,9 +84,42 @@ class Sql implements Parser
                     break;
 
                 case 'FROM':
-                    $source = $this->nextToken();
-                    $source = preg_replace('/(\[([a-z]+:\/\/)?(.*)])(.*)/', '$4', $source);
-                    $query->from(trim($source, '.'));
+                    $fileQuery = new Query\FileQuery($this->nextToken());
+                    $query->from($fileQuery->query ?? '');
+                    break;
+
+                case 'INNER':
+                case 'LEFT':
+                    $this->nextToken(); // Consume "JOIN"
+                    $joinQuery = $this->nextToken();
+                    $this->expect('AS');
+                    $alias = $this->nextToken();
+                    if (strtolower($token) === 'left') {
+                        $query->leftJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                    } elseif (strtolower($token) === 'inner') {
+                        $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                    }
+
+                    $this->expect('ON');
+
+                    $field = $this->nextToken();
+                    $operator = Enum\Operator::fromOrFail($this->nextToken());
+                    $value = Enum\Type::matchByString($this->nextToken());
+                    $query->on($field, $operator, $value);
+                    break;
+                case 'JOIN':
+                    $joinQuery = $this->nextToken();
+                    $this->expect('AS');
+                    $alias = $this->nextToken();
+
+                    $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                    $this->expect('ON');
+
+                    $field = $this->nextToken();
+                    $operator = Enum\Operator::fromOrFail($this->nextToken());
+                    $value = Enum\Type::matchByString($this->nextToken());
+
+                    $query->on($field, $operator, $value);
                     break;
 
                 case 'HAVING':
@@ -67,14 +148,14 @@ class Sql implements Parser
                     break;
 
                 default:
-                    throw new UnexpectedValueException("Unexpected token: $token");
+                    throw new Exception\UnexpectedValueException("Unexpected token: $token");
             }
         }
 
         return $query;
     }
 
-    private function parseFields(Query $query): void
+    private function parseFields(Interface\Query $query): void
     {
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
@@ -128,10 +209,10 @@ class Sql implements Parser
 
     /**
      * @param string $field
-     * @param Query $query
+     * @param Interface\Query $query
      * @return void
      */
-    private function applyFunctionToQuery(string $field, Query $query): void
+    private function applyFunctionToQuery(string $field, Interface\Query $query): void
     {
         $functionName = $this->getFunction($field);
         $arguments = $this->getFunctionArguments($field);
@@ -158,7 +239,12 @@ class Sql implements Parser
             // string
             'BASE64_DECODE' => $query->toBase64((string) ($arguments[0] ?? '')),
             'BASE64_ENCODE' => $query->fromBase64((string) ($arguments[0] ?? '')),
-            'CONCAT' => $query->concat(...$arguments),
+            'CONCAT' => $query->concat(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
             'CONCAT_WS' => $query->concatWithSeparator((string) ($arguments[0] ?? ''), ...array_slice($arguments, 1)),
             'EXPLODE' => $query->explode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
             'IMPLODE' => $query->implode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
@@ -172,11 +258,11 @@ class Sql implements Parser
             'COALESCE' => $query->coalesce(...$arguments),
             'COALESCE_NE' => $query->coalesceNotEmpty(...$arguments),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
-            default => throw new UnexpectedValueException("Unknown function: $functionName"),
+            default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
     }
 
-    private function parseConditions(Query $query, string $context): void
+    private function parseConditions(Interface\Query $query, string $context): void
     {
         $logicalOperator = Enum\LogicalOperator::AND;
         $firstIter = true;
@@ -235,7 +321,7 @@ class Sql implements Parser
         }
     }
 
-    private function parseGroupBy(Query $query): void
+    private function parseGroupBy(Interface\Query $query): void
     {
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
@@ -247,7 +333,7 @@ class Sql implements Parser
         }
     }
 
-    private function parseSort(Query $query): void
+    private function parseSort(Interface\Query $query): void
     {
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
@@ -261,7 +347,7 @@ class Sql implements Parser
                 'DESC' => Enum\Sort::DESC,
                 'SHUFFLE' => Enum\Sort::SHUFFLE,
                 'NATSORT' => Enum\Sort::NATSORT,
-                default => throw new SortException(sprintf('Invalid direction %s', $directionString)),
+                default => throw new Exception\SortException(sprintf('Invalid direction %s', $directionString)),
             };
             $query->orderBy($field, $direction);
         }
@@ -283,13 +369,13 @@ class Sql implements Parser
     }
 
     /**
-     * @throws UnexpectedValueException
+     * @throws Exception\UnexpectedValueException
      */
     private function expect(string $expected): void
     {
         $token = $this->nextToken();
         if (strtoupper($token) !== strtoupper($expected)) {
-            throw new UnexpectedValueException("Expected $expected, got $token");
+            throw new Exception\UnexpectedValueException("Expected $expected, got $token");
         }
     }
 
@@ -301,5 +387,30 @@ class Sql implements Parser
     private function isNextControlledKeyword(): bool
     {
         return in_array(strtoupper($this->peekToken()), self::CONTROL_KEYWORDS);
+    }
+
+    public function rewind(): void
+    {
+        $this->position = 0;
+    }
+
+    public function valid(): bool
+    {
+        return $this->isEOF();
+    }
+
+    public function next(): void
+    {
+        $this->nextToken();
+    }
+
+    public function key(): mixed
+    {
+        return $this->position;
+    }
+
+    public function current(): mixed
+    {
+        return $this->peekToken();
     }
 }

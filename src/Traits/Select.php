@@ -5,11 +5,12 @@ namespace FQL\Traits;
 use FQL\Exception;
 use FQL\Exception\UnexpectedValueException;
 use FQL\Functions;
+use FQL\Functions\Core;
 use FQL\Interface\Query;
 
 /**
  * @codingStandardsIgnoreStart
- * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction}
+ * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction}
  * @codingStandardsIgnoreEnd
  * @phpstan-type SelectedFields array<string, SelectedField>
  */
@@ -237,8 +238,24 @@ trait Select
         return $this->addFieldFunction(new Functions\String\Base64Encode($field));
     }
 
+    /**
+     * @param string[] $fields
+     */
+    public function fulltext(array $fields, string $searchQuery): Query
+    {
+        return $this->addFieldFunction(new Functions\String\Fulltext($fields, $searchQuery));
+    }
+
+    /**
+     * @param string[] $fields
+     */
+    public function matchAgainst(array $fields, string $searchQuery): Query
+    {
+        return $this->fulltext($fields, $searchQuery);
+    }
+
     private function addFieldFunction(
-        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction $function
+        Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function
     ): Query {
         $this->addField(
             (string) $function,
@@ -251,7 +268,7 @@ trait Select
     private function addField(
         string $field,
         ?string $alias = null,
-        null|Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction $function = null
+        null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function = null
     ): Query {
         $this->selectedFields[$alias ?? $field] = [
             'originField' => $field,

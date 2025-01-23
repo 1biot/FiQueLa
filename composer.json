@@ -1,6 +1,6 @@
 {
-  "name": "1biot/uniquel",
-  "description": "UniQueL - Universal Query Language for file data file like json, yaml, xml or neon.",
+  "name": "1biot/fiquela",
+  "description": "FiQueLa - File Query Language - PHP library for querying files",
   "type": "library",
   "license": ["MIT"],
   "require": {
@@ -21,8 +21,7 @@
     "symfony/yaml": "^7.2",
     "league/csv": "^9.20",
     "halaxa/json-machine": "^1.2",
-    "phpstan/phpstan": "1.12.13",
-    "symfony/var-dumper": "^7.2"
+    "phpstan/phpstan": "1.12.13"
   },
   "minimum-stability": "stable",
   "autoload": {
@@ -96,7 +95,6 @@
       "@example:join",
       "@example:json",
       "@example:sql",
-      "@example:test",
       "@example:xml",
       "@example:yaml"
     ]

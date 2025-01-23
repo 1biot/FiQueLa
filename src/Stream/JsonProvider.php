@@ -8,7 +8,7 @@ use JsonMachine as JM;
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  */
-abstract class JsonProvider extends StreamProvider
+abstract class JsonProvider extends AbstractStream
 {
     protected function __construct(private readonly string $jsonFilePath)
     {

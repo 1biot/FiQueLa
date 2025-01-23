@@ -141,9 +141,12 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
                     $constructorArgs[] = $data[$paramName] ?? $param->getDefaultValue();
                 }
 
-                return $reflectionClass->newInstanceArgs($constructorArgs);
+                /** @var T $instance */
+                $instance = $reflectionClass->newInstanceArgs($constructorArgs);
+                return $instance;
             }
 
+            /** @var T $instance */
             $instance = $reflectionClass->newInstance();
             foreach ($data as $key => $value) {
                 if (!is_string($key)) {

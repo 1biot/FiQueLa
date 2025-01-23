@@ -1,11 +1,12 @@
 <?php
 
 use FQL\Query;
+use FQL\Stream;
 
 require __DIR__ . '/bootstrap.php';
 
 try {
-    $xml = Query\Provider::fromFile('./examples/data/customers.xml');
+    $xml = Stream\Provider::fromFile('./examples/data/customers.xml');
 
     $topTenCustomersBySpending = $xml->query()
         ->select('first_name.value')->as('firstName')
@@ -51,8 +52,5 @@ try {
 
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }

@@ -2,16 +2,13 @@
 
 namespace FQL\Query;
 
-use FQL\Enum\Type;
+use FQL\Enum;
+use FQL\Exception;
+use FQL\Interface;
 use FQL\Sql\Sql;
 use FQL\Results\InMemory;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
-use FQL\Stream\Json;
-use FQL\Stream\JsonStream;
-use FQL\Stream\Neon;
-use FQL\Stream\Xml;
-use FQL\Stream\Yaml;
 
 class Debugger
 {
@@ -21,13 +18,19 @@ class Debugger
     {
         if (!defined('DEBUGGER_START')) {
             define('DEBUGGER_START', microtime(true));
+            self::echoSection('Debugger started', 'magenta');
+            self::split(false);
         }
     }
 
-    public static function split(): void
+    public static function split(bool $header = true): void
     {
         if (!defined('DEBUGGER_START')) {
             return;
+        }
+
+        if ($header) {
+            self::echoLine(self::echoYellow(self::echoBold('>>> SPLIT TIME <<<')), 0);
         }
 
         self::memoryDebug();
@@ -46,8 +49,7 @@ class Debugger
 
     public static function end(): void
     {
-        self::echoLine(self::echoRed(self::echoBold('===============================')));
-
+        self::echoSection('Debugger ended', 'magenta');
         $start = constant('DEBUGGER_START');
         $end = microtime(true);
 
@@ -58,36 +60,29 @@ class Debugger
         self::echoLineNameValue('Final execution time (µs)', $time);
     }
 
-    public static function memoryUsage(bool $realUsage = false): void
+    public static function memoryUsage(bool $realUsage = false): string
     {
-        self::echoLineNameValue(
-            'Memory usage',
-            sprintf(
-                '%sMB (%s)',
-                round(memory_get_usage($realUsage) / 1024 / 1024, 4),
-                $realUsage ? 'real' : 'emalloc'
-            )
+        return sprintf(
+            '%s (%s)',
+            round(memory_get_usage($realUsage) / 1024 / 1024, 4),
+            $realUsage ? 'real' : 'emalloc'
         );
     }
 
-    public static function memoryPeakUsage(bool $realUsage = false): void
+    public static function memoryPeakUsage(bool $realUsage = false): string
     {
-        self::echoLineNameValue(
-            'Memory peak usage',
-            sprintf(
-                '%sMB (%s)',
-                round(memory_get_peak_usage($realUsage) / 1024 / 1024, 4),
-                $realUsage ? 'real' : 'emalloc'
-            )
+        return sprintf(
+            '%s (%s)',
+            round(memory_get_peak_usage($realUsage) / 1024 / 1024, 4),
+            $realUsage ? 'real' : 'emalloc'
         );
     }
 
-    public static function memoryDebug(): void
+    public static function memoryDebug(int $beginCharRepeat = 1): void
     {
-        self::echoLine(self::echoYellow(self::echoBold('------------------------------')));
-        self::memoryUsage();
-        self::memoryPeakUsage();
-        self::echoLine(self::echoYellow(self::echoBold('------------------------------')));
+        self::echoLineNameValue('Memory usage (MB)', self::memoryUsage(), $beginCharRepeat);
+        self::echoLineNameValue('Memory peak usage (MB)', self::memoryPeakUsage(), $beginCharRepeat);
+        self::echoLine(self::echoYellow(self::echoBold('------------------------------')), 0);
     }
 
     public static function dump(mixed $var): void
@@ -95,15 +90,17 @@ class Debugger
         dump($var);
     }
 
-    public static function inspectQuery(Query $query, bool $listResults = false): void
+    public static function inspectQuery(Interface\Query $query, bool $listResults = false): void
     {
+        self::echoSection('Inspecting query', 'blue');
         self::echoSection('SQL query');
         self::queryToOutput((string) $query);
 
         $results = $query->execute();
         self::echoSection('Results');
         self::echoLineNameValue('Result class', $results::class);
-        self::echoLineNameValue('Result exists', $results->exists());
+        self::echoLineNameValue('Results size memory (KB)', round(strlen(serialize($results)) / 1024, 2));
+        self::echoLineNameValue('Result exists', $results->exists() ? Enum\Type::TRUE->value : Enum\Type::FALSE->value);
         self::echoLineNameValue('Result count', $results->count());
         if (!$results->exists()) {
             self::split();
@@ -111,32 +108,45 @@ class Debugger
         }
 
         if ($listResults) {
-            self::dump('------------------');
+            self::echoSection('Fetch all rows');
             self::dump(iterator_to_array($results->fetchAll()));
         } else {
-            self::echoSection('First row');
+            self::echoSection('Fetch first row');
             self::dump($results->fetch());
         }
 
         self::split();
     }
 
-    public static function inspectQuerySql(Xml|Json|JsonStream|Neon|Yaml $stream, string $sql): Query
+    public static function inspectSql(string $sql): Interface\Query
     {
+        self::echoSection('Inspect stream SQL', 'blue');
+        self::echoSection('Original SQL query');
+        self::queryToOutput($sql);
+        return Provider::fql($sql);
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    public static function inspectStreamSql(Interface\Stream $stream, string $sql): Query
+    {
+        self::echoSection('Inspect stream SQL', 'blue');
         self::echoSection('Original SQL query');
         self::queryToOutput($sql);
 
         /** @var Query $query */
-        $query = (new Sql())
-            ->parse(trim($sql), $stream->query());
+        $query = (new Sql(trim($sql)))
+            ->parseWithQuery($stream->query());
 
         self::inspectQuery($query);
         return $query;
     }
 
-    public static function benchmarkQuery(Query $query, int $iterations = 2500): void
+    public static function benchmarkQuery(Interface\Query $query, int $iterations = 2500): void
     {
-        self::echoSection('Benchmark Query');
+        self::echoSection('Benchmark Query', 'blue');
         self::echoLine(sprintf('%s iterations', number_format($iterations, 0, ',', ' ')));
 
         self::echoSection('SQL query');
@@ -146,7 +156,7 @@ class Debugger
         self::benchmarkProxy($query, $iterations);
     }
 
-    private static function benchmarkStream(Query $query, int $iterations = 2500): void
+    private static function benchmarkStream(Interface\Query $query, int $iterations = 2500): void
     {
         $results = $query->execute(Stream::class);
         self::echoSection('STREAM BENCHMARK');
@@ -157,7 +167,7 @@ class Debugger
         self::split();
     }
 
-    private static function benchmarkProxy(Query $query, int $iterations = 2500): void
+    private static function benchmarkProxy(Interface\Query $query, int $iterations = 2500): void
     {
         $results = $query->execute();
         self::echoSection('IN_MEMORY BENCHMARK');
@@ -179,17 +189,32 @@ class Debugger
         self::echoLineNameValue('Iterated results', number_format($counter, 0, ',', ' '));
     }
 
-    public static function echoSection(string $text): void
+    public static function echoSection(string $text, ?string $color = 'cyan'): void
     {
         $text = '### ' . $text . ': ###';
-        self::echoLine(self::echoCyan(self::echoBold(str_repeat('=', strlen($text)))), 0);
-        self::echoLine(self::echoCyan(self::echoBold($text)), 0);
-        self::echoLine(self::echoCyan(self::echoBold(str_repeat('=', strlen($text)))), 0);
+        $colorCallback = match ($color) {
+            'red' => [self::class, 'echoRed'],
+            'yellow' => [self::class, 'echoYellow'],
+            'green' => [self::class, 'echoGreen'],
+            'blue' => [self::class, 'echoBlue'],
+            'magenta' => [self::class, 'echoMagenta'],
+            'white' => [self::class, 'echoWhite'],
+            'black' => [self::class, 'echoBlack'],
+            'gray' => [self::class, 'echoGray'],
+            'lightRed' => [self::class, 'echoLightRed'],
+            'lightGreen' => [self::class, 'echoLightGreen'],
+            'lightYellow' => [self::class, 'echoLightYellow'],
+            'lightBlue' => [self::class, 'echoLightBlue'],
+            default => [self::class, 'echoCyan']
+        };
+        self::echoLine($colorCallback(self::echoBold(str_repeat('=', strlen($text)))), 0);
+        self::echoLine($colorCallback(self::echoBold($text)), 0);
+        self::echoLine($colorCallback(self::echoBold(str_repeat('=', strlen($text)))), 0);
     }
 
     public static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
     {
-        self::echoLine(sprintf('%s: %s', $name, $value), $beginCharRepeat);
+        self::echoLine(sprintf('%s: %s', self::echoBold($name), self::echoCyan($value)), $beginCharRepeat);
     }
 
     public static function echoLine(string $text, int $beginCharRepeat = 1): void
@@ -197,7 +222,7 @@ class Debugger
         echo sprintf('%s%s', str_repeat('>', $beginCharRepeat) . ($beginCharRepeat ? ' ' : ''), $text) . PHP_EOL;
     }
 
-    private static function queryToOutput(string $query): void
+    public static function queryToOutput(string $query): void
     {
         echo '> ' . str_replace(PHP_EOL, PHP_EOL . '> ', self::highlightSQL($query)) . PHP_EOL;
     }
@@ -210,7 +235,7 @@ class Debugger
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'SHUFFLE', 'NATURAL', 'LEFT', 'INNER'
         ];
 
-        $fromPattern = '((\[(?<e>[a-z]{2,8})])?(\((?<fp>[\w,\s\.\-\/\\\]+(\.\w{2,5})?)\))?(?<q>[\w*\.\-\_]+)?)';
+        $fromPattern = FileQuery::getRegexp();
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
         $functionPattern = '([A-Z0-9_]{2,})(?<!_)\\((.*?)\\)';
 
@@ -236,31 +261,35 @@ class Debugger
             preg_match_all($regex, $line, $matches);
             $tokens = array_filter($matches[0]);
 
-            $hasFrom = false;
+            $hasStream = false;
             $highlightedTokens = array_map(
-                function ($token) use ($keywords, $functionPattern, $fromPattern, &$hasFrom) {
+                function ($token) use ($keywords, $functionPattern, $fromPattern, &$hasStream) {
                     if (trim($token) === '') {
                         return '';
                     }
 
                     // Keywords
                     if (in_array(strtoupper($token), $keywords)) {
-                        if (strtoupper($token) === 'FROM') {
-                            $hasFrom = true;
+                        if (in_array(strtoupper($token), ['FROM', 'JOIN'])) {
+                            $hasStream = true;
                         }
                         return self::echoBlue(self::echoBold($token));
                     }
 
                     // FROM [].data.item
-                    if ($hasFrom && preg_match('/^' . $fromPattern . '$/', $token, $matches)) {
+                    if ($hasStream && preg_match('/^' . $fromPattern . '$/', $token, $matches)) {
                         $ext = $matches['e'] ?? '';
                         $file = $matches['fp'] ?? '';
                         $query = $matches['q'] ?? '';
                         if ($file === '' && $query === '') {
-                            return ''; // Cyan
+                            return '';
                         }
 
-                        $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s]', $ext)));
+                        $highlightedString = '';
+                        if ($ext !== '') {
+                            $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s]', $ext)));
+                        }
+
                         if ($file !== '') {
                             $highlightedString .= self::echoLightRed(self::echoBold("({$file})"));
                         }
@@ -269,7 +298,7 @@ class Debugger
                             $highlightedString .= self::echoCyan(self::echoBold($query));
                         }
 
-                        $hasFrom = false;
+                        $hasStream = false;
                         return $highlightedString;
                     }
 
@@ -402,5 +431,15 @@ class Debugger
     public static function echoLightBlue(string $text): string
     {
         return "\033[0;94m{$text}\033[0m";
+    }
+
+    public static function echoException(\Exception $e): void
+    {
+        self::echoSection($e::class, 'red');
+        self::echoLine(self::echoRed(self::echoBold($e->getMessage())));
+        array_map(
+            fn ($line) => self::echoLine(self::echoYellow(self::echoItalic($line))),
+            explode(PHP_EOL, $e->getTraceAsString())
+        );
     }
 }

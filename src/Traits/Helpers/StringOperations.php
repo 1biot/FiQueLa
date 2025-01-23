@@ -30,4 +30,37 @@ trait StringOperations
     {
         return substr($input, 1, -1);
     }
+
+    public function extractPlainText(string $input): string
+    {
+        // remove code blocks (multi-line and single-line)
+        $cleaned = preg_replace([
+            '/```[\s\S]*?```/m', // multi-line code blocks: ```code```
+            '/`{1,2}(.*?)`{1,2}/', // single-line code: `inline code`
+        ], '', $input);
+
+        // remove all HTML tags
+        $cleaned = strip_tags($cleaned);
+
+        // remove Markdown syntax
+        $cleaned = preg_replace([
+            '/\*\*(.*?)\*\*/',       // Bold: **text**
+            '/\*(.*?)\*/',           // Italic: *text*
+            '/_(.*?)_/',           // Italic: _text_
+            '/\[(.*?)]\(.*?\)/',    // Links: [text](url)
+            '/!\[.*?]\(.*?\)/',    // Images: ![alt](url)
+            '/^#{1,6}\s+(.*)$/m',    // Headers: # Header, ## Header
+            '/^([*\-+])\s+(.*)$/m', // Unordered list: * item, - item, + item
+            '/^\d+\.\s+(.*)$/m',     // Ordered list: 1. item
+            '/\|.*?\|/m',            // Table rows: | col1 | col2 |
+            '/-{3,}/',               // Horizontal rules: ---
+        ], '$1', $cleaned);
+
+        // allowed characters: letters, numbers, spaces, common punctuation
+        $cleaned = preg_replace('/[^\p{L}\p{N}\s.,!?;:\'\"-]/u', '', $cleaned);
+
+        // normalize multiple spaces to one
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        return strtolower(trim($cleaned));
+    }
 }

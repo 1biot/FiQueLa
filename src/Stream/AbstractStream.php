@@ -6,8 +6,11 @@ use FQL\Interface;
 use FQL\Query;
 use FQL\Sql;
 
-abstract class StreamProvider implements Interface\Stream
+abstract class AbstractStream implements Interface\Stream
 {
+    /**
+     * @return Query\Query
+     */
     public function query(): Interface\Query
     {
         return new Query\Query($this);
@@ -15,8 +18,6 @@ abstract class StreamProvider implements Interface\Stream
 
     public function fql(string $sql): Interface\Results
     {
-        return (new Sql\Sql())
-            ->parse(trim($sql), $this->query())
-            ->execute();
+        return (new Sql\Sql(trim($sql)))->parseWithQuery($this->query())->execute();
     }
 }

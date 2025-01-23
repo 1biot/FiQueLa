@@ -5,8 +5,8 @@
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_162-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_524-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_168-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_566-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan-level:_6-8A2BE2)
 
 ![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
@@ -793,7 +793,7 @@ But feel free to try them.
 
 #### Filtering functions
 
-Using `HAVING` is useful when you want to filter data based on final row or aggregated values. `HAVIN` not translate any
+Using `HAVING` is useful when you want to filter data based on final row or aggregated values. `HAVING` not translate any
 nested values, but `WHERE` clause does.
 
 ```php
@@ -874,10 +874,9 @@ ORDER BY productCount DESC
 #### Using SQL Strings
 
 Parse SQL strings directly into queries for all supported file formats. Idea is to use SQL strings for creating queries
-without fluent syntax. Now it could be used only for simple queries directly to files. Newly support `GROUP BY`, `OFFSET`,
-multiple sorting and `SELECT` [functions](#vb-aggregations-and-functions) (All of them).
+without fluent syntax. Newly support `GROUP BY`, `OFFSET`, multiple sorting and `SELECT` [functions](#vb-aggregations-and-functions) (All of them).
 
-> ⚠️ Sql still does not support `JOIN` clause and some logical operators `IN`, `NOT IN`, `IS`, `IS NOT`, `LIKE` and `NOT LIKE`.
+> ⚠️ Sql still does not support some logical operators `IN`, `NOT IN`, `IS`, `IS NOT`, `LIKE` and `NOT LIKE`.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -927,10 +926,6 @@ $results = $xml->fql($sql)
     ->fetchAll();
 Debugger::dump(iterator_to_array($results));
 ```
-
-> ⚠️ In the future, it will be possible to use `FROM` and `JOIN` to directly load data from files and use all results
-types from another queries.
-
 
 ### V.F. Query Inspection and Benchmarking
 
@@ -992,18 +987,10 @@ Debugger::benchmarkQuery($query, 1000);
 
 #### Final results
 
+This method stops the debugger and outputs the final results. 
+
 ```php
 Debugger::end();
-die();
-```
-
-Will output final results like this:
-
-```
-'=============================='
->> Final execution time (s): 2.019434
->> Final execution time (ms): 2019.434
->> Final execution time (µs): 2019434
 ```
 
 For more information about inspecting queries and benchmarking, see the [examples](#vi-examples)
@@ -1026,120 +1013,131 @@ composer example:xml
 composer example:yaml
 ```
 
-Runs `composer example:join` and output will look like this:
+Runs `composer example:csv` and output will look like this:
 
 ```
-'=================='
-'*** SQL query: ***'
-'=================='
+=========================
+### Debugger started: ###
+=========================
+> Memory usage (MB): 1.2019 (emalloc)
+> Memory peak usage (MB): 1.634 (emalloc)
+------------------------------
+> Execution time (s): 5.1E-5
+> Execution time (ms): 0.051
+> Execution time (µs): 51
+=========================
+### Inspecting query: ###
+=========================
+==================
+### SQL query: ###
+==================
 > SELECT
->     id ,
->     name ,
->     o.id  AS  orderId ,
->     o.total_price  AS  totalPrice
-> FROM  [json](memory).data.users
-> LEFT  JOIN
->  (
->     SELECT  *
->     FROM  [xml](orders.xml).orders.order
->  )  AS  o  ON  id   =  user_id
-> GROUP  BY  o.id
-> ORDER  BY
->     totalPrice  DESC
-'================'
-'*** Results: ***'
-'================'
+>   ean ,
+>   defaultCategory ,
+>   EXPLODE(" > ", defaultCategory) AS categoryArray ,
+>   price ,
+>   ROUND(price, 2) AS price_rounded ,
+>   MOD(price, 100) AS modulo_100 ,
+>   MOD(price, 54) AS modulo_54
+> FROM [csv](products-w-1250.csv).*
+> GROUP BY defaultCategory
+> ORDER BY defaultCategory DESC
+================
+### Results: ###
+================
 > Result class: FQL\Results\InMemory
-> Result exists: 1
-> Result count: 5
-'=================='
-'*** First row: ***'
-'=================='
-array (4)
-   'id' => 2
-   'name' => 'John Doe 2'
-   'orderId' => 3
-   'totalPrice' => 600
-
-'------------------------------'
-> Memory usage: 2.1033MB (emalloc)
-> Memory peak usage: 2.1655MB (emalloc)
-'------------------------------'
-> Execution time (s): 0.02847
-> Execution time (ms): 28.47
-> Execution time (µs): 28470
-'========================'
-'*** Benchmark Query: ***'
-'========================'
-> 100 iterations
-'=================='
-'*** SQL query: ***'
-'=================='
+> Results size memory (KB): 3.55
+> Result exists: TRUE
+> Result count: 15
+========================
+### Fetch first row: ###
+========================
+^ array:7 [
+  "ean" => 5010232964877
+  "defaultCategory" => "Testování > Drogerie"
+  "categoryArray" => array:2 [
+    0 => "Testování"
+    1 => "Drogerie"
+  ]
+  "price" => 121.0
+  "price_rounded" => 121.0
+  "modulo_100" => 21.0
+  "modulo_54" => 13.0
+]
+>>> SPLIT TIME <<<
+> Memory usage (MB): 2.5466 (emalloc)
+> Memory peak usage (MB): 2.6524 (emalloc)
+------------------------------
+> Execution time (s): 0.017918
+> Execution time (ms): 17.918
+> Execution time (µs): 17918
+========================
+### Benchmark Query: ###
+========================
+> 2 500 iterations
+==================
+### SQL query: ###
+==================
 > SELECT
->     id ,
->     name ,
->     o.id  AS  orderId ,
->     o.total_price  AS  totalPrice
-> FROM  [json](memory).data.users
-> LEFT  JOIN
->  (
->     SELECT  *
->     FROM  [xml](orders.xml).orders.order
->  )  AS  o  ON  id   =  user_id
-> GROUP  BY  o.id
-> ORDER  BY
->     totalPrice  DESC
-'========================='
-'*** STREAM BENCHMARK: ***'
-'========================='
-> Size (KB): 3.42
-> Count: 5
-> Iterated results: 500
-'------------------------------'
-> Memory usage: 2.1015MB (emalloc)
-> Memory peak usage: 2.1655MB (emalloc)
-'------------------------------'
-> Execution time (s): 0.028661
-> Execution time (ms): 28.661
-> Execution time (µs): 28661
-'========================'
-'*** PROXY BENCHMARK: ***'
-'========================'
-> Size (KB): 0.57
-> Count: 5
-> Iterated results: 500
-'------------------------------'
-> Memory usage: 2.1034MB (emalloc)
-> Memory peak usage: 2.1655MB (emalloc)
-'------------------------------'
-> Execution time (s): 0.000725
-> Execution time (ms): 0.725
-> Execution time (µs): 725
-'=============================='
-> Memory usage: 2.1012MB (emalloc)
-> Memory peak usage: 2.1655MB (emalloc)
->> Final execution time (s): 0.057894
->> Final execution time (ms): 57.894
->> Final execution time (µs): 57894
+>   ean ,
+>   defaultCategory ,
+>   EXPLODE(" > ", defaultCategory) AS categoryArray ,
+>   price ,
+>   ROUND(price, 2) AS price_rounded ,
+>   MOD(price, 100) AS modulo_100 ,
+>   MOD(price, 54) AS modulo_54
+> FROM [csv](products-w-1250.csv).*
+> GROUP BY defaultCategory
+> ORDER BY defaultCategory DESC
+=========================
+### STREAM BENCHMARK: ###
+=========================
+> Size (KB): 2.61
+> Count: 15
+> Iterated results: 37 500
+>>> SPLIT TIME <<<
+> Memory usage (MB): 2.5361 (emalloc)
+> Memory peak usage (MB): 2.7096 (emalloc)
+------------------------------
+> Execution time (s): 10.178403
+> Execution time (ms): 10178.403
+> Execution time (µs): 10178403
+============================
+### IN_MEMORY BENCHMARK: ###
+============================
+> Size (KB): 3.55
+> Count: 15
+> Iterated results: 37 500
+>>> SPLIT TIME <<<
+> Memory usage (MB): 2.5466 (emalloc)
+> Memory peak usage (MB): 2.7096 (emalloc)
+------------------------------
+> Execution time (s): 0.005794
+> Execution time (ms): 5.794
+> Execution time (µs): 5794
+=======================
+### Debugger ended: ###
+=======================
+> Memory usage (MB): 2.5358 (emalloc)
+> Memory peak usage (MB): 2.7096 (emalloc)
+------------------------------
+> Final execution time (s): 10.202184
+> Final execution time (ms): 10202.184
+> Final execution time (µs): 10202184
 ```
 
 ## VII. Knowing issues
 
 - ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
-- ⚠️ SQL - Supports SQL string queries inspired with SQL-like syntax. Syntax does not support yet all SQL fluent features.
-- ⚠️ Automatic conversion of queries into SQL-like syntax. It is not fully compatible yet with SQL parser
 
 ## VIII. Planning Features
 
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
-- [ ] **Improve SQL parser**: SQL parser will be more complex. Will add support for direct selecting files like
-`FROM [csv:file.tmp]` or `JOIN([./subdir/file.json].data.users)`. It will bring support to all features from fluent
-**F**i**Q**ue**L**a.
-- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for memory efficient data processing.
-- [ ] **DELETE, UPDATE, INSERT**: Support for manipulating data in files.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage.
+- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for memory efficient data processing.
+- [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ Instead of this, it will comes support for exporting data to files.
 
 ## IX. Contributions
 

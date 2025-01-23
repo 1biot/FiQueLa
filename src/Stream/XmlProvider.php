@@ -9,7 +9,7 @@ use FQL\Exception;
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
-abstract class XmlProvider extends StreamProvider
+abstract class XmlProvider extends AbstractStream
 {
     private ?string $inputEncoding = null;
 

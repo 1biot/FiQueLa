@@ -4,6 +4,7 @@
 
 - Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does
 - Namespace `UQL` moved to `FQL`
+- Rewritten most of the code
 - Rewritten documentation
 
 ### Added
@@ -22,8 +23,8 @@
 - Refactored using conditions in `WHERE` and `HAVING` clauses
 
 #### Utils
-- Added benchmarking tests for queries
 - Refactored tests namespace to psr-4 standard
+- Added benchmarking tests for queries
 - Extends exception base for better exception handling
 - Extended documentation
 
@@ -41,7 +42,7 @@ instead.
   - `FQL\Helpers\ArrayHelper` moved to `FQL\Traits\Helpers\NestedArrayAccessor`
   - `FQL\Helpers\StringHelper` moved to `FQL\Traits\Helpers\StringOperations`
 
-#### SQL Sql
+#### SQL like syntax
 - Extends SQL parser to support new functionalities
 - Support select functions like `COUNT`, `SUM`, `AVG`, `MIN`, `MAX` and `COALESCE` and others are usable in `SELECT` clause
 - Support `DISTINCT` clause
@@ -52,7 +53,6 @@ instead.
 
 #### Debugger
 - `FQL\Helpers\Debugger` moved to `FQL\Query\Debugger`
-- Fixed issue when splitting time
 - Method `end()` renamed to `split()`
 - Method `finish()` renamed to `end()`
 - Added SQL syntax highlighting, just use `FQL\Query\Debugger::highlightSQL($sql)` method
@@ -60,6 +60,7 @@ instead.
 
 ### Issues
 - Finally fixed issue with grouping `WHERE` or `HAVING` conditions
+- Fixed issue when splitting time in `Query\Debugger`
 
 ---
 

@@ -15,12 +15,28 @@ try {
         ->groupBy('o.id')
         ->orderBy('totalPrice')->desc();
 
+
     Query\Debugger::inspectQuery($users);
     Query\Debugger::benchmarkQuery($users, 100);
+
+    $sql = <<<SQL
+SELECT
+    id,
+    name,
+    o.id AS orderId,
+    o.total_price AS totalPrice
+FROM [json](./examples/data/users.json).data.users
+LEFT JOIN
+    (./examples/data/orders.xml).orders.order AS o
+        ON id = user_id
+GROUP BY o.id
+ORDER BY totalPrice DESC
+SQL;
+
+    $query = Query\Debugger::inspectSql($sql);
+    Query\Debugger::inspectQuery($query);
+    Query\Debugger::benchmarkQuery($query, 100);
     Query\Debugger::end();
 } catch (\Exception $e) {
-    Query\Debugger::echoSection($e::class);
-    Query\Debugger::echoLine($e->getMessage());
-    Query\Debugger::dump($e->getTraceAsString());
-    Query\Debugger::split();
+    Query\Debugger::echoException($e);
 }
