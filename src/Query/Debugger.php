@@ -7,7 +7,6 @@ use FQL\Exception;
 use FQL\Interface;
 use FQL\Sql\Sql;
 use FQL\Results;
-use FQL\Results\InMemory;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
 

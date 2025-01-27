@@ -27,3 +27,6 @@ jobs:
       - name: "PHPUnit"
         working-directory: "./"
         run: composer test:phpunit -- tests
+      - name: "Examples"
+        working-directory: "./"
+        run: composer examples
