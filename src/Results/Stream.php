@@ -458,7 +458,7 @@ class Stream extends ResultsProvider
     {
         $keyParts = [];
         foreach ($this->groupByFields as $field) {
-            $keyParts[] = $this->accessNestedValue($item, $field);
+            $keyParts[] = $this->accessNestedValue($item, $field, false) ?? '';
         }
 
         return implode('|', $keyParts);

@@ -39,23 +39,23 @@ class FileQueryTest extends TestCase
     public function testInvalidFileQuery(): void
     {
         $testFileQueryPaths = [
-            '[csv]',
-            '[csv].SHOP',
-            '[csv].SHOP.SHOPITEM',
-            '[cs](./path/to/file).query.path',
-            '[xmls](./path/to/file).query.path',
-            '[xlsx](./path/to/file).query.path',
-            '[jsonfike](./path/to/file).query.path',
-            '[doc](./path/to/file).query.path',
-            '[css](./path/to/file).query.path',
-            '[html](./path/to/file).query.path',
-            '[xml]',
+            '[csv]' => 'Invalid query path "[csv]"',
+            '[csv].SHOP' => 'Invalid query path "[csv].SHOP"',
+            '[csv].SHOP.SHOPITEM' => 'Invalid query path "[csv].SHOP.SHOPITEM"',
+            '[cs](./path/to/file).query.path' => 'Unsupported file format "cs"',
+            '[xmls](./path/to/file).query.path' => 'Unsupported file format "xmls"',
+            '[xlsx](./path/to/file).query.path' => 'Unsupported file format "xlsx"',
+            '[jsonfike](./path/to/file).query.path' => 'Unsupported file format "jsonfike"',
+            '[doc](./path/to/file).query.path' => 'Unsupported file format "doc"',
+            '[css](./path/to/file).query.path' => 'Unsupported file format "css"',
+            '[html](./path/to/file).query.path' => 'Unsupported file format "html"',
+            '[xml]' => 'Invalid query path "[xml]"',
         ];
-        foreach ($testFileQueryPaths as $testFileQueryPath) {
+        foreach ($testFileQueryPaths as $testFileQueryPath => $expectedErrorMessage) {
             try {
                 new FileQuery($testFileQueryPath);
             } catch (Exception\FileQueryException $e) {
-                $this->assertSame('Invalid query path', $e->getMessage());
+                $this->assertSame($expectedErrorMessage, $e->getMessage());
             } catch (Exception\InvalidFormatException $e) {
                 $this->assertStringStartsWith('Unsupported file format', $e->getMessage());
             }

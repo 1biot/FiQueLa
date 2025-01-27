@@ -7,7 +7,9 @@ use FQL\Exception;
 
 final class FileQuery implements \Stringable
 {
-    private const REGEXP = '((?<fs>(\[(?<e>[a-zA-Z]{2,8})])?(\((?<fp>[\w,\s\.\-\/]+(\.\w{2,5})?)\)))?(?<q>[\w*\.\-\_]+)?)';
+    // @codingStandardsIgnoreStart
+    private const REGEXP = '((?<fs>(\[(?<e>[a-zA-Z]{2,8})])?(\((?<fp>[\w,\s\.\-\/]+(\.\w{2,5})?)\)))?(?<q>^\*|\.?[\w*\.\-]{2,})?)';
+    // @codingStandardsIgnoreEnd
 
     public readonly ?Enum\Format $extension;
     public readonly ?string $file;
@@ -20,7 +22,7 @@ final class FileQuery implements \Stringable
     public function __construct(private readonly string $queryPath)
     {
         if (!preg_match('/^' . self::REGEXP . '$/', $this->queryPath, $matches)) {
-            throw new Exception\FileQueryException('Invalid query path');
+            throw new Exception\FileQueryException(sprintf('Invalid query path "%s"', $this->queryPath));
         }
 
         $extension = $matches['e'] ?? null;

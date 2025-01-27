@@ -59,11 +59,20 @@ ORDER BY productCount DESC
 File Query is syntax allowing you to load file in FQL string directly without using any file provider.
 It is usable for `FROM` and `JOIN` clause. File Query consists of three parts:
 
-**syntax**: `[format](pathToFile).path.to.data`
-
 - `format` is using for selecting concrete file format otherwise, it tries to find out from the file extension automatically.
 - `pathToFile` is a relative or absolute path to the file.
 - `path.to.data` is a doted path to the data in the file.
+
+----
+
+* **syntax**: `[format](pathToFile).path.to.data`
+* **regexp**: `/((?<filePart>(\[(?<format>[a-zA-Z]{2,8})])?(\((?<pathToFile>[\w,\s\.\-\/]+(\.\w{2,5})?)\)))?(?<queryPart>^\*|\.?[\w*\.\-\_]{2,})?)/`
+  * _**\<filePart\>**_: part for file reference
+  * _**\<format\>**_: `[a-zA-Z]{2,8}` - file format extension
+  * _**\<pathToFile\>**_: `[\w,\s\.\-\/]+(\.\w{2,5})?` - path to the file, relative or absolute
+  * _**\<queryPart\>**_: `^\*|\.?[\w*\.\-]{2,}` - path to the data in the file
+
+**Example:**
 
 ```php
 use FQL\Query;
@@ -384,8 +393,9 @@ OFFSET 5
 ```
 
 ## Next steps
-- [Fetching data](fetching-data.md)
+- [Opening Files](opening-files.md)
 - [Fluent API](fluent-api.md)
-- [API Reference](api-reference.md)
+- File Query Language
+- [Fetching Data](fetching-data.md)
 
 or go back to [README.md](../README.md).

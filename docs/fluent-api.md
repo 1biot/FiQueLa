@@ -1,6 +1,6 @@
 # Fluent API
 
-lorem ipsum dolor sit amet ...
+Fluent API is a way to build queries in a more readable and maintainable way. It is a chain of methods that can be called
 
 **table of contents**:
 
@@ -342,9 +342,9 @@ $query->page(2, perPage: 20);
 
 ## Next steps
 
-- [Opening files](opening-files.md)
+- [Opening Files](opening-files.md)
+- Fluent API
 - [File Query Language](file-query-language.md)
-- [Fetching data](fetching-data.md)
-- [API Reference](api-reference.md)
+- [Fetching Data](fetching-data.md)
 
 or go back to [README.md](../README.md).

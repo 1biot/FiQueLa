@@ -3,6 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Exception;
+use FQL\Exception\UnableOpenFileException;
 use JsonMachine as JM;
 
 /**
@@ -23,11 +24,18 @@ abstract class JsonProvider extends AbstractStream
         return new \ArrayIterator(iterator_to_array($this->getStreamGenerator($query)));
     }
 
+    /**
+     * @throws UnableOpenFileException
+     */
     public function getStreamGenerator(?string $query): \Generator
     {
         $query = $query ?? '';
 
         $handle = fopen($this->jsonFilePath, 'r');
+        if ($handle === false) {
+            throw new Exception\UnableOpenFileException('Unable to open JSON file.');
+        }
+
         try {
             yield from JM\Items::fromStream(
                 $handle,

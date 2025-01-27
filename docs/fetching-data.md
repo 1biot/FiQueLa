@@ -203,8 +203,9 @@ class CategoryDto implements \Stringable
 
 ## Next steps
 
-- [File Query Language](file-query-language.md)
-- [API Reference](api-reference.md)
+- [Opening Files](opening-files.md)
 - [Fluent API](fluent-api.md)
+- [File Query Language](file-query-language.md)
+- Fetching Data
 
 or go back to [README.md](../README.md).

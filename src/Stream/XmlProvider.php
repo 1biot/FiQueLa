@@ -5,12 +5,14 @@ namespace FQL\Stream;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
+use Traversable;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
+ * @implements \IteratorAggregate<StreamProviderArrayIteratorValue>
  */
-abstract class XmlProvider extends AbstractStream
+abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
 {
     private ?string $inputEncoding = null;
 
@@ -24,9 +26,15 @@ abstract class XmlProvider extends AbstractStream
         return $this;
     }
 
+    public function getIterator(): Traversable
+    {
+        return $this->getStream('');
+    }
+
     /**
      * @param string|null $query
      * @return StreamProviderArrayIterator
+     * @throws Exception\UnableOpenFileException
      */
     public function getStream(?string $query): \ArrayIterator
     {
@@ -39,9 +47,7 @@ abstract class XmlProvider extends AbstractStream
      */
     public function getStreamGenerator(?string $query): \Generator
     {
-        if ($query === null) {
-            throw $this->createEmptyQueryException();
-        }
+        $query = $query ?? Interface\Query::FROM_ALL;
 
         $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
         if (!$xmlReader) {
@@ -161,30 +167,5 @@ abstract class XmlProvider extends AbstractStream
             $source = sprintf('[xml](%s)', basename($this->xmlFilePath));
         }
         return $source;
-    }
-
-    /**
-     * @return Exception\UnexpectedValueException
-     */
-    private function createEmptyQueryException(): Exception\UnexpectedValueException
-    {
-        $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
-        if (!$xmlReader) {
-            throw new Exception\InvalidArgumentException('Unable to open XML file.');
-        }
-
-        $elements = [];
-        while ($xmlReader->read()) {
-            if ($xmlReader->nodeType == \XMLReader::ELEMENT) {
-                $elements[] = $xmlReader->localName;
-                if (count($elements) == 2) {
-                    break;
-                }
-            }
-        }
-
-        return new Exception\UnexpectedValueException(
-            sprintf('Empty query. Try to use "%s" query', implode('.', $elements))
-        );
     }
 }

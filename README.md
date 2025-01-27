@@ -148,7 +148,6 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [Fluent API](docs/fluent-api.md)
 - [File Query Language](docs/file-query-language.md)
 - [Fetching Data](docs/fetching-data.md)
-- [API Reference](docs/api-reference.md)
 
 ## 6. Query Life Cycle
 
@@ -177,8 +176,7 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
     - Limits the number of rows returned by the query using `LIMIT`.
     - If `OFFSET` is present, it skips a specified number of rows before returning the results.
 
-> ⚠️
-Functions can only be utilized in the `SELECT` clause. To filter results based on a function's value, use the `HAVING`
+> ⚠️ Functions can only be utilized in the `SELECT` clause. To filter results based on a function's value, use the `HAVING`
 clause, and to sort results, use the `ORDER BY` clause. In both `HAVING` and `ORDER BY`, the function can only be
 referenced by its alias.
 ___
@@ -281,9 +279,9 @@ This method stops the debugger and outputs the final results.
 Debugger::end();
 ```
 
-For more information about inspecting queries and benchmarking, see the [examples](#vi-examples)
+For more information about inspecting queries and benchmarking, see the [examples](#8-examples)
 
-## 6. Examples
+## 8. Examples
 
 Check the examples and run them using Composer. All examples uses `\FQL\Helpers\Debugger` and methods `inspectQuery` or
 `inspectQuerySql` or `benchmarkQuery` to show the results.
@@ -412,13 +410,14 @@ array (7)
 > Final execution time (µs): 10138434
 ```
 
-## 8. Knowing issues
+## 9. Knowing issues
 
 - ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 
-## 9. Planning Features
+## 10. Planning Features
 
+- [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
@@ -428,7 +427,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...).
 
-## 10. Contributions
+## 11. Contributions
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
 

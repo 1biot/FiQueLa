@@ -76,10 +76,10 @@ More about [File Query Language](file-query-language.md).
 
 ## Next steps
 
+- Opening Files
 - [Fluent API](fluent-api.md)
 - [File Query Language](file-query-language.md)
-- [Fetching data](fetching-data.md)
-- [API Reference](api-reference.md)
+- [Fetching Data](fetching-data.md)
 
 or go back to [README.md](../README.md).
 
