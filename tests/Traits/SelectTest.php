@@ -21,7 +21,8 @@ class SelectTest extends TestCase
 
     public function testSimpleSelect(): void
     {
-        $this->query->select('id, name, price');
+        $this->query->select('id, name, price', 'brand.name', 'category.name', 'stock, purchasePrice');
+        $this->assertCount(7, $this->query->getSelectedFields());
 
         foreach ($this->query->getSelectedFields() as $field => $data) {
             $this->assertEquals($field, $data['originField']);
@@ -34,7 +35,10 @@ class SelectTest extends TestCase
     {
         $this->query->select('id')
             ->select('name')
-            ->select('price');
+            ->select('stock, purchasePrice')
+            ->select('price')
+            ->select('brand.name', 'category.name');
+        $this->assertCount(7, $this->query->getSelectedFields());
 
         foreach ($this->query->getSelectedFields() as $field => $data) {
             $this->assertEquals($field, $data['originField']);
@@ -117,8 +121,7 @@ class SelectTest extends TestCase
             ->coalesceNotEmpty('id', 'name', 'price')->as('coalescedNE')
             ->concatWithSeparator(' ', 'name', 'price')->as('concatenatedWS')
             ->concat('id', 'name', 'price')->as('concatenated')
-            ->groupConcat('concatenated', '|')->as('groupConcatenated')
-        ;
+            ->groupConcat('concatenated', '|')->as('groupConcatenated');
 
         $selectedFields = $this->query->getSelectedFields();
         $this->assertEquals('name', $selectedFields['name']['originField']);
@@ -215,6 +218,9 @@ class SelectTest extends TestCase
         $this->assertInstanceOf(Functions\String\Concat::class, $selectedFields['concatenated']['function']);
 
         $this->assertNotNull($selectedFields['groupConcatenated']['function']);
-        $this->assertInstanceOf(Functions\Aggregate\GroupConcat::class, $selectedFields['groupConcatenated']['function']);
+        $this->assertInstanceOf(
+            Functions\Aggregate\GroupConcat::class,
+            $selectedFields['groupConcatenated']['function']
+        );
     }
 }

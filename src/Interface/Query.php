@@ -45,7 +45,7 @@ interface Query extends \Stringable
      * It supports dot notation for selecting nested fields. If you call the `select()`
      * method multiple times, the fields will be merged into a single selection.
      *
-     * @param string $fields The fields to include in the selection.
+     * @param string ...$fields The fields to include in the selection.
      * @throws Exception\SelectException
      *
      * Example with simple fields:
@@ -71,7 +71,7 @@ interface Query extends \Stringable
      *
      * Use this method to customize the fields included in your query results.
      */
-    public function select(string $fields): Query;
+    public function select(string ...$fields): Query;
 
     /**
      * Select all fields in the query.

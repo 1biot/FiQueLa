@@ -4,6 +4,7 @@ namespace FQL\Stream;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Interface;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
@@ -53,11 +54,7 @@ abstract class XmlProvider extends AbstractStream
         }
 
         while ($xmlReader->read()) {
-            if (
-                $xmlReader->nodeType == \XMLReader::ELEMENT
-                && ($query !== '' && in_array($xmlReader->localName, explode('.', $query)) || $query === '*')
-                && $xmlReader->depth === $depth
-            ) {
+            if ($this->isReadValid($xmlReader, $query, $depth)) {
                 try {
                     yield $this->itemToArray(
                         new \SimpleXMLElement($xmlReader->readOuterXml(), LIBXML_NOCDATA)
@@ -68,6 +65,16 @@ abstract class XmlProvider extends AbstractStream
             }
         }
         $xmlReader->close();
+    }
+
+    private function isReadValid(\XMLReader $xmlReader, string $query, int $depth): bool
+    {
+        return $xmlReader->nodeType == \XMLReader::ELEMENT
+            && (
+                $query !== ''
+                && in_array($xmlReader->localName, explode('.', $query))
+                || $query === Interface\Query::FROM_ALL
+            ) && $xmlReader->depth === $depth;
     }
 
     /**

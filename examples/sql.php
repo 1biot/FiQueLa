@@ -11,7 +11,7 @@ try {
 SELECT DISTINCT @attributes.id AS productId, name, price, brand
 FROM root.item
 WHERE brand.code == "BRAND-A" OR price >= 200
-ORDER BY productId DESC, price ASC
+LIMIT 1 3
 SQL;
 
     $query = Query\Debugger::inspectStreamSql($xml, $sql);
@@ -19,14 +19,16 @@ SQL;
 
     $jsonSql = <<<SQL
 SELECT *
-FROM (./examples/data/products.json).data.products
+FROM [json](./examples/data/products.json).data.products
 WHERE
     brand.code == 'BRAND-A'
     OR name == 'Product C'
     OR price > 300
+LIMIT 1
 SQL;
 
     $query = Query\Debugger::inspectSql($jsonSql);
+    Query\Debugger::inspectQuery($query);
     Query\Debugger::benchmarkQuery($query);
 } catch (\Exception $e) {
     Query\Debugger::echoException($e);

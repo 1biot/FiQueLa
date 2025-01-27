@@ -25,13 +25,12 @@ abstract class JsonProvider extends AbstractStream
 
     public function getStreamGenerator(?string $query): \Generator
     {
-        if ($query === null) {
-            return null;
-        }
+        $query = $query ?? '';
 
+        $handle = fopen($this->jsonFilePath, 'r');
         try {
-            $items = JM\Items::fromFile(
-                $this->jsonFilePath,
+            yield from JM\Items::fromStream(
+                $handle,
                 [
                     'pointer' => $this->convertDotNotationToJsonPointer($query),
                     'decoder' => new JM\JsonDecoder\ExtJsonDecoder(true),
@@ -39,15 +38,15 @@ abstract class JsonProvider extends AbstractStream
             );
         } catch (JM\Exception\InvalidArgumentException $e) {
             throw new Exception\InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+        } finally {
+            fclose($handle);
         }
-
-        yield from $items;
     }
 
     private function convertDotNotationToJsonPointer(string $dotNotation): string
     {
         $pointer = '';
-        $parts = explode('.', $dotNotation);
+        $parts = array_filter(explode('.', $dotNotation));
         foreach ($parts as $part) {
             // If $part is numeric, process it as an array index
             if (ctype_digit($part)) {

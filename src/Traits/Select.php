@@ -6,7 +6,7 @@ use FQL\Exception;
 use FQL\Exception\UnexpectedValueException;
 use FQL\Functions;
 use FQL\Functions\Core;
-use FQL\Interface\Query;
+use FQL\Interface;
 
 /**
  * @codingStandardsIgnoreStart
@@ -21,22 +21,23 @@ trait Select
     /** @var SelectedFields $selectedFields */
     private array $selectedFields = [];
 
-    public function selectAll(): Query
+    public function selectAll(): Interface\Query
     {
-        $this->select(Query::SELECT_ALL);
+        $this->select(Interface\Query::SELECT_ALL);
         return $this;
     }
 
     /**
-     * @param string $fields
-     * @return Query
+     * @param string ...$fields
+     * @return Interface\Query
      * @throws Exception\SelectException
      */
-    public function select(string $fields): Query
+    public function select(string ...$fields): Interface\Query
     {
+        $fields = implode(',', $fields);
         $fields = array_map('trim', explode(',', $fields));
         foreach ($fields as $field) {
-            if ($field === Query::SELECT_ALL) {
+            if ($field === Interface\Query::SELECT_ALL) {
                 $this->selectedFields = [];
                 continue;
             }
@@ -51,7 +52,7 @@ trait Select
         return $this;
     }
 
-    public function distinct(bool $distinct = true): Query
+    public function distinct(bool $distinct = true): Interface\Query
     {
         $this->distinct = $distinct;
         return $this;
@@ -59,10 +60,10 @@ trait Select
 
     /**
      * @param string $alias
-     * @return Query
+     * @return Interface\Query
      * @throws Exception\AliasException
      */
-    public function as(string $alias): Query
+    public function as(string $alias): Interface\Query
     {
         if ($alias === '') {
             throw new Exception\AliasException('Alias cannot be empty');
@@ -88,87 +89,87 @@ trait Select
         return $this;
     }
 
-    public function concat(string ...$fields): Query
+    public function concat(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Concat(...$fields));
     }
 
-    public function concatWithSeparator(string $separator, string ...$fields): Query
+    public function concatWithSeparator(string $separator, string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\ConcatWS($separator, ...$fields));
     }
 
-    public function coalesce(string ...$fields): Query
+    public function coalesce(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\Coalesce(...$fields));
     }
 
-    public function coalesceNotEmpty(string ...$fields): Query
+    public function coalesceNotEmpty(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\CoalesceNotEmpty(...$fields));
     }
 
-    public function explode(string $field, string $separator = ','): Query
+    public function explode(string $field, string $separator = ','): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Explode($field, $separator));
     }
 
-    public function split(string $field, string $separator = ','): Query
+    public function split(string $field, string $separator = ','): Interface\Query
     {
         return $this->explode($field, $separator);
     }
 
-    public function implode(string $field, string $separator = ','): Query
+    public function implode(string $field, string $separator = ','): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Implode($field, $separator));
     }
 
-    public function glue(string $field, string $separator = ','): Query
+    public function glue(string $field, string $separator = ','): Interface\Query
     {
         return $this->implode($field, $separator);
     }
 
-    public function sha1(string $field): Query
+    public function sha1(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Hashing\Sha1($field));
     }
 
-    public function md5(string $field): Query
+    public function md5(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Hashing\Md5($field));
     }
 
-    public function lower(string $field): Query
+    public function lower(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Lower($field));
     }
 
-    public function upper(string $field): Query
+    public function upper(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Upper($field));
     }
 
-    public function round(string $field, int $precision = 0): Query
+    public function round(string $field, int $precision = 0): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Round($field, $precision));
     }
 
-    public function length(string $field): Query
+    public function length(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Length($field));
     }
 
-    public function reverse(string $field): Query
+    public function reverse(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Reverse($field));
     }
 
-    public function ceil(string $field): Query
+    public function ceil(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Ceil($field));
     }
 
-    public function floor(string $field): Query
+    public function floor(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Floor($field));
     }
@@ -176,10 +177,10 @@ trait Select
     /**
      * @param string $field
      * @param int $divisor
-     * @return Query
+     * @return Interface\Query
      * @throws Exception\SelectException
      */
-    public function modulo(string $field, int $divisor): Query
+    public function modulo(string $field, int $divisor): Interface\Query
     {
         try {
             return $this->addFieldFunction(new Functions\Math\Mod($field, $divisor));
@@ -188,52 +189,52 @@ trait Select
         }
     }
 
-    public function count(?string $field = null): Query
+    public function count(?string $field = null): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Count($field));
     }
 
-    public function sum(string $field): Query
+    public function sum(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Sum($field));
     }
 
-    public function groupConcat(string $field, string $separator = ','): Query
+    public function groupConcat(string $field, string $separator = ','): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\GroupConcat($field, $separator));
     }
 
-    public function min(string $field): Query
+    public function min(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Min($field));
     }
 
-    public function avg(string $field): Query
+    public function avg(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Avg($field));
     }
 
-    public function max(string $field): Query
+    public function max(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Max($field));
     }
 
-    public function randomString(int $length = 10): Query
+    public function randomString(int $length = 10): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\RandomString($length));
     }
 
-    public function randomBytes(int $length = 10): Query
+    public function randomBytes(int $length = 10): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\RandomBytes($length));
     }
 
-    public function fromBase64(string $field): Query
+    public function fromBase64(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Base64Decode($field));
     }
 
-    public function toBase64(string $field): Query
+    public function toBase64(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Base64Encode($field));
     }
@@ -241,7 +242,7 @@ trait Select
     /**
      * @param string[] $fields
      */
-    public function fulltext(array $fields, string $searchQuery): Query
+    public function fulltext(array $fields, string $searchQuery): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Fulltext($fields, $searchQuery));
     }
@@ -249,14 +250,14 @@ trait Select
     /**
      * @param string[] $fields
      */
-    public function matchAgainst(array $fields, string $searchQuery): Query
+    public function matchAgainst(array $fields, string $searchQuery): Interface\Query
     {
         return $this->fulltext($fields, $searchQuery);
     }
 
     private function addFieldFunction(
         Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function
-    ): Query {
+    ): Interface\Query {
         $this->addField(
             (string) $function,
             function: $function
@@ -269,7 +270,7 @@ trait Select
         string $field,
         ?string $alias = null,
         null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function = null
-    ): Query {
+    ): Interface\Query {
         $this->selectedFields[$alias ?? $field] = [
             'originField' => $field,
             'alias' => $alias !== null,
@@ -281,13 +282,13 @@ trait Select
 
     private function selectToString(): string
     {
-        $return = Query::SELECT;
+        $return = Interface\Query::SELECT;
         if ($this->distinct) {
-            $return .= ' ' . Query::DISTINCT;
+            $return .= ' ' . Interface\Query::DISTINCT;
         }
 
         if ($this->selectedFields === []) {
-            return $return . ' ' . Query::SELECT_ALL;
+            return $return . ' ' . Interface\Query::SELECT_ALL;
         }
 
         $count = count($this->selectedFields) - 1;
@@ -295,7 +296,7 @@ trait Select
         foreach ($this->selectedFields as $finalField => $fieldData) {
             $return .= PHP_EOL . "\t" . $fieldData['originField'];
             if ($fieldData['alias']) {
-                $return .= ' ' . Query::AS . ' ' . $finalField;
+                $return .= ' ' . Interface\Query::AS . ' ' . $finalField;
             }
 
             if ($counter++ < $count) {

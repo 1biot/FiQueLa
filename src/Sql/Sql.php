@@ -11,26 +11,13 @@ use FQL\Query;
 use FQL\Stream;
 use FQL\Traits;
 
-/**
- * @implements \Iterator<string>
- */
-class Sql implements Interface\Parser, \Iterator
+class Sql extends SqlLexer implements Interface\Parser
 {
     use Traits\Helpers\StringOperations;
 
-    private const CONTROL_KEYWORDS = [
-        'SELECT', 'FROM', 'INNER', 'LEFT', 'JOIN',
-        'WHERE', 'GROUP', 'HAVING', 'ORDER',
-        'LIMIT', 'OFFSET'
-    ];
-
-    /** @var string[] */
-    private array $tokens = [];
-    private int $position = 0;
-
     public function __construct(private readonly string $sql)
     {
-        $this->tokens = (new SqlLexer())->tokenize($this->sql);
+        $this->tokenize($this->sql);
     }
 
     /**
@@ -144,7 +131,8 @@ class Sql implements Interface\Parser, \Iterator
 
                 case 'LIMIT':
                     $limit = (int) $this->nextToken();
-                    $query->limit($limit);
+                    $offset = $this->nextToken();
+                    $query->limit($limit, $offset === '' ? null : (int) $offset);
                     break;
 
                 default:
@@ -351,66 +339,5 @@ class Sql implements Interface\Parser, \Iterator
             };
             $query->orderBy($field, $direction);
         }
-    }
-
-    private function nextToken(): string
-    {
-        return $this->tokens[$this->position++] ?? '';
-    }
-
-    private function rewindToken(): string
-    {
-        return $this->tokens[$this->position--] ?? '';
-    }
-
-    private function peekToken(): string
-    {
-        return $this->tokens[$this->position] ?? '';
-    }
-
-    /**
-     * @throws Exception\UnexpectedValueException
-     */
-    private function expect(string $expected): void
-    {
-        $token = $this->nextToken();
-        if (strtoupper($token) !== strtoupper($expected)) {
-            throw new Exception\UnexpectedValueException("Expected $expected, got $token");
-        }
-    }
-
-    private function isEOF(): bool
-    {
-        return $this->position >= count($this->tokens);
-    }
-
-    private function isNextControlledKeyword(): bool
-    {
-        return in_array(strtoupper($this->peekToken()), self::CONTROL_KEYWORDS);
-    }
-
-    public function rewind(): void
-    {
-        $this->position = 0;
-    }
-
-    public function valid(): bool
-    {
-        return $this->isEOF();
-    }
-
-    public function next(): void
-    {
-        $this->nextToken();
-    }
-
-    public function key(): mixed
-    {
-        return $this->position;
-    }
-
-    public function current(): mixed
-    {
-        return $this->peekToken();
     }
 }

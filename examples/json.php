@@ -8,16 +8,6 @@ use FQL\Stream;
 require __DIR__ . '/bootstrap.php';
 
 try {
-    $data = file_get_contents('./examples/data/marketing-campaigns.json');
-    $jsonMemory = Stream\Provider::fromString($data, Enum\Format::JSON);
-    $topFiveByRoi = $jsonMemory->query()
-        ->select('campaign_name, roi, revenue')
-        ->orderBy('roi')->desc()
-        ->orderBy('revenue')->desc()
-        ->limit(5);
-    Query\Debugger::inspectQuery($topFiveByRoi);
-    die;
-
     $json = Stream\Provider::fromFile('./examples/data/marketing-campaigns.json');
 
     $topFiveByRoi = $json->query()

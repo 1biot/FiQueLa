@@ -6,6 +6,7 @@ use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
 use FQL\Sql\Sql;
+use FQL\Results;
 use FQL\Results\InMemory;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
@@ -13,11 +14,13 @@ use FQL\Results\Stream;
 class Debugger
 {
     private static ?float $lastSplitTime = null;
+    private static ?float $lastMemoryPeakUsage = null;
 
     public static function start(): void
     {
         if (!defined('DEBUGGER_START')) {
             define('DEBUGGER_START', microtime(true));
+            define('DEBUGGER_MEMORY_START', (float) self::memoryPeakUsage());
             self::echoSection('Debugger started', 'magenta');
             self::split(false);
         }
@@ -36,15 +39,21 @@ class Debugger
         self::memoryDebug();
 
         $start = constant('DEBUGGER_START');
+        $startMemoryPeak = constant('DEBUGGER_MEMORY_START');
         $end = microtime(true);
+        $actualMemoryPeakUsage = (float) self::memoryPeakUsage();
         $lastSplitTime = self::$lastSplitTime ?? $start;
+        $lastMemoryPeakUsage = self::$lastMemoryPeakUsage ?? $startMemoryPeak;
 
         $time = round(($end - $lastSplitTime) * 1e6); // µs
+        $memoryPeakUsageDiff = $actualMemoryPeakUsage - $lastMemoryPeakUsage;
         self::echoLineNameValue('Execution time (s)', $time / 1000 / 1000);
         self::echoLineNameValue('Execution time (ms)', $time / 1000);
         self::echoLineNameValue('Execution time (µs)', $time);
+        self::echoLineNameValue('Execution memory peak usage (MB)', $memoryPeakUsageDiff);
 
         self::$lastSplitTime = $end;
+        self::$lastMemoryPeakUsage = $actualMemoryPeakUsage;
     }
 
     public static function end(): void
@@ -169,7 +178,7 @@ class Debugger
 
     private static function benchmarkProxy(Interface\Query $query, int $iterations = 2500): void
     {
-        $results = $query->execute();
+        $results = $query->execute(Results\InMemory::class);
         self::echoSection('IN_MEMORY BENCHMARK');
         self::echoLineNameValue('Size (KB)', round(strlen(serialize($results)) / 1024, 2));
         self::echoLineNameValue('Count', $results->count());
@@ -178,7 +187,7 @@ class Debugger
         self::split();
     }
 
-    private static function iterateResults(ResultsProvider|InMemory $results, int $iterations = 2500): void
+    private static function iterateResults(ResultsProvider $results, int $iterations = 2500): void
     {
         $counter = 0;
         for ($i = 0; $i < $iterations; $i++) {

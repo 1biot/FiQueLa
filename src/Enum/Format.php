@@ -37,10 +37,9 @@ enum Format: string
     {
         return match ($extension) {
             'xml' => self::XML,
-            'json' => self::JSON,
-            'jsonFile' => self::JSON_STREAM,
-            'csv' => self::CSV,
-            'yaml' => self::YAML,
+            'json', 'jsonFile' => self::JSON_STREAM,
+            'csv', 'tsv' => self::CSV,
+            'yaml', 'yml' => self::YAML,
             'neon' => self::NEON,
             default => throw new Exception\InvalidFormatException(sprintf('Unsupported file format "%s"', $extension)),
         };

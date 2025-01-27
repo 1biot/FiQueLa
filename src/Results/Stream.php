@@ -421,11 +421,6 @@ class Stream extends ResultsProvider
                 case Enum\Sort::SHUFFLE:
                     shuffle($data);
                     break;
-
-                default:
-                    throw new Exception\SortException(
-                        sprintf('Unsupported sort type: %s', $type->value)
-                    );
             }
         }
 

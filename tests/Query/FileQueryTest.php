@@ -11,28 +11,28 @@ class FileQueryTest extends TestCase
     public function testValidFileQuery(): void
     {
         $testFileQueryPaths = [
-            'SHOP',
-            'SHOP.SHOPITEM',
-            '*',
-            '(./path/to/file.xml)',
-            '(./path/to/file.csv)',
-            '(./path/to/file.yaml)',
-            '(./path/to/file.neon)',
-            '(./path/to/file).*',
-            '(./path/to/file).SHOP',
-            '(./path/to/file).SHOP.SHOPITEM',
-            '[csv](./path/to/file)',
-            '[xml](./path/to/file)',
-            '[json](./path/to/file)',
-            '[jsonFile](./path/to/file)',
-            '[neon](./path/to/file)',
-            '[yaml](./path/to/file)',
-            '[csv](./path/to/file).query.path',
+            'SHOP' => null,
+            'SHOP.SHOPITEM' => null,
+            '*' => null,
+            '(./path/to/file.xml)' => null,
+            '(./path/to/file.csv)' => null,
+            '(./path/to/file.yaml)' => null,
+            '(./path/to/file.neon)' => null,
+            '(./path/to/file).*' => null,
+            '(./path/to/file).SHOP' => null,
+            '(./path/to/file).SHOP.SHOPITEM' => null,
+            '[csv](./path/to/file)' => null,
+            '[xml](./path/to/file)' => null,
+            '[json](./path/to/file)' => '[jsonFile](./path/to/file)',
+            '[jsonFile](./path/to/file)' => null,
+            '[neon](./path/to/file)' => null,
+            '[yaml](./path/to/file)' => null,
+            '[csv](./path/to/file).query.path' => null,
         ];
 
-        foreach ($testFileQueryPaths as $testFileQueryPath) {
+        foreach ($testFileQueryPaths as $testFileQueryPath => $expectedFileQueryPath) {
             $fileQuery = new FileQuery($testFileQueryPath);
-            $this->assertSame($testFileQueryPath, (string) $fileQuery);
+            $this->assertSame($expectedFileQueryPath ?? $testFileQueryPath, (string) $fileQuery);
         }
     }
 
