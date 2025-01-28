@@ -2,10 +2,10 @@
 
 > _[fi-kju-ela]_
 
-![Packagist Version](https://img.shields.io/packagist/v/1biot/uniquel)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/uniquel/ci.yml)
-![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/uniquel/php)
-![Packagist License](https://img.shields.io/packagist/l/1biot/uniquel)
+![Packagist Version](https://img.shields.io/packagist/v/1biot/fiquela)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/fiquela/ci.yml)
+![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
+![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
 ![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_171-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_596-lightgreen)
