@@ -116,7 +116,7 @@ enum Type: string
         $value = preg_replace('/[ ,]/', '', $value);
 
         // Replace comma with dot for unified decimal separator
-        $value = str_replace(',', '.', $value);
+        $value = str_replace(',', '.', $value ?? '');
 
         return is_numeric($value);
     }

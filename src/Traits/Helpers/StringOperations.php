@@ -12,10 +12,10 @@ trait StringOperations
         }
 
         // Add underscores before uppercase letters, unless at the start or after an underscore
-        $snake = preg_replace('/(?<!^|_|[A-Z])([A-Z])/', '_$1', $input);
+        $snake = preg_replace('/(?<!^|_|[A-Z])([A-Z])/', '_$1', $input) ?? '';
 
         // Consolidate multiple underscores into one
-        $snake = preg_replace('/_+/', '_', $snake);
+        $snake = preg_replace('/_+/', '_', $snake) ?? '';
 
         // Convert to uppercase and return the result
         return strtoupper($snake);
@@ -37,7 +37,7 @@ trait StringOperations
         $cleaned = preg_replace([
             '/```[\s\S]*?```/m', // multi-line code blocks: ```code```
             '/`{1,2}(.*?)`{1,2}/', // single-line code: `inline code`
-        ], '', $input);
+        ], '', $input) ?? '';
 
         // remove all HTML tags
         $cleaned = strip_tags($cleaned);
@@ -54,13 +54,13 @@ trait StringOperations
             '/^\d+\.\s+(.*)$/m',     // Ordered list: 1. item
             '/\|.*?\|/m',            // Table rows: | col1 | col2 |
             '/-{3,}/',               // Horizontal rules: ---
-        ], '$1', $cleaned);
+        ], '$1', $cleaned) ?? '';
 
         // allowed characters: letters, numbers, spaces, common punctuation
-        $cleaned = preg_replace('/[^\p{L}\p{N}\s.,!?;:\'\"-]/u', '', $cleaned);
+        $cleaned = preg_replace('/[^\p{L}\p{N}\s.,!?;:\'\"-]/u', '', $cleaned) ?? '';
 
         // normalize multiple spaces to one
-        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned) ?? '';
         return strtolower(trim($cleaned));
     }
 }

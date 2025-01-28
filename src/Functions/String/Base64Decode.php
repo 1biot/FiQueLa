@@ -20,9 +20,4 @@ class Base64Decode extends SingleFieldFunction
             )
         );
     }
-
-    public function getName(): string
-    {
-        return 'FROM_BASE64';
-    }
 }

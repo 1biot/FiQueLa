@@ -29,7 +29,7 @@ final class Provider
     public static function fromFileQuery(string $fileQuery): Interface\Query
     {
         $queryPath = new FileQuery($fileQuery);
-        $stream = self::fromFile($queryPath->file, $queryPath->extension);
+        $stream = self::fromFile($queryPath->file ?? '', $queryPath->extension);
         if ($queryPath->query === null) {
             return $stream;
         }

@@ -86,7 +86,6 @@ trait Joinable
     private function joinsToString(): string
     {
         $joinStrings = [];
-
         foreach ($this->joins as $join) {
             $tableString = PHP_EOL . sprintf(
                 '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
@@ -94,7 +93,7 @@ trait Joinable
             );
             $alias = $join['alias'] ? ' AS ' . $join['alias'] : '';
             $condition = $join['leftKey'] && $join['rightKey']
-                ? sprintf('%s %s %s', $join['leftKey'], $join['operator']->value, $join['rightKey'])
+                ? sprintf('%s %s %s', $join['leftKey'], $join['operator']->value ?? '', $join['rightKey'])
                 : '[No Condition]';
 
             $joinStrings[] = PHP_EOL . sprintf(

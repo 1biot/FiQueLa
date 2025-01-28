@@ -44,7 +44,7 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             $fileQuery = new Query\FileQuery($this->nextToken());
-            $stream = Stream\Provider::fromFile($fileQuery->file, $fileQuery->extension);
+            $stream = Stream\Provider::fromFile($fileQuery->file ?? '', $fileQuery->extension);
             break;
         }
 
@@ -175,7 +175,7 @@ class Sql extends SqlLexer implements Interface\Parser
 
     private function getFunction(string $token): string
     {
-        return preg_replace('/(\b(?!_)[A-Z0-9_]{2,}(?<!_))\(.*?\)/i', '$1', $token);
+        return preg_replace('/(\b(?!_)[A-Z0-9_]{2,}(?<!_))\(.*?\)/i', '$1', $token) ?? '';
     }
 
     /**

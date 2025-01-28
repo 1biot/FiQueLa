@@ -114,7 +114,7 @@ trait Conditions
             throw new Exception\UnexpectedValueException('No group to end');
         }
 
-        $this->currentGroup = $this->currentGroup->getParent();
+        $this->currentGroup = $this->currentGroup->getParent() ?? $this->whereConditions;
         return $this;
     }
 

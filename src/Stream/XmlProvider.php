@@ -139,7 +139,7 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
         // If the element has no children and attributes, return a simple value
         $value = trim((string) $element);
         if ($value !== '' && empty($result)) {
-            return Enum\Type::matchByString($value);
+            return Enum\Type::castValue($value, Enum\Type::STRING);
         }
 
         // If the element has children or attributes but also a text value, add it as 'value'

@@ -10,7 +10,7 @@
 ![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_171-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_596-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPStan_7-16_errors-orange)
+![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
 like **XML**, **CSV**, **JSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,
@@ -296,7 +296,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
-- [ ] **PHPStan 7**: Fix all PHPStan 7 errors.
+- [ ] **PHPStan 8**: Fix all PHPStan 8 errors.
 - [ ] **Tests**: Increase test coverage.
 - [ ] **Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.

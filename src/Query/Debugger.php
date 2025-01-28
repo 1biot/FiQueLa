@@ -220,9 +220,12 @@ class Debugger
         self::echoLine($colorCallback(self::echoBold(str_repeat('=', strlen($text)))), 0);
     }
 
-    public static function echoLineNameValue(string $name, mixed $value, int $beginCharRepeat = 1): void
-    {
-        self::echoLine(sprintf('%s: %s', self::echoBold($name), self::echoCyan($value)), $beginCharRepeat);
+    public static function echoLineNameValue(
+        string $name,
+        string|bool|float|int|null $value,
+        int $beginCharRepeat = 1
+    ): void {
+        self::echoLine(sprintf('%s: %s', self::echoBold($name), self::echoCyan((string) $value)), $beginCharRepeat);
     }
 
     public static function echoLine(string $text, int $beginCharRepeat = 1): void
