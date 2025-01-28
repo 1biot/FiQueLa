@@ -64,7 +64,7 @@ This method stops the debugger and outputs the final results.
 Debugger::end();
 ```
 
-For more information about inspecting queries and benchmarking, see the [examples](#8-examples)
+For more information about inspecting queries and benchmarking, see the [examples](../README.md#6-examples)
 
 ## Next steps
 - [Opening Files](opening-files.md)
