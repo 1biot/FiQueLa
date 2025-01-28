@@ -19,7 +19,7 @@ class ConcatWS extends MultipleFieldsFunction
     {
         $result = [];
         foreach ($this->fields as $field) {
-            $field = trim($field);
+            $field = preg_match('/^\s+$/', $field) ? $field : trim($field);
             $result[] = $this->getFieldValue($field, $item, $resultItem) ?? $field;
         }
         return implode($this->separator, $result);

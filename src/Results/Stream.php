@@ -414,7 +414,10 @@ class Stream extends ResultsProvider
                     usort($data, function ($a, $b) use ($field) {
                         $valA = $a[$field] ?? '';
                         $valB = $b[$field] ?? '';
-                        return strnatcmp((string)$valA, (string)$valB);
+                        return strnatcmp(
+                            Enum\Type::castValue($valA, Enum\Type::STRING),
+                            Enum\Type::castValue($valB, Enum\Type::STRING),
+                        );
                     });
                     break;
 

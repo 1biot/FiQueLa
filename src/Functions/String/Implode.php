@@ -19,7 +19,7 @@ class Implode extends SingleFieldFunction
      */
     public function __invoke(array $item, array $resultItem): mixed
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
         if (!is_array($value)) {
             throw new UnexpectedValueException(sprintf('Field "%s" is not an array', $this->field));
         }

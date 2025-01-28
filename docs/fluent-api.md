@@ -83,8 +83,8 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->reverse('name')->as('REVERSE')
     ->explode('Partner_Article', '|')->as('EXPLODE')
     ->implode('categories[]->id', '|')->as('IMPLODE')
-    ->fromBase64('base64String')->as('FROM_BASE64')
-    ->toBase64('string')->as('TO_BASE64')
+    ->fromBase64('base64String')->as('BASE64_ENCODE')
+    ->toBase64('string')->as('BASE64_DECODE')
     ->randomString(16)->as('RANDOM_STRING');
 ```
 

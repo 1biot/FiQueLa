@@ -233,7 +233,13 @@ class Sql extends SqlLexer implements Interface\Parser
                     $arguments
                 )
             ),
-            'CONCAT_WS' => $query->concatWithSeparator((string) ($arguments[0] ?? ''), ...array_slice($arguments, 1)),
+            'CONCAT_WS' => $query->concatWithSeparator(
+                (string) ($arguments[0] ?? ''),
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    array_slice($arguments, 1)
+                )
+            ),
             'EXPLODE' => $query->explode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
             'IMPLODE' => $query->implode((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
             'LENGTH' => $query->length((string) ($arguments[0] ?? '')),
@@ -243,8 +249,18 @@ class Sql extends SqlLexer implements Interface\Parser
             'UPPER' => $query->upper((string) ($arguments[0] ?? '')),
 
             // utils
-            'COALESCE' => $query->coalesce(...$arguments),
-            'COALESCE_NE' => $query->coalesceNotEmpty(...$arguments),
+            'COALESCE' => $query->coalesce(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
+            'COALESCE_NE' => $query->coalesceNotEmpty(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };

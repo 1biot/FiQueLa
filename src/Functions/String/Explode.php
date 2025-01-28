@@ -19,11 +19,9 @@ class Explode extends SingleFieldFunction
      */
     public function __invoke(array $item, array $resultItem): mixed
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? null;
+        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
         if (!is_string($value) && $value !== null) {
             throw new UnexpectedValueException(sprintf('Field "%s" is not a string', $this->field));
-        } elseif ($value === null) {
-            return [];
         } elseif ($this->separator === '') {
             return str_split($value);
         }

@@ -134,25 +134,25 @@ SELECT
 | `REVERSE`       | Reverse string.                       |
 | `EXPLODE`       | Split string to array.                |
 | `IMPLODE`       | Join array to string.                 |
-| `FROM_BASE64`   | Decode base64 string.                 |
-| `TO_BASE64`     | Encode string to base64.              |
+| `BASE64_ENCODE` | Decode base64 string.                 |
+| `BASE64_DECODE` | Encode string to base64.              |
 | `RANDOM_STRING` | Generates random string.              |
 
 **Examples:**
 
 ```sql
 SELECT
-  CONCAT('Hello', ' ', 'World') AS greeting,
-  LENGTH('Hello World') AS length,
-  LOWER('Hello World') AS lower,
-  UPPER('Hello World') AS upper,
-  REVERSE('Hello World') AS reverse,
-  EXPLODE('Hello World', ' ') AS explode,
-  IMPLODE(explode, ' ') AS implode,
-  FROM_BASE64('SGVsbG8gV29ybGQ=') AS fromBase64,
-  TO_BASE64('Hello World') AS toBase64,
-  RANDOM_STRING(10) AS randomString
-FROM [jsonFile](./examples/data/products.tmp).data.products
+    CONCAT('Hello', ' ', 'World') AS greeting,
+    LENGTH('Hello World') AS length,
+    LOWER('Hello World') AS lower,
+    UPPER('Hello World') AS upper,
+    REVERSE('Hello World') AS reverse,
+    EXPLODE('Hello World', ' ') AS explode,
+    IMPLODE(explode, ' ') AS implode,
+    BASE64_ENCODE('SGVsbG8gV29ybGQ=') AS fromBase64,
+    BASE64_DECODE('Hello World') AS toBase64,
+    RANDOM_STRING(10) AS randomString
+FROM [json](./examples/data/products.tmp).data.products
 ```
 
 ### Utils functions

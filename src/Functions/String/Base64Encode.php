@@ -13,12 +13,12 @@ class Base64Encode extends SingleFieldFunction
      */
     public function __invoke(array $item, array $resultItem): mixed
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem);
-        if ($value === null) {
-            return null;
-        }
-
-        return base64_encode(Type::castValue($value, Type::STRING));
+        return base64_encode(
+            Type::castValue(
+                $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field,
+                Type::STRING
+            )
+        );
     }
 
     public function getName(): string
