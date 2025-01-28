@@ -11,7 +11,6 @@ Fluent API is a way to build queries in a more readable and maintainable way. It
 * _5_ - [Grouping and Aggregations](#vb-aggregations-and-functions)
 * _6_ - [Sorting and Filtering](#vc-sorting-and-filtering)
 * _7_ - [Pagination and Limits](#vd-pagination-and-limits)
-* _8_ - [Examples](#vi-examples)
 
 ## 1. Select and Alias Fields
 
@@ -346,5 +345,7 @@ $query->page(2, perPage: 20);
 - Fluent API
 - [File Query Language](file-query-language.md)
 - [Fetching Data](fetching-data.md)
+- [Query Life Cycle](query-life-cycle.md)
+- [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
 
 or go back to [README.md](../README.md).

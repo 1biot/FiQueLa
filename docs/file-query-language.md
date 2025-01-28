@@ -397,5 +397,7 @@ OFFSET 5
 - [Fluent API](fluent-api.md)
 - File Query Language
 - [Fetching Data](fetching-data.md)
+- [Query Life Cycle](query-life-cycle.md)
+- [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
 
 or go back to [README.md](../README.md).

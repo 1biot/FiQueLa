@@ -34,12 +34,16 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 - [Supported Formats](#3-supported-formats)
 - [Getting Started](#4-getting-started)
 - [Documentation](#5-documentation)
-- [Query Life Cycle](#6-query-life-cycle)
-- [Query Inspection and Benchmarking](#7-query-inspection-and-benchmarking)
-- [Examples](#8-examples)
-- [Knowing issues](#9-knowing-issues)
-- [Planning Features](#10-planning-features)
-- [Contributions](#11-contributions)
+  - [Opening Files](docs/opening-files.md)
+  - [Fluent API](docs/fluent-api.md)
+  - [File Query Language](docs/file-query-language.md)
+  - [Fetching Data](docs/fetching-data.md)
+  - [Query Life Cycle](docs/query-life-cycle.md)
+  - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
+- [Examples](#6-examples)
+- [Knowing issues](#7-knowing-issues)
+- [Planning Features](#8-planning-features)
+- [Contributions](#9-contributions)
 
 ## 1. Overview
 
@@ -139,7 +143,6 @@ Array
 )
 ```
 
-
 ## 5. Documentation
 
 For more details about **F**i**Q**ue**L**a and her capabilities, explore the documentation sections.
@@ -148,143 +151,14 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [Fluent API](docs/fluent-api.md)
 - [File Query Language](docs/file-query-language.md)
 - [Fetching Data](docs/fetching-data.md)
+- [Query Life Cycle](docs/query-life-cycle.md)
+- [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 
-## 6. Query Life Cycle
 
-1) **FROM** and **JOIN**:
-    - Data are loaded from the sources specified in the `FROM` clause.
-    - If `JOIN` is present, data is combined based on the join conditions.
-2) **WHERE**:
-    - Filters rows based on conditions specified in the `WHERE` clause.
-    - Filtering happens at the raw data level before any grouping or calculations.
-3) **DISTINCT**:
-    - If the `DISTINCT` clause is used, duplicate rows are removed based on the specified columns.
-    - `DISTINCT` is skipped if a `GROUP BY` clause is present, as grouping inherently eliminates duplicates.
-4) **GROUP BY**:
-    - Data is grouped based on the columns specified in the `GROUP BY` clause.
-    - This prepares grouped data for aggregate functions like `SUM`, `COUNT`, `AVG`, etc.
-5) **SELECT**:
-    - Columns, expressions, and aggregate functions defined in the `SELECT` clause are processed.
-    - The output includes either aggregated data or individual columns.
-6) **HAVING**:
-    - Filters the results produced by the `SELECT` clause.
-    - Primarily used to filter grouped data after aggregation.
-7) **ORDER BY**:
-    - Results are sorted based on the specified columns or expressions.
-    - Sorting can be in ascending (`ASC`), descending (`DESC`) or shuffled (`SHUFFLE`) and naturally sorted (`NATSORT`) order.
-8) **LIMIT** and **OFFSET**:
-    - Limits the number of rows returned by the query using `LIMIT`.
-    - If `OFFSET` is present, it skips a specified number of rows before returning the results.
+## 6. Examples
 
-> ⚠️ Functions can only be utilized in the `SELECT` clause. To filter results based on a function's value, use the `HAVING`
-clause, and to sort results, use the `ORDER BY` clause. In both `HAVING` and `ORDER BY`, the function can only be
-referenced by its alias.
-___
-
-**Example Query Execution**:
-
-For the query:
-
-```sql
-SELECT
-    name,
-    SUM(sales) AS total_sales
-FROM (customers.xml).customers.customer
-WHERE age > 30
-GROUP BY name
-HAVING total_sales > 1000
-ORDER BY total_sales DESC
-LIMIT 10;
-```
-
-**Execution Order**:
-1) **FROM** and **JOIN**:
-   - Data are loaded from the employees file `customers.xml`. And using `customers.customer` as path.
-2) **WHERE**:
-   - Filters rows where `age > 30`.
-3) **GROUP BY**:
-   - Groups data by the `name` column.
-4) **SELECT**:
-   - Processes grouped data and calculates `SUM(sales)` for each group.
-5) **HAVING**:
-   - Filters groups where `total_sales > 1000`.
-6) **ORDER BY**:
-   - Sorts results by `total_sales` in descending order.
-7) **LIMIT**:
-   - Returns only the top 10 rows.
-
-### 7. Query Inspection and Benchmarking
-
-If you want use inspecting and benchmarking queries, you need to use `FQL\Query\Debugger` class. Dumping variables and
-cli output require `tracy/tracy` package if you are not using it, you can install it by:
-
-```bash
-composer require --dev tracy/tracy
-```
-
-Start debugger at the beginning of your script.
-
-```php
-use FQL\Query\Debugger;
-
-Debugger::start();
-```
-
-#### Inspect Queries
-You can inspect your query for mor information about execution time, memory usage, SQL query and results.
-
-```php
-use FQL\Stream\Xml;
-
-$ordersFile = Xml::open(__DIR__ . '/data/orders.xml');
-$query = $ordersFile->query()
-    ->select('id')->as('orderId')
-    ->select('user_id')->as('userId')
-    ->select('total_price')->as('totalPrice')
-    ->from('orders.order');
-
-Debugger::inspectQuery($query);
-```
-
-Or inspect query string which shows different between input SQL and applied SQL
-
-```php
-Debugger::inspectQuerySql(
-    $ordersFile,
-    "SELECT id, user_id, total_price FROM orders.order"
-);
-```
-
-#### Benchmarking
-
-You can benchmark your queries and test their performance through the number of iterations.
-
-```php
-use FQL\Stream\Xml;
-
-$query = Xml::open(__DIR__ . '/data/orders.xml')->query()
-    ->select('id')->as('orderId')
-    ->select('user_id')->as('userId')
-    ->select('total_price')->as('totalPrice')
-    ->from('orders.order')
-
-Debugger::benchmarkQuery($query, 1000);
-```
-
-#### Final results
-
-This method stops the debugger and outputs the final results. 
-
-```php
-Debugger::end();
-```
-
-For more information about inspecting queries and benchmarking, see the [examples](#8-examples)
-
-## 8. Examples
-
-Check the examples and run them using Composer. All examples uses `\FQL\Helpers\Debugger` and methods `inspectQuery` or
-`inspectQuerySql` or `benchmarkQuery` to show the results.
+Check the examples and run them using Composer. All examples uses `\FQL\Query\Debugger` and methods
+`inspectQuery`, `inspectSql`, `inspectStreamSql` or `benchmarkQuery` to show the results.
 
 ```bash
 composer examples
@@ -298,7 +172,8 @@ composer example:xml
 composer example:yaml
 ```
 
-Runs `composer example:csv` and output will look like this:
+Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/runs/12992585648/job/36232767074) or run
+`composer example:csv` and output will look like this:
 
 ```
 =========================
@@ -410,12 +285,12 @@ array (7)
 > Final execution time (µs): 10138434
 ```
 
-## 9. Knowing issues
+## 7. Knowing issues
 
 - ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 
-## 10. Planning Features
+## 8. Planning Features
 
 - [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
 - [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
@@ -427,7 +302,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...).
 
-## 11. Contributions
+## 9. Contributions
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
 

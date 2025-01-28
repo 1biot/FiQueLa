@@ -148,6 +148,8 @@ _public_ **render(**_bool_`$spaces = false` **):**`string`
 
 `FQL\Interface\Query`
 
+
+
 ### Result
 
 `FQL\Interface\Result`
@@ -168,7 +170,9 @@ _public_ **render(**_bool_`$spaces = false` **):**`string`
 - [Fluent API](fluent-api.md)
 - [File Query Language](file-query-language.md)
 - [Fetching data](fetching-data.md)
-- [API Reference](api-reference.md)
+- [Query Life Cycle](query-life-cycle.md)
+- [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
+- API Reference
 
 or go back to [README.md](../README.md).
 
