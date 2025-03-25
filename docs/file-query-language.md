@@ -361,7 +361,7 @@ HAVING
 
 ```sql
 order_type_expr:
-    [ASC | DESC | SHUFFLE | NATSORT]
+    [ASC | DESC ]
 
 [ORDER BY order_expr order_type_expr [, order_expr order_type_expr ...]]
 ```
@@ -372,8 +372,6 @@ order_type_expr:
 |---------------|--------------|
 | `ASC`         | Ascending    |
 | `DESC`        | Descending   |
-| `SHUFFLE`     | Shuffling    |
-| `NATSORT`     | Natural sort |
 
 **Example:**
 
@@ -387,8 +385,7 @@ SELECT
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ORDER BY
     productCount DESC,
-    totalPrice ASC,
-    randomString SHUFFLE
+    totalPrice ASC
 ```
 
 ## 9. Pagination and Limits

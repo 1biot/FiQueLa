@@ -337,8 +337,6 @@ Use the `orderBy()` method to sort the data in your query results. You can use t
 |------------|--------------|
 | `ASC`      | Ascending    |
 | `DESC`     | Descending   |
-| `SHUFFLE`  | Shuffling    |
-| `NATSORT`  | Natural sort |
 
 **Example:**
 
@@ -347,9 +345,7 @@ use FQL\Enum\Sort;
 
 $query->randomString(16)->as('RANDOM_STRING')
     ->orderBy('price', Sort::ASC)
-    ->orderBy('name', Sort::DESC)
-    ->orderBy('RANDOM_STRING')->shuffle()
-    ->orderBy('id')->natural();
+    ->orderBy('name', Sort::DESC);
 ```
 
 ## 7. Pagination

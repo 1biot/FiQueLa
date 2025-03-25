@@ -400,38 +400,29 @@ class Stream extends ResultsProvider
         }
 
         $data = iterator_to_array($iterator);
-        foreach ($this->orderings as $field => $type) {
-            switch ($type) {
-                case Enum\Sort::ASC:
-                    usort($data, fn($a, $b) => ($a[$field] ?? null) <=> ($b[$field] ?? null));
-                    break;
+        usort($data, function ($a, $b): int {
+            foreach ($this->orderings as $field => $type) {
+                $valA = $a[$field] ?? null;
+                $valB = $b[$field] ?? null;
 
-                case Enum\Sort::DESC:
-                    usort($data, fn($a, $b) => ($b[$field] ?? null) <=> ($a[$field] ?? null));
-                    break;
+                $cmp = match ($type) {
+                    Enum\Sort::ASC => ($valA <=> $valB),
+                    Enum\Sort::DESC => ($valB <=> $valA),
+                };
 
-                case Enum\Sort::NATSORT:
-                    usort($data, function ($a, $b) use ($field) {
-                        $valA = $a[$field] ?? '';
-                        $valB = $b[$field] ?? '';
-                        return strnatcmp(
-                            Enum\Type::castValue($valA, Enum\Type::STRING),
-                            Enum\Type::castValue($valB, Enum\Type::STRING),
-                        );
-                    });
-                    break;
-
-                case Enum\Sort::SHUFFLE:
-                    shuffle($data);
-                    break;
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
             }
-        }
 
-        $stream = new \ArrayIterator($data);
-        foreach ($stream as $item) {
+            return 0;
+        });
+
+        foreach ($data as $item) {
             yield $item;
         }
     }
+
 
     private function applyLimit(\Generator $data): \Generator
     {

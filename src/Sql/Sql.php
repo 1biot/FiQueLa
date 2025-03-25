@@ -308,6 +308,9 @@ class Sql extends SqlLexer implements Interface\Parser
 
             $operator = Enum\Operator::fromOrFail($upperOperator);
             $value = Enum\Type::matchByString($this->nextToken());
+            $value = $operator === Enum\Operator::IS
+                ? Enum\Type::from($value)
+                : $value;
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
                 $firstIter = false;
@@ -352,8 +355,6 @@ class Sql extends SqlLexer implements Interface\Parser
             $direction = match ($directionString) {
                 'ASC' => Enum\Sort::ASC,
                 'DESC' => Enum\Sort::DESC,
-                'SHUFFLE' => Enum\Sort::SHUFFLE,
-                'NATSORT' => Enum\Sort::NATSORT,
                 default => throw new Exception\SortException(sprintf('Invalid direction %s', $directionString)),
             };
             $query->orderBy($field, $direction);

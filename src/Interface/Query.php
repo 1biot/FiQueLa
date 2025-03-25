@@ -516,8 +516,6 @@ interface Query extends \Stringable
     public function sortBy(string $field, Sort $direction = Sort::ASC): Query;
     public function asc(): Query;
     public function desc(): Query;
-    public function natural(): Query;
-    public function shuffle(): Query;
 
     public function offset(int $offset): Query;
     public function limit(int $limit, ?int $offset = null): Query;

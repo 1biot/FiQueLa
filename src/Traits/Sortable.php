@@ -38,16 +38,6 @@ trait Sortable
         return $this->setLastSortType(Enum\Sort::DESC);
     }
 
-    public function natural(): Query
-    {
-        return $this->setLastSortType(Enum\Sort::NATSORT);
-    }
-
-    public function shuffle(): Query
-    {
-        return $this->setLastSortType(Enum\Sort::SHUFFLE);
-    }
-
     public function clearOrderings(): Query
     {
         $this->orderings = [];
