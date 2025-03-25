@@ -262,6 +262,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 )
             ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
+            'MATCH' => $this->processMatchFunction($query, $arguments),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
     }
@@ -294,16 +295,18 @@ class Sql extends SqlLexer implements Interface\Parser
             // Parse a single condition
             $field = $this->nextToken();
             $operator = $this->nextToken();
-            if (in_array($operator, ['IS', 'NOT', 'LIKE', 'IN'])) {
+            $upperOperator = mb_strtoupper($operator);
+            if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN'])) {
                 $nextToken = $this->nextToken();
-                if (in_array($nextToken, ['NOT', 'LIKE', 'IN'])) {
+                $upperNextToken = mb_strtoupper($nextToken);
+                if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN'])) {
                     $operator .= ' ' . $nextToken;
                 } else {
                     $this->rewindToken();
                 }
             }
 
-            $operator = Enum\Operator::fromOrFail($operator);
+            $operator = Enum\Operator::fromOrFail($upperOperator);
             $value = Enum\Type::matchByString($this->nextToken());
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
@@ -355,5 +358,43 @@ class Sql extends SqlLexer implements Interface\Parser
             };
             $query->orderBy($field, $direction);
         }
+    }
+
+    /**
+     * @param string[] $arguments
+     */
+    private function processMatchFunction(Interface\Query $query, array $arguments): void
+    {
+        $againstFunction = $this->getFunction($this->peekToken());
+        if (mb_strtoupper($againstFunction) !== 'AGAINST') {
+            throw new Exception\QueryLogicException('Expected AGAINST keyword');
+        }
+
+        $againstArguments = $this->getFunctionArguments($this->peekToken());
+        if (count($againstArguments) !== 1) {
+            throw new Exception\QueryLogicException('Unexpected number of arguments for AGAINST');
+        }
+
+        $fulltextArguments = $this->parseSearchMode($againstArguments[0]);
+        if ($fulltextArguments[0] === null) {
+            throw new Exception\QueryLogicException('Empty search query');
+        }
+
+        $query->matchAgainst($arguments, $fulltextArguments[0], $fulltextArguments[1]);
+        $this->nextToken();
+    }
+
+    /**
+     * @return array{0: string|null, 1: Enum\Fulltext}
+     */
+    private function parseSearchMode(string $input): array
+    {
+        $pattern = '/^([\'"])(.*?)\1\s+IN\s+(NATURAL|BOOLEAN)\s+MODE$/i';
+        if (!preg_match($pattern, $input, $matches)) {
+            throw new Exception\QueryLogicException('Invalid AGAINST syntax');
+        }
+
+        $searchQuery = trim($matches[2]);
+        return [$searchQuery === '' ? null : $searchQuery, Enum\Fulltext::from($matches[3])];
     }
 }

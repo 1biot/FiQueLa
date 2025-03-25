@@ -124,19 +124,20 @@ SELECT
 
 ### String functions
 
-| Function        | Description                           |
-|-----------------|---------------------------------------|
-| `CONCAT`        | Concatenate values with no separator. |
-| `CONCAT_WS`     | Concatenate values with separator.    |
-| `LENGTH`        | Get length of string.                 |
-| `LOWER`         | Convert string to lower case.         |
-| `UPPER`         | Convert string to upper case.         |
-| `REVERSE`       | Reverse string.                       |
-| `EXPLODE`       | Split string to array.                |
-| `IMPLODE`       | Join array to string.                 |
-| `BASE64_ENCODE` | Decode base64 string.                 |
-| `BASE64_DECODE` | Encode string to base64.              |
-| `RANDOM_STRING` | Generates random string.              |
+| Function                  | Description                           |
+|---------------------------|---------------------------------------|
+| `CONCAT`                  | Concatenate values with no separator. |
+| `CONCAT_WS`               | Concatenate values with separator.    |
+| `LENGTH`                  | Get length of string.                 |
+| `LOWER`                   | Convert string to lower case.         |
+| `UPPER`                   | Convert string to upper case.         |
+| `REVERSE`                 | Reverse string.                       |
+| `EXPLODE`                 | Split string to array.                |
+| `IMPLODE`                 | Join array to string.                 |
+| `BASE64_ENCODE`           | Decode base64 string.                 |
+| `BASE64_DECODE`           | Encode string to base64.              |
+| `RANDOM_STRING`           | Generates random string.              |
+| `MATCH(...) AGAINST(...)` | Simple fulltext score matching        |
 
 **Examples:**
 
@@ -151,8 +152,29 @@ SELECT
     IMPLODE(explode, ' ') AS implode,
     BASE64_ENCODE('SGVsbG8gV29ybGQ=') AS fromBase64,
     BASE64_DECODE('Hello World') AS toBase64,
-    RANDOM_STRING(10) AS randomString
+    RANDOM_STRING(10) AS randomString,
+    MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
 FROM [json](./examples/data/products.tmp).data.products
+```
+
+#### Fulltext search
+
+```sql
+MATCH(field[, field ...]) AGAINST('search_query' [IN [NATURAL | BOOLEAN] MODE])
+```
+
+Fulltext search is a special function for searching in text fields. It uses the `MATCH` and `AGAINST` functions.
+Supports two modes: `NATURAL` and `BOOLEAN`. Result is a score of the match and you can use it for filtering and sorting. 
+
+```sql
+SELECT
+    id,
+    name,
+    description,
+    MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
+FROM [json](./examples/data/products.tmp).data.products
+HAVING _score > 0.5
+ORDER BY _score DESC
 ```
 
 ### Utils functions
@@ -278,8 +300,7 @@ value_expr:
 - _**comparison_operator**_: is an operator for comparing values.
 - _**expr**_: is a combination of _**field_expr**_, _**comparison_operator**_ and _**value_expr**_.
 
-> ⚠️ **FQL** still does not support parentheses and some _**comparison_operator**_
-`IN`, `NOT IN`, `IS`, `IS NOT`, `LIKE` and `NOT LIKE`.
+> ⚠️ **FQL** still does not support parentheses.
 
 **Example:**
 

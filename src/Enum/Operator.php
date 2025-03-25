@@ -104,14 +104,12 @@ enum Operator: string
 
     private function evaluateLike(mixed $left, mixed $right): bool
     {
-        if (str_starts_with($right, '%') && str_ends_with($right, '%')) {
-            return str_contains($left, substr($right, 1, -1));
-        } elseif (str_starts_with($right, '%')) {
-            return str_ends_with($left, substr($right, 1));
-        } elseif (str_ends_with($right, '%')) {
-            return str_starts_with($left, substr($right, 0, -1));
-        } else {
-            return $left === $right;
+        if (!is_string($left) || !is_string($right)) {
+            return false;
         }
+
+        $escaped = preg_quote($right, '/');
+        $pattern = str_replace(['%', '_'], ['.*', '.'], $escaped);
+        return (bool) preg_match('/^' . $pattern . '$/i', $left);
     }
 }

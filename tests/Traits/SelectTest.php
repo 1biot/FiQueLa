@@ -139,10 +139,10 @@ class SelectTest extends TestCase
         $this->assertEquals('UPPER(name)', $selectedFields['upperName']['originField']);
         $this->assertEquals('SHA1(name)', $selectedFields['sha1Name']['originField']);
         $this->assertEquals('MD5(name)', $selectedFields['md5Name']['originField']);
-        $this->assertEquals('IMPLODE("/", name)', $selectedFields['implodeNameParts']['originField']);
-        $this->assertEquals('IMPLODE(",", name)', $selectedFields['glueNameParts']['originField']);
-        $this->assertEquals('EXPLODE(" ", name)', $selectedFields['nameParts']['originField']);
-        $this->assertEquals('EXPLODE(",", name)', $selectedFields['splitsNameParts']['originField']);
+        $this->assertEquals('IMPLODE(name, "/")', $selectedFields['implodeNameParts']['originField']);
+        $this->assertEquals('IMPLODE(name, ",")', $selectedFields['glueNameParts']['originField']);
+        $this->assertEquals('EXPLODE(name, " ")', $selectedFields['nameParts']['originField']);
+        $this->assertEquals('EXPLODE(name, ",")', $selectedFields['splitsNameParts']['originField']);
         $this->assertEquals('COALESCE(id, name, price)', $selectedFields['coalesced']['originField']);
         $this->assertEquals('COALESCE_NE(id, name, price)', $selectedFields['coalescedNE']['originField']);
         $this->assertEquals('CONCAT_WS(" ", name, price)', $selectedFields['concatenatedWS']['originField']);

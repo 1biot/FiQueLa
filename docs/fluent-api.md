@@ -58,19 +58,20 @@ result of the function.
 
 ### String functions
 
-| Function       | Description                           |
-|----------------|---------------------------------------|
-| `concat`       | Concatenate values with no separator. |
-| `concatWS`     | Concatenate values with separator.    |
-| `length`       | Get length of string.                 |
-| `lower`        | Convert string to lower case.         |
-| `upper`        | Convert string to upper case.         |
-| `reverse`      | Reverse string.                       |
-| `explode`      | Split string to array.                |
-| `implode`      | Join array to string.                 |
-| `fromBase64`   | Decode base64 string.                 |
-| `toBase64`     | Encode string to base64.              |
-| `randomString` | Generates random string.              |
+| Function       | Description                              |
+|----------------|------------------------------------------|
+| `concat`       | Concatenate values with no separator.    |
+| `concatWS`     | Concatenate values with separator.       |
+| `length`       | Get length of string.                    |
+| `lower`        | Convert string to lower case.            |
+| `upper`        | Convert string to upper case.            |
+| `reverse`      | Reverse string.                          |
+| `explode`      | Split string to array.                   |
+| `implode`      | Join array to string.                    |
+| `fromBase64`   | Decode base64 string.                    |
+| `toBase64`     | Encode string to base64.                 |
+| `randomString` | Generates random string.                 |
+| `matchAgainst` | Create a score by matching against query |
 
 **Example:**
 
@@ -85,7 +86,8 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->implode('categories[]->id', '|')->as('IMPLODE')
     ->fromBase64('base64String')->as('BASE64_ENCODE')
     ->toBase64('string')->as('BASE64_DECODE')
-    ->randomString(16)->as('RANDOM_STRING');
+    ->randomString(16)->as('RANDOM_STRING')
+    ->matchAgainst(['name'], 'search query')->as('MATCH_AGAINST');
 ```
 
 ### Utils functions
@@ -135,6 +137,34 @@ $query->ceil('price')->as('CEIL')
     ->modulo('price', 2)->as('MOD')
     ->round('price', 1)->as('ROUND');
 ```
+
+### Custom functions
+
+You can create your own custom functions by extending the `\FQL\Functions\Core\SingleFieldFunction`
+or `\FQL\Functions\Core\MultiFieldFunction` or `\FQL\Functions\Core\NoFieldFunction` classes.
+
+**Example:**
+
+```php
+use FQL\Functions\Core\SingleFieldFunction;
+
+class CustomFunction extends SingleFieldFunction
+{
+    public function __invoke(array $item, array $resultItem): mixed
+    {
+        $fieldValue = (string) $this->getFieldValue($this->field, $item, $resultItem);
+        return $fieldValue . '_custom';
+    }
+    
+    public function __toString(): string
+    {
+        return sprintf('myCustomFunction(%s)', $this->field);
+    }
+}
+
+$query->custom(new CustomFunction('name'))->as('CUSTOM');
+```
+
 
 ## 3. Joining Data Sources
 

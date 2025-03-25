@@ -2,8 +2,8 @@
 
 namespace FQL\Traits;
 
+use FQL\Enum;
 use FQL\Exception;
-use FQL\Exception\UnexpectedValueException;
 use FQL\Functions;
 use FQL\Functions\Core;
 use FQL\Interface;
@@ -87,6 +87,12 @@ trait Select
 
         $this->addField($select, $alias, $function);
         return $this;
+    }
+
+    public function custom(
+        Core\MultipleFieldsFunction|Core\NoFieldFunction|Core\SingleFieldFunction $function
+    ): Interface\Query {
+        return $this->addFieldFunction($function);
     }
 
     public function concat(string ...$fields): Interface\Query
@@ -184,7 +190,7 @@ trait Select
     {
         try {
             return $this->addFieldFunction(new Functions\Math\Mod($field, $divisor));
-        } catch (UnexpectedValueException $e) {
+        } catch (Exception\UnexpectedValueException $e) {
             throw new Exception\SelectException($e->getMessage());
         }
     }
@@ -250,7 +256,7 @@ trait Select
     /**
      * @param string[] $fields
      */
-    public function matchAgainst(array $fields, string $searchQuery): Interface\Query
+    public function matchAgainst(array $fields, string $searchQuery, ?Enum\Fulltext $mode = null): Interface\Query
     {
         return $this->fulltext($fields, $searchQuery);
     }

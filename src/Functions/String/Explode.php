@@ -35,10 +35,10 @@ class Explode extends SingleFieldFunction
     public function __toString(): string
     {
         return sprintf(
-            '%s("%s", %s)',
+            '%s(%s, "%s")',
             $this->getName(),
-            $this->separator,
-            $this->field
+            $this->field,
+            $this->separator
         );
     }
 }

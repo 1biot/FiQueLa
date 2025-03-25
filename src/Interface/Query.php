@@ -2,6 +2,7 @@
 
 namespace FQL\Interface;
 
+use FQL\Enum\Fulltext;
 use FQL\Enum\LogicalOperator;
 use FQL\Enum\Operator;
 use FQL\Enum\Sort;
@@ -442,7 +443,7 @@ interface Query extends \Stringable
     /** @param string[] $fields */
     public function fulltext(array $fields, string $searchQuery): Query;
     /** @param string[] $fields */
-    public function matchAgainst(array $fields, string $searchQuery): Query;
+    public function matchAgainst(array $fields, string $searchQuery, ?Fulltext $mode = null): Query;
 
     /**
      * Specify a specific part of the data to select.
