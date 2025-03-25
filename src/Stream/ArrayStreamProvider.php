@@ -65,7 +65,7 @@ abstract class ArrayStreamProvider extends AbstractStream
                     }
 
                     // Last iteration: check if it's a list
-                    return is_array($v) ? new \ArrayIterator([$v]) : new \ArrayIterator([$key => $v]);
+                    return is_array($v) ? new \ArrayIterator($v) : new \ArrayIterator([$key => $v]);
                 }
 
                 // Other iterations: always return an iterator

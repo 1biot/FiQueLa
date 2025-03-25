@@ -361,7 +361,7 @@ class Sql extends SqlLexer implements Interface\Parser
     }
 
     /**
-     * @param string[] $arguments
+     * @param array<scalar|null> $arguments
      */
     private function processMatchFunction(Interface\Query $query, array $arguments): void
     {
@@ -375,12 +375,16 @@ class Sql extends SqlLexer implements Interface\Parser
             throw new Exception\QueryLogicException('Unexpected number of arguments for AGAINST');
         }
 
-        $fulltextArguments = $this->parseSearchMode($againstArguments[0]);
+        $fulltextArguments = $this->parseSearchMode((string) $againstArguments[0]);
         if ($fulltextArguments[0] === null) {
             throw new Exception\QueryLogicException('Empty search query');
         }
 
-        $query->matchAgainst($arguments, $fulltextArguments[0], $fulltextArguments[1]);
+        $query->matchAgainst(
+            array_map(fn ($value) => (string) $value, $arguments),
+            $fulltextArguments[0],
+            $fulltextArguments[1]
+        );
         $this->nextToken();
     }
 
