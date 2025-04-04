@@ -48,6 +48,7 @@ class Stream extends ResultsProvider
     /**
      * @implements \FQL\Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
      * @param array<string, SelectedField> $selectedFields
+     * @param string[] $excludedFields
      * @param JoinAbleArray[] $joins
      * @param string[] $groupByFields
      * @param array<string, Enum\Sort> $orderings
@@ -56,6 +57,7 @@ class Stream extends ResultsProvider
         private readonly \FQL\Interface\Stream $stream,
         private readonly bool $distinct,
         private readonly array $selectedFields,
+        private readonly array $excludedFields,
         private readonly string $from,
         private readonly BaseConditionGroup $where,
         private readonly BaseConditionGroup $havings,
@@ -246,11 +248,11 @@ class Stream extends ResultsProvider
      */
     private function applySelect(array $item): array
     {
+        $result = [];
         if ($this->selectedFields === []) {
-            return $item;
+            $result = $item;
         }
 
-        $result = [];
         foreach ($this->selectedFields as $finalField => $fieldData) {
             $fieldName = $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
@@ -269,6 +271,11 @@ class Stream extends ResultsProvider
                 $fieldData['alias'] ? $fieldData['originField'] : $finalField,
                 false
             );
+        }
+
+        // Exclude fields
+        foreach ($this->excludedFields as $excludedField) {
+            $this->removeNestedValue($result, $excludedField);
         }
 
         return $result;

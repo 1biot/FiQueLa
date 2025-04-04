@@ -21,9 +21,21 @@ trait Select
     /** @var SelectedFields $selectedFields */
     private array $selectedFields = [];
 
+    /** @var string[] $excludedFields */
+    private array $excludedFields = [];
+
     public function selectAll(): Interface\Query
     {
         $this->select(Interface\Query::SELECT_ALL);
+        return $this;
+    }
+
+    public function exclude(string ...$fields): Interface\Query
+    {
+        $this->excludedFields = array_filter(array_merge(
+            $this->excludedFields,
+            array_filter(array_map('trim', explode(',', implode(',', $fields))))
+        ));
         return $this;
     }
 
@@ -294,7 +306,7 @@ trait Select
         }
 
         if ($this->selectedFields === []) {
-            return $return . ' ' . Interface\Query::SELECT_ALL;
+            $return .= ' ' . Interface\Query::SELECT_ALL;
         }
 
         $count = count($this->selectedFields) - 1;
@@ -307,6 +319,18 @@ trait Select
 
             if ($counter++ < $count) {
                 $return .= ',';
+            }
+        }
+
+        if ($this->excludedFields !== []) {
+            $return .= PHP_EOL . Interface\Query::EXCLUDE;
+            $count = count($this->excludedFields) - 1;
+            $counter = 0;
+            foreach ($this->excludedFields as $field) {
+                $return .= ($count ? PHP_EOL . "\t" : ' ') . $field;
+                if ($counter++ < $count) {
+                    $return .= ',';
+                }
             }
         }
 

@@ -98,6 +98,19 @@ abstract class CsvProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        return sprintf('[csv](%s)', basename($this->csvFilePath));
+        $params = [];
+        if ($this->csvFilePath !== '') {
+            $params[] = basename($this->csvFilePath);
+        }
+
+        if ($this->inputEncoding !== null && $this->inputEncoding !== 'utf-8') {
+            $params[] = $this->inputEncoding;
+        }
+
+        if ($this->delimiter !== ',') {
+            $params[] = sprintf('"%s"', $this->delimiter);
+        }
+
+        return sprintf('[csv](%s)', implode(',', $params));
     }
 }

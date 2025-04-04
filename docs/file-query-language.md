@@ -57,20 +57,24 @@ ORDER BY productCount DESC
 ## 2. File Query
 
 File Query is syntax allowing you to load file in FQL string directly without using any file provider.
-It is usable for `FROM` and `JOIN` clause. File Query consists of three parts:
+It is usable for `FROM` and `JOIN` clause. File Query consists of five parts:
 
 - `format` is using for selecting concrete file format otherwise, it tries to find out from the file extension automatically.
 - `pathToFile` is a relative or absolute path to the file.
+- `encoding` is an optional parameter for specifying the encoding of the file.
+- `delimiter` is an optional parameter for specifying the delimiter of the file.
 - `path.to.data` is a doted path to the data in the file.
 
 ----
 
 * **syntax**: `[format](pathToFile).path.to.data`
-* **regexp**: `/((?<filePart>(\[(?<format>[a-zA-Z]{2,8})])?(\((?<pathToFile>[\w,\s\.\-\/]+(\.\w{2,5})?)\)))?(?<queryPart>^\*|\.?[\w*\.\-\_]{2,})?)/`
+* **regexp**: `/(?<fq>(?<filePart>(\[(?<format>[a-zA-Z]{2,8})])?(\((?<pathToFile>[\w\s\.\-\/]+(\.\w{2,5})?)(?<a>(,\s*(?<encoding>[a-zA-Z0-9\-]+))(,\s*([\'"])(?<delimiter>.)\12)?)?\)))?(?<queryPart>^\*|\.*[\w*\.\-\_]{1,})?)/`
   * _**\<filePart\>**_: part for file reference
   * _**\<format\>**_: `[a-zA-Z]{2,8}` - file format extension
-  * _**\<pathToFile\>**_: `[\w,\s\.\-\/]+(\.\w{2,5})?` - path to the file, relative or absolute
-  * _**\<queryPart\>**_: `^\*|\.?[\w*\.\-]{2,}` - path to the data in the file
+  * _**\<pathToFile\>**_: `[\w\s\.\-\/]+(\.\w{2,5})?` - path to the file, relative or absolute
+  * _**\<encoding\>**_: `[a-zA-Z0-9\-]+` - encoding of the file
+  * _**\<delimiter\>**_: `.` - encoding of the file
+  * _**\<queryPart\>**_: `^\*|\.*[\w*\.\-\_]{1,}` - path to the data in the file
 
 **Example:**
 
@@ -94,10 +98,12 @@ SQL
 SELECT
     [DISTINCT]
     select_expr [AS select_alias |, select_expr ] ...
+    [EXCLUDE excl_expr [, excl_expr] ...]
 ```
 
-- _**select_expr**_: a column name, function or user string. Supports dot notation for nested fields.
+- _**select_expr**_: is a column name, function or user string. Supports dot notation for nested fields.
 - _**select_alias**_: is an alias for the _**select_expr**_.
+- _**excl_alias**_: is an aliased column name to exclude from the result set. Supports dot notation for nested fields.
 
 **Example:**
 
@@ -107,7 +113,21 @@ SELECT
   GROUP_CONCAT(id, "/") AS products,
   SUM(price) AS totalPrice,
   COUNT(productId) AS productCount
+EXCLUDE productCount
 FROM [jsonFile](./examples/data/products.tmp).data.products
+HAVING productCount > 1
+```
+
+**Result:**
+
+In this case `productCount` is excluded from the result set but condition is still applied.
+
+```
++-----------+----------------------+------------+
+| brandCode | products             | totalPrice |
++-----------+----------------------+------------+
+| Brand A   | 1/2/3/4/5/6/7/8/9/10 | 1000       |
++-----------+----------------------+------------+
 ```
 
 ## 4. Functions

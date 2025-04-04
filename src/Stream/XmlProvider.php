@@ -162,10 +162,15 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
 
     public function provideSource(): string
     {
-        $source = '';
+        $params = [];
         if ($this->xmlFilePath !== '') {
-            $source = sprintf('[xml](%s)', basename($this->xmlFilePath));
+            $params[] = basename($this->xmlFilePath);
         }
-        return $source;
+
+        if ($this->inputEncoding !== null && $this->inputEncoding !== 'utf-8') {
+            $params[] = $this->inputEncoding;
+        }
+
+        return sprintf('[xml](%s)', implode(',', $params));
     }
 }

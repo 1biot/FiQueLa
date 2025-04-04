@@ -43,6 +43,28 @@ There is the limitation that you can only alias tha last selected field.
 $query->select('id')->as('clientId');
 ```
 
+Using `DISTINCT` will remove duplicate values from the selected fields.
+
+```php
+$query->select('id', 'name')->distinct();
+```
+
+Using `EXCLUDE` will remove the selected fields from the query results. It's useful when you're applying functions
+in the SELECT clause and don't want those fields included in the output. Dot notation is supported for nested fields.
+
+```php
+$query->select('id', 'name')
+    ->round('totalPrice', 2)->as('finalPrice')
+    ->exclude('totalPrice');
+
+// results
+// [
+//     'id' => 1,
+//     'name' => 'John Doe',
+//     'finalPrice' => 100.23 // for example, the original value of totalPrice was 100.234567, but it was excluded.
+// ]
+```
+
 **Limitation:**
 
 ```php

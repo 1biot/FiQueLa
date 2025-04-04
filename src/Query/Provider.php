@@ -29,12 +29,20 @@ final class Provider
     public static function fromFileQuery(string $fileQuery): Interface\Query
     {
         $queryPath = new FileQuery($fileQuery);
-        $stream = self::fromFile($queryPath->file ?? '', $queryPath->extension);
-        if ($queryPath->query === null) {
-            return $stream;
+        $stream = Stream\Provider::fromFile($queryPath->file ?? '', $queryPath->extension);
+        if ($queryPath->encoding && ($stream instanceof Stream\Xml || $stream instanceof Stream\Csv)) {
+            $stream->setInputEncoding($queryPath->encoding);
         }
 
-        return $stream->from($queryPath->query);
+        if ($queryPath->delimiter && $stream instanceof Stream\Csv) {
+            $stream->setDelimiter($queryPath->delimiter);
+        }
+
+        if ($queryPath->query === null) {
+            return $stream->query();
+        }
+
+        return $stream->query()->from($queryPath->query);
     }
 
     /**

@@ -15,7 +15,7 @@ class Sql extends SqlLexer implements Interface\Parser
 {
     use Traits\Helpers\StringOperations;
 
-    public function __construct(private readonly string $sql)
+    public function __construct(private readonly string $sql, private ?string $basePath = null)
     {
         $this->tokenize($this->sql);
     }
@@ -43,8 +43,18 @@ class Sql extends SqlLexer implements Interface\Parser
                 continue;
             }
 
-            $fileQuery = new Query\FileQuery($this->nextToken());
-            $stream = Stream\Provider::fromFile($fileQuery->file ?? '', $fileQuery->extension);
+            $fileQueryString = $this->nextToken();
+            $this->validateFileQueryPath($fileQueryString);
+
+            $fileQuery = new Query\FileQuery($fileQueryString);
+            $fileName = null;
+            if ($fileQuery->file !== null) {
+                $fileName = $this->basePath !== null
+                    ? $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file
+                    : $fileQuery->file;
+            }
+
+            $stream = Stream\Provider::fromFile($fileName ?? '', $fileQuery->extension);
             break;
         }
 
@@ -72,30 +82,38 @@ class Sql extends SqlLexer implements Interface\Parser
 
                 case 'FROM':
                     $fileQuery = new Query\FileQuery($this->nextToken());
+                    $this->validateFileQueryPath($fileQuery);
+
                     $query->from($fileQuery->query ?? '');
                     break;
 
                 case 'INNER':
                 case 'LEFT':
                     $this->nextToken(); // Consume "JOIN"
+
                     $joinQuery = $this->nextToken();
+                    $this->validateFileQueryPath($joinQuery);
+
                     $this->expect('AS');
                     $alias = $this->nextToken();
+
                     if (strtolower($token) === 'left') {
                         $query->leftJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
                     } elseif (strtolower($token) === 'inner') {
                         $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
                     }
-
                     $this->expect('ON');
 
                     $field = $this->nextToken();
                     $operator = Enum\Operator::fromOrFail($this->nextToken());
                     $value = Enum\Type::matchByString($this->nextToken());
+
                     $query->on($field, $operator, $value);
                     break;
                 case 'JOIN':
                     $joinQuery = $this->nextToken();
+                    $this->validateFileQueryPath($joinQuery);
+
                     $this->expect('AS');
                     $alias = $this->nextToken();
 
@@ -151,6 +169,11 @@ class Sql extends SqlLexer implements Interface\Parser
                 continue;
             } elseif ($field === 'DISTINCT') {
                 $query->distinct();
+                continue;
+            }
+
+            if ($field === Interface\Query::EXCLUDE) {
+                $query->exclude($this->nextToken());
                 continue;
             }
 
@@ -401,5 +424,36 @@ class Sql extends SqlLexer implements Interface\Parser
 
         $searchQuery = trim($matches[2]);
         return [$searchQuery === '' ? null : $searchQuery, Enum\Fulltext::from($matches[3])];
+    }
+
+    public function getBasePath(): ?string
+    {
+        return $this->basePath;
+    }
+
+    public function setBasePath(?string $basePath): void
+    {
+        $this->basePath = $basePath;
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     */
+    private function validateFileQueryPath(string $fileQueryString): void
+    {
+        if ($this->basePath === null) {
+            return;
+        }
+
+        $fileQuery = new Query\FileQuery($fileQueryString);
+        if ($fileQuery->file === null) {
+            return;
+        }
+
+        $fileName = $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file;
+        $realPath = realpath($fileName);
+        if ($realPath === false || !str_starts_with($realPath, $this->basePath)) {
+            throw new Exception\InvalidFormatException('Invalid file path');
+        }
     }
 }

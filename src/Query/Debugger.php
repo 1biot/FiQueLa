@@ -241,19 +241,18 @@ class Debugger
     public static function highlightSQL(string $sql): string
     {
         $keywords = [
-            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
+            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT', 'EXCLUDE',
             'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
-            'ASC', 'IN', 'IS', 'NOT', 'NULL', 'SHUFFLE', 'NATURAL', 'LEFT', 'INNER'
+            'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER'
         ];
 
-        $fromPattern = FileQuery::getRegexp();
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
-        $functionPattern = '([A-Z0-9_]{2,})(?<!_)\\((.*?)\\)';
+        $functionPattern = '(?!_)([A-Z0-9_]{2,})(?<!_)\((.*)?\)';
 
         // Tokenization with respect to brackets, quotes and multi-line input ((\[([a-z]+:\/\/)?(.*)])(.*))
         $regex = '/
         \b' . $functionPattern . ' # function
-        | ' . $fromPattern . ' # FROM
+        | ' . FileQuery::getRegexp(14) . ' # FROM
         | (\'[^\']*\' # simple quoted string
         | "[^"]*" # double quotes
         | [(),] # bracket or comma
@@ -274,7 +273,7 @@ class Debugger
 
             $hasStream = false;
             $highlightedTokens = array_map(
-                function ($token) use ($keywords, $functionPattern, $fromPattern, &$hasStream) {
+                function ($token) use ($keywords, $functionPattern, &$hasStream) {
                     if (trim($token) === '') {
                         return '';
                     }
@@ -288,9 +287,11 @@ class Debugger
                     }
 
                     // FROM [].data.item
-                    if ($hasStream && preg_match('/^' . $fromPattern . '$/', $token, $matches)) {
-                        $ext = $matches['e'] ?? '';
-                        $file = $matches['fp'] ?? '';
+                    if ($hasStream && preg_match('/^' . FileQuery::getRegexp(14) . '$/', $token, $matches)) {
+                        $ext = $matches['t'] ?? '';
+                        $file = $matches['p'] ?? '';
+                        $encoding = $matches['e'] ?? '';
+                        $delimiter = $matches['d'] ?? '';
                         $query = $matches['q'] ?? '';
                         if ($file === '' && $query === '') {
                             return '';
@@ -298,11 +299,24 @@ class Debugger
 
                         $highlightedString = '';
                         if ($ext !== '') {
-                            $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s]', $ext)));
+                            $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s](', $ext)));
                         }
 
+                        $fileParams = [];
                         if ($file !== '') {
-                            $highlightedString .= self::echoLightRed(self::echoBold("({$file})"));
+                            $fileParams[] = self::echoLightRed("{$file}");
+                        }
+
+                        if ($encoding !== '') {
+                            $fileParams[] = self::echoLightRed("{$encoding}");
+                        }
+
+                        if ($delimiter !== '') {
+                            $fileParams[] = self::echoGreen(sprintf('"%s"', $delimiter));
+                        }
+                        $highlightedString .= implode(', ', $fileParams);
+                        if ($ext !== '') {
+                            $highlightedString .= self::echoMagenta(self::echoBold(')'));
                         }
 
                         if ($query !== '') {
@@ -314,7 +328,7 @@ class Debugger
                     }
 
                     // Functions
-                    if (preg_match('/\b' . $functionPattern . '/', $token, $matches)) {
+                    if (preg_match('/' . $functionPattern . '/', $token, $matches)) {
                         $functionName = $matches[1];
                         $innerContent = $matches[2];
 

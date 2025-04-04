@@ -61,6 +61,7 @@ class Query implements Interface\Query
             $this->stream,
             $this->distinct,
             $this->selectedFields,
+            $this->excludedFields,
             $this->getFrom(),
             $this->whereConditions,
             $this->havingConditions,

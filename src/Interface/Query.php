@@ -31,6 +31,7 @@ interface Query extends \Stringable
 
     public const SELECT = 'SELECT';
     public const DISTINCT = 'DISTINCT';
+    public const EXCLUDE = 'EXCLUDE';
     public const AS = 'AS';
     public const FROM = 'FROM';
     public const WHERE = 'WHERE';
@@ -92,6 +93,8 @@ interface Query extends \Stringable
     public function selectAll(): Query;
 
     public function distinct(bool $distinct = true): Query;
+
+    public function exclude(string ...$fields): Query;
 
     /**
      * Alias the last selected field.
