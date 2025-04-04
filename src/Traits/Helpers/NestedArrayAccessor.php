@@ -86,21 +86,23 @@ trait NestedArrayAccessor
         return $current;
     }
 
+    /**
+     * @param array<string|int, mixed> $data
+     */
     public function removeNestedValue(array &$data, string $field): void
     {
         $keys = explode('.', $field);
-        $lastKey = array_pop($keys); // poslední klíč k odstranění
+        $lastKey = array_pop($keys);
 
         $ref = &$data;
-
         foreach ($keys as $key) {
             if (!isset($ref[$key]) || !is_array($ref[$key])) {
-                return; // Cesta neexistuje
+                return;
             }
 
-            $ref = &$ref[$key]; // odkazujeme na úroveň hlouběji
+            $ref = &$ref[$key];
         }
 
-        unset($ref[$lastKey]); // smažeme poslední klíč
+        unset($ref[$lastKey]);
     }
 }
