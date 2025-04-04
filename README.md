@@ -13,7 +13,7 @@
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
-like **XML**, **CSV**, **JSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,
+like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,
 join, and aggregate data with a familiar and efficient syntax. Whether you're working with large datasets or integrating
 various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
 
@@ -48,7 +48,8 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 ## 1. Overview
 
 Why limit SQL to databases when it can be just as effective for querying structured data? **F**i**Q**ue**L**a (File Query Language)
-brings the power of SQL to your files. Whether you're working with **JSON**, **XML**, **CSV**, or **YAML**, **F**i**Q**ue**L**a enables you to interact with these formats using familiar SQL syntax.
+brings the power of SQL to your files. Whether you're working with **XML**, **CSV**, **JSON**, **NDJSON**, **YAML** or **NEON**,
+**F**i**Q**ue**L**a enables you to interact with these formats using familiar SQL syntax.
 
 Key highlights:
 - **Universal Querying**: Use SQL-like queries to filter, sort, join, and aggregate data across multiple file types.
@@ -87,14 +88,15 @@ composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tr
 
 ## 3. Supported Formats
 
-| Format     | Name               | File Support | String Support | Dependencies                                   |
-|------------|--------------------|--------------|----------------|------------------------------------------------|
-| `csv`      | CSV                | ✅            | ❌              | `league/csv`                                   |
-| `xml`      | XML                | ✅            | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml` |
-| `jsonFile` | JSON Stream        | ✅            | ❌              | `halaxa/json-machine`                          |
-| `json`     | JSON (json_decode) | ✅            | ✅              | `ext-json`                                     |
-| `yaml`     | YAML               | ✅            | ✅              | `symfony/yaml`                                 |
-| `neon`     | NEON               | ✅            | ✅              | `nette/neon`                                   |
+| Format     | Name                   | File Support     | String Support | Dependencies                                   |
+|------------|------------------------|------------------|----------------|------------------------------------------------|
+| `csv`      | CSV                    | ✅              | ❌              | `league/csv`                                   |
+| `xml`      | XML                    | ✅              | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml` |
+| `jsonFile` | JSON Stream            | ✅              | ❌              | `halaxa/json-machine`                          |
+| `json`     | JSON (json_decode)     | ✅              | ✅              | `ext-json`                                     |
+| `ndJson`   | Newline Delimited JSON | ✅              | ❌              | `ext-fileinfo`                                 |
+| `yaml`     | YAML                   | ✅              | ✅              | `symfony/yaml`                                 |
+| `neon`     | NEON                   | ✅              | ✅              | `nette/neon`                                   |
 
 ## 4. Getting Started
 
@@ -293,7 +295,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
-- [ ] **Next file formats**: Add next file formats like [NDJson](https://github.com/ndjson/ndjson-spec) and [MessagePack](https://msgpack.org/)
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [INI](https://en.wikipedia.org/wiki/INI_file), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats) and [TOML](https://toml.io/en/)
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
 - [ ] **PHPStan 8**: Fix all PHPStan 8 errors.
