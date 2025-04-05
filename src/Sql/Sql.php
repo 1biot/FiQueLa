@@ -451,9 +451,14 @@ class Sql extends SqlLexer implements Interface\Parser
         }
 
         $fileName = $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file;
-        $realPath = realpath($fileName);
-        if ($realPath === false || !str_starts_with($realPath, $this->basePath)) {
-            throw new Exception\InvalidFormatException('Invalid file path');
+        $fileNameRealPath = realpath($fileName);
+        $basePathRealPath = realpath($this->basePath);
+        if (
+            $fileNameRealPath === false ||
+            $basePathRealPath === false ||
+            !str_starts_with($fileNameRealPath, $basePathRealPath)
+        ) {
+            throw new Exception\InvalidFormatException('Invalid query base path');
         }
     }
 }
