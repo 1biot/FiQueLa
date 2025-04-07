@@ -76,11 +76,11 @@ class Sql extends SqlLexer implements Interface\Parser
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             switch (strtoupper($token)) {
-                case 'SELECT':
+                case Interface\Query::SELECT:
                     $this->parseFields($query);
                     break;
 
-                case 'FROM':
+                case Interface\Query::FROM:
                     $fileQuery = new Query\FileQuery($this->nextToken());
                     $this->validateFileQueryPath($fileQuery);
 
@@ -114,7 +114,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     $joinQuery = $this->nextToken();
                     $this->validateFileQueryPath($joinQuery);
 
-                    $this->expect('AS');
+                    $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
                     $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
@@ -127,8 +127,8 @@ class Sql extends SqlLexer implements Interface\Parser
                     $query->on($field, $operator, $value);
                     break;
 
-                case 'HAVING':
-                case 'WHERE':
+                case Interface\Query::HAVING:
+                case Interface\Query::WHERE:
                     $this->parseConditions($query, strtolower($token));
                     break;
 
@@ -142,12 +142,12 @@ class Sql extends SqlLexer implements Interface\Parser
                     $this->parseSort($query);
                     break;
 
-                case 'OFFSET':
+                case Interface\Query::OFFSET:
                     $limit = (int) $this->nextToken();
                     $query->offset($limit);
                     break;
 
-                case 'LIMIT':
+                case Interface\Query::LIMIT:
                     $limit = (int) $this->nextToken();
                     $offset = $this->nextToken();
                     $query->limit($limit, $offset === '' ? null : (int) $offset);
@@ -168,12 +168,12 @@ class Sql extends SqlLexer implements Interface\Parser
             $field = $this->nextToken();
             if ($field === ',') {
                 continue;
-            } elseif ($field === 'DISTINCT') {
+            } elseif (strtoupper($field) === Interface\Query::DISTINCT) {
                 $query->distinct();
                 continue;
             }
 
-            if ($field === Interface\Query::EXCLUDE) {
+            if (strtoupper($field) === Interface\Query::EXCLUDE) {
                 $mode = 'selectOut';
                 $field = $this->nextToken();
             }
@@ -187,7 +187,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     $query->select($field);
                 }
 
-                if (strtoupper($this->peekToken()) === 'AS') {
+                if (strtoupper($this->peekToken()) === Interface\Query::AS) {
                     $this->nextToken();
                     $alias = $this->nextToken();
                     $query->as($alias);

@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.1] Unreleased
+
+- Fixed issue with parsing `EXCLUDE` clause 
+- Replace some string by constant at sql parser
+
 ## [2.0.0]
 
 - Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does
