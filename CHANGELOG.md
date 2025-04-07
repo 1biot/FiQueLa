@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - UNRELEASED
+## [2.0.0]
 
 - Package was renamed from **U**ni**Q**ue**L** to **F**i**Q**ue**L**a to better reflect what the library does
 - Namespace `UQL` moved to `FQL`
@@ -12,10 +12,12 @@
 
 #### File formats
 - Added new `FQL\Stream\JsonStream` class allows parsing JSON data as a stream
+- Added new `FQL\Stream\NDJson` class allows parsing [NDJSON](https://github.com/ndjson/ndjson-spec) data as a stream
 
 #### Functions
 - Added support for `DISTINCT` clause
-- Added support for `EXCLUDE` clause usable at `SELECT` statement 
+- Added support for `EXCLUDE` clause usable at `SELECT` statement
+- Added support for creating own functions for [Fluent API](docs/fluent-api.md).
 - Added support for grouping data by `GROUP BY` clause
 - `DISTINCT` and `GROUP BY` are not compatible with each other
 - Refactored `FQL\Functions` namespace folder structure
@@ -55,6 +57,7 @@ instead.
 - Support `HAVING` clause
 - Support `OFFSET` clause
 - Newly support `ORDER BY` more fields at once
+- `FQL\Sql\Sql` parser knows set the base path for using FileQuery syntax
 
 #### Debugger
 - `FQL\Helpers\Debugger` moved to `FQL\Query\Debugger`
