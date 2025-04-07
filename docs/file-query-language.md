@@ -87,7 +87,7 @@ SELECT
   GROUP_CONCAT(id, "/") AS products,
   SUM(price) AS totalPrice,
   COUNT(productId) AS productCount
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM [csv](./examples/data/products.tmp, utf-8, ";").data.products
 SQL
 );
 ```
