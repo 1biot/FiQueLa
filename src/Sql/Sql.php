@@ -163,6 +163,7 @@ class Sql extends SqlLexer implements Interface\Parser
 
     private function parseFields(Interface\Query $query): void
     {
+        $mode = 'selectIn';
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $field = $this->nextToken();
             if ($field === ',') {
@@ -173,20 +174,24 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             if ($field === Interface\Query::EXCLUDE) {
-                $query->exclude($this->nextToken());
-                continue;
+                $mode = 'selectOut';
+                $field = $this->nextToken();
             }
 
-            if ($this->isFunction($field)) {
-                $this->applyFunctionToQuery($field, $query);
-            } else {
-                $query->select($field);
-            }
+            if ($mode === 'selectOut') {
+                $query->exclude($field);
+            } elseif ($mode === 'selectIn') {
+                if ($this->isFunction($field)) {
+                    $this->applyFunctionToQuery($field, $query);
+                } else {
+                    $query->select($field);
+                }
 
-            if (strtoupper($this->peekToken()) === 'AS') {
-                $this->nextToken();
-                $alias = $this->nextToken();
-                $query->as($alias);
+                if (strtoupper($this->peekToken()) === 'AS') {
+                    $this->nextToken();
+                    $alias = $this->nextToken();
+                    $query->as($alias);
+                }
             }
         }
     }
