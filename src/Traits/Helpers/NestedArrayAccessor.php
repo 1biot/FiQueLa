@@ -60,9 +60,10 @@ trait NestedArrayAccessor
             $subKey = $matches[2];
 
             $nestedArray = $this->accessNestedValue($data, $arrayPath, $throwOnMissing);
-
             if (!is_array($nestedArray)) {
                 throw new InvalidArgumentException(sprintf('Field "%s" is not iterable or does not exist', $arrayPath));
+            } elseif ($this->isAssoc($nestedArray)) {
+                $nestedArray = [$nestedArray];
             }
 
             return array_map(fn($item) => $item[$subKey] ?? null, $nestedArray);
@@ -104,5 +105,14 @@ trait NestedArrayAccessor
         }
 
         unset($ref[$lastKey]);
+    }
+
+    /**
+     * @param array<int|string, mixed> $array
+     * @return bool
+     */
+    public function isAssoc(array $array): bool
+    {
+        return array_keys($array) !== range(0, count($array) - 1);
     }
 }

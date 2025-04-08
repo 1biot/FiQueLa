@@ -3,7 +3,9 @@
 ## [2.0.1] Unreleased
 
 - Fixed issue with parsing `EXCLUDE` clause 
+- Improved accessor `[]->key` now supports associative arrays by wrapping them into a single-item list, allowing uniform iteration behavior.
 - Replace some string by constant at sql parser
+- Added new function `COMBINE` for combining two arrays
 
 ## [2.0.0]
 

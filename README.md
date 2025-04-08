@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_171-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_596-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_174-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_599-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 

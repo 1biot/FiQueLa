@@ -199,11 +199,12 @@ ORDER BY _score DESC
 
 ### Utils functions
 
-| Function        | Description                                            |
-|-----------------|--------------------------------------------------------|
-| `COALESCE`      | Coalesce values (first non-null value)                 |
-| `COALESCE_NE`   | Coalesce values when not empty (first non-empty value) |
-| `RANDOM_BYTES`  | Generates cryptographically secure random bytes.       |
+| Function       | Description                                            |
+|----------------|--------------------------------------------------------|
+| `COALESCE`     | Coalesce values (first non-null value)                 |
+| `COALESCE_NE`  | Coalesce values when not empty (first non-empty value) |
+| `COMBINE`      | Combine two arrays into a single array                 |
+| `RANDOM_BYTES` | Generates cryptographically secure random bytes.       |
 
 **Examples:**
 
@@ -211,6 +212,7 @@ ORDER BY _score DESC
 SELECT
   COALESCE(NULL, 'Hello World') AS coalesce,
   COALESCE_NE(NULL, 'Hello World') AS coalesceNe,
+  COMBINE('filedWitArrayKeys', 'FieldWithArrayValues') AS combined,
   RANDOM_BYTES(16) AS randomBytes
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ```

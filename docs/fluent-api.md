@@ -118,6 +118,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 |--------------------|--------------------------------------------------------|
 | `coalesce`         | Coalesce values (first non-null value)                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value) |
+| `combine`          | Combine two arrays into a single array                 |
 | `randomBytes`      | Generates cryptographically secure random bytes.       |
 
 **Example:**
@@ -125,6 +126,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 ```php
 $query->coalesce('whatever', 'ArticleNr')->as('COALESCE')
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
+    ->combine('fieldWithArrayKeys', 'fieldWithArrayValues')
     ->randomBytes(16)->as('RANDOM_BYTES');
 ```
 

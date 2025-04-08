@@ -273,6 +273,11 @@ trait Select
         return $this->fulltext($fields, $searchQuery);
     }
 
+    public function combine(string $keysArrayField, string $valueArrayField): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Combine($keysArrayField, $valueArrayField));
+    }
+
     private function addFieldFunction(
         Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function
     ): Interface\Query {

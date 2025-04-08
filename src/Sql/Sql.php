@@ -175,7 +175,7 @@ class Sql extends SqlLexer implements Interface\Parser
 
             if (strtoupper($field) === Interface\Query::EXCLUDE) {
                 $mode = 'selectOut';
-                $field = $this->nextToken();
+                continue;
             }
 
             if ($mode === 'selectOut') {
@@ -184,6 +184,12 @@ class Sql extends SqlLexer implements Interface\Parser
                 if ($this->isFunction($field)) {
                     $this->applyFunctionToQuery($field, $query);
                 } else {
+                    $nextToken = $this->nextToken();
+                    if (str_starts_with($nextToken, '[]->')) {
+                        $field .= $nextToken;
+                    } else {
+                        $this->rewindToken();
+                    }
                     $query->select($field);
                 }
 
@@ -290,6 +296,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 )
             ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
+            'COMBINE' => $query->combine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
