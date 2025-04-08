@@ -7,6 +7,14 @@
             <code>BRAND-A</code>
             <name>Brand A</name>
         </brand>
+        <images>
+            <image>
+                <url>http://example.com/1.jpg</url>
+            </image>
+        </images>
+        <gallery>
+            <gallery_image>http://example.com/g/1.jpg</gallery_image>
+        </gallery>
     </item>
     <item id="2" category="B">
         <name>Item 2</name>
@@ -15,5 +23,17 @@
             <code>BRAND-B</code>
             <name>Brand B</name>
         </brand>
+        <images>
+            <image>
+                <url>http://example.com/2.jpg</url>
+            </image>
+            <image>
+                <url>http://example.com/3.jpg</url>
+            </image>
+        </images>
+        <gallery>
+            <gallery_image>http://example.com/g/1.jpg</gallery_image>
+            <gallery_image>http://example.com/g/2.jpg</gallery_image>
+        </gallery>
     </item>
 </root>
