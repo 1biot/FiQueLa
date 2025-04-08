@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.1] Unreleased
+## [2.0.1]
 
 - Fixed issue with parsing `EXCLUDE` clause 
 - Improved accessor `[]->key` now supports associative arrays by wrapping them into a single-item list, allowing uniform iteration behavior.

@@ -19,10 +19,10 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 
 **Features**:
 
-- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, YAML, and NEON.
+- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, and NEON.
 - 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
 - ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
-- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `MD5`, `UPPER`, and many more.
+- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `COMBINE`, `MD5` and many more.
 - 🚀 **Efficient with Large Files**: Optimized for processing JSON, XML, and CSV files with tens of thousands of rows using stream processing.
 - 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
 - ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
