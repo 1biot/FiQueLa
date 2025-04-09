@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.2]
+
+- Rename `COMBINE` to `ARRAY_COMBINE`
+- Added new function `ARRAY_MERGE` for merging two arrays
+- Automatically recognize date from selected string and cast it to `\DateTimeImmutable`
+- When `\DateTimeImmutable` casting to the string, it will be formatted to `c` format (`Y-m-d\TH:i:sP`)
+- Added new function `DATE_FORMAT` for formatting `\DateTimeImmutable` to string
+
 ## [2.0.1]
 
 - Fixed issue with parsing `EXCLUDE` clause 

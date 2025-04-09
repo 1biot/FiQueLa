@@ -6,8 +6,8 @@ use FQL\Exception;
 use FQL\Interface;
 
 /**
- * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
  * @codingStandardsIgnoreStart
+ * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, \DateTimeImmutable|mixed>|scalar|null>
  * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
  * @codingStandardsIgnoreEnd
  */

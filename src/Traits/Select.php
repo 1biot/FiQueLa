@@ -273,9 +273,19 @@ trait Select
         return $this->fulltext($fields, $searchQuery);
     }
 
-    public function combine(string $keysArrayField, string $valueArrayField): Interface\Query
+    public function arrayCombine(string $keysArrayField, string $valueArrayField): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Utils\Combine($keysArrayField, $valueArrayField));
+        return $this->addFieldFunction(new Functions\Utils\ArrayCombine($keysArrayField, $valueArrayField));
+    }
+
+    public function arrayMerge(string $arrayField, string $arrayField2): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\ArrayMerge($arrayField, $arrayField2));
+    }
+
+    public function formatDate(string $dateField, string $format = 'c'): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));
     }
 
     private function addFieldFunction(

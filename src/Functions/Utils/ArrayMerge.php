@@ -5,7 +5,7 @@ namespace FQL\Functions\Utils;
 use FQL\Functions;
 use FQL\Traits;
 
-class Combine extends Functions\Core\MultipleFieldsFunction
+class ArrayMerge extends Functions\Core\MultipleFieldsFunction
 {
     use Traits\Helpers\StringOperations;
 
@@ -30,14 +30,6 @@ class Combine extends Functions\Core\MultipleFieldsFunction
             return null;
         }
 
-        if ($this->isAssoc($keys)) {
-            $keys = array_values($keys);
-        }
-
-        if ($this->isAssoc($values)) {
-            $values = array_values($values);
-        }
-
-        return array_combine($keys, $values);
+        return array_merge($keys, $values);
     }
 }

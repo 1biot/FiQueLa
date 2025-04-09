@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-    <item id="1" category="A">
+    <item id="1" category="A" created="2025-04-08T12:29:38Z">
         <name>Item 1</name>
         <price>100</price>
         <brand>
@@ -16,7 +16,7 @@
             <gallery_image>http://example.com/g/1.jpg</gallery_image>
         </gallery>
     </item>
-    <item id="2" category="B">
+    <item id="2" category="B" created="2025-04-03T11:43:21+02:00">
         <name>Item 2</name>
         <price>200</price>
         <brand>

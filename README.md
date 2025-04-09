@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_174-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_599-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_180-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_605-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 
@@ -22,7 +22,7 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 - 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, and NEON.
 - 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
 - ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
-- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `AVG`, `GROUP_CONCAT`, `COMBINE`, `MD5` and many more.
+- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `GROUP_CONCAT`, `ARRAY_MERGE`, `FORMAT_DATE` and many more.
 - 🚀 **Efficient with Large Files**: Optimized for processing JSON, XML, and CSV files with tens of thousands of rows using stream processing.
 - 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
 - ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
@@ -295,7 +295,8 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [INI](https://en.wikipedia.org/wiki/INI_file), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats) and [TOML](https://toml.io/en/)
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Custom cast type**: Add support for custom cast type for `SELECT` clause.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
 - [ ] **PHPStan 8**: Fix all PHPStan 8 errors.

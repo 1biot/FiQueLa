@@ -114,19 +114,23 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 
 ### Utils functions
 
-| Function           | Description                                            |
-|--------------------|--------------------------------------------------------|
-| `coalesce`         | Coalesce values (first non-null value)                 |
-| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value) |
-| `combine`          | Combine two arrays into a single array                 |
-| `randomBytes`      | Generates cryptographically secure random bytes.       |
+| Function           | Description                                                            |
+|--------------------|------------------------------------------------------------------------|
+| `arrayCombine`     | Combine two array with keys and array with values into a single array  |
+| `arrayMerge`       | Merge two arrays into a single array                                   |
+| `coalesce`         | Coalesce values (first non-null value)                                 |
+| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
+| `formatDate`       | Format date field to string                                            |
+| `randomBytes`      | Generates cryptographically secure random bytes.                       |
 
 **Example:**
 
 ```php
-$query->coalesce('whatever', 'ArticleNr')->as('COALESCE')
+$query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_COMBINE')
+    ->arrayMerge('fieldWithArray1', 'fieldWithArray2')->as('ARRAY_MERGE')
+    ->coalesce('whatever', 'ArticleNr')->as('COALESCE')
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
-    ->combine('fieldWithArrayKeys', 'fieldWithArrayValues')
+    ->formatDate('dateField', 'Y-m-d')->as('FORMAT_DATE')
     ->randomBytes(16)->as('RANDOM_BYTES');
 ```
 

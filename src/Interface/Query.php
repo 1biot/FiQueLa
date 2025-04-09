@@ -448,7 +448,9 @@ interface Query extends \Stringable
     /** @param string[] $fields */
     public function matchAgainst(array $fields, string $searchQuery, ?Fulltext $mode = null): Query;
 
-    public function combine(string $keysArrayField, string $valueArrayField): Query;
+    public function arrayCombine(string $keysArrayField, string $valueArrayField): Query;
+    public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
+    public function formatDate(string $dateField, string $format = 'c'): Query;
 
     /**
      * Specify a specific part of the data to select.

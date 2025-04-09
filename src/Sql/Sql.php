@@ -296,7 +296,9 @@ class Sql extends SqlLexer implements Interface\Parser
                 )
             ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
-            'COMBINE' => $query->combine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };

@@ -199,21 +199,25 @@ ORDER BY _score DESC
 
 ### Utils functions
 
-| Function       | Description                                            |
-|----------------|--------------------------------------------------------|
-| `COALESCE`     | Coalesce values (first non-null value)                 |
-| `COALESCE_NE`  | Coalesce values when not empty (first non-empty value) |
-| `COMBINE`      | Combine two arrays into a single array                 |
-| `RANDOM_BYTES` | Generates cryptographically secure random bytes.       |
+| Function        | Description                                                           |
+|-----------------|-----------------------------------------------------------------------|
+| `ARRAY_COMBINE` | Combine two array with keys and array with values into a single array |
+| `ARRAY_MERGE`   | Merge two arrays into a single array                                  |
+| `COALESCE`      | Coalesce values (first non-null value)                                |
+| `COALESCE_NE`   | Coalesce values when not empty (first non-empty value)                |
+| `FORMAT_DATE`   | Format date field to string                                           |
+| `RANDOM_BYTES`  | Generates cryptographically secure random bytes.                      |
 
 **Examples:**
 
 ```sql
 SELECT
-  COALESCE(NULL, 'Hello World') AS coalesce,
-  COALESCE_NE(NULL, 'Hello World') AS coalesceNe,
-  COMBINE('filedWitArrayKeys', 'FieldWithArrayValues') AS combined,
-  RANDOM_BYTES(16) AS randomBytes
+    ARRAY_COMBINE(filedWitArrayKeys, FieldWithArrayValues) AS arrayCombine,
+    ARRAY_MERGE(fieldWithArray1, fieldWithArray2) AS arrayMerge,
+    COALESCE(NULL, 'Hello World') AS coalesce,
+    COALESCE_NE(NULL, 'Hello World') AS coalesceNe,
+    FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
+    RANDOM_BYTES(16) AS randomBytes
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ```
 

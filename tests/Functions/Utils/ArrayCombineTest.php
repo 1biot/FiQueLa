@@ -2,14 +2,14 @@
 
 namespace Functions\Utils;
 
-use FQL\Functions\Utils\Combine;
+use FQL\Functions\Utils\ArrayCombine;
 use PHPUnit\Framework\TestCase;
 
-class CombineTest extends TestCase
+class ArrayCombineTest extends TestCase
 {
     public function testCombine(): void
     {
-        $combine = new Combine('keys', 'values');
+        $combine = new ArrayCombine('keys', 'values');
         $this->assertEquals(
             ['a' => 1, 'b' => 2],
             $combine(
@@ -24,7 +24,7 @@ class CombineTest extends TestCase
 
     public function testCombineWithAssociativeKeys(): void
     {
-        $combine = new Combine('keys', 'values');
+        $combine = new ArrayCombine('keys', 'values');
         $this->assertEquals(
             ['x' => 1, 'y' => 2],
             $combine(
@@ -39,7 +39,7 @@ class CombineTest extends TestCase
 
     public function testInvalidKeys(): void
     {
-        $combine = new Combine('keys', 'values');
+        $combine = new ArrayCombine('keys', 'values');
         $this->assertEquals(
             null,
             $combine(
