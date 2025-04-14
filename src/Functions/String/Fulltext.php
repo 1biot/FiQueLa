@@ -40,7 +40,7 @@ final class Fulltext extends Functions\Core\MultipleFieldsFunction
         $terms = $this->splitQuery($this->query);
         foreach ($this->fields as $index => $field) {
             $field = trim($field);
-            $fieldValue = $this->getFieldValue($field, $item, $resultItem);
+            $fieldValue = $this->getFieldValue($field, $item, $resultItem) ?? '';
             $weight = 1 / ($index + 1); // Weight by field order (lower index = higher weight).
             $score += $this->mode->calculate($this->extractPlainText($fieldValue), $terms) * $weight;
         }

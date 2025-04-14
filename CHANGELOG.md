@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.4]
+
+- Fixed processing of fulltext function when value of selected field is `null` 
+
 ## [2.0.3]
 
 - Fixed tokenization when using zero compare value
