@@ -43,7 +43,7 @@ class SqlLexer implements \Iterator
 
         preg_match_all($regex, $sql, $matches);
         // Remove empty tokens and trim
-        $this->tokens = array_values(array_filter(array_map('trim', $matches[0])));
+        $this->tokens = array_values(array_filter(array_map('trim', $matches[0]), fn ($value) => $value !== ''));
         return $this->tokens;
     }
 

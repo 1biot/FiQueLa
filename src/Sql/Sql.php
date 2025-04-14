@@ -337,16 +337,17 @@ class Sql extends SqlLexer implements Interface\Parser
                 $nextToken = $this->nextToken();
                 $upperNextToken = mb_strtoupper($nextToken);
                 if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN'])) {
-                    $operator .= ' ' . $nextToken;
+                    $operator = $upperOperator . ' ' . $upperNextToken;
                 } else {
+                    $operator = $upperOperator;
                     $this->rewindToken();
                 }
             }
 
-            $operator = Enum\Operator::fromOrFail($upperOperator);
+            $operator = Enum\Operator::fromOrFail($operator);
             $value = Enum\Type::matchByString($this->nextToken());
             $value = $operator === Enum\Operator::IS
-                ? Enum\Type::from($value)
+                ? Enum\Type::match($value)
                 : $value;
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
