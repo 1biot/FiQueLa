@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.3]
+
+- Fixed tokenization when using zero compare value
+- try to fix matching types when using operator `IS`
+
 ## [2.0.2]
 
 - Rename `COMBINE` to `ARRAY_COMBINE`
