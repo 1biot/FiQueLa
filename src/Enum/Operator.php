@@ -110,6 +110,17 @@ enum Operator: string
 
         $escaped = preg_quote($right, '/');
         $pattern = str_replace(['%', '_'], ['.*', '.'], $escaped);
-        return (bool) preg_match('/^' . $pattern . '$/i', $left);
+
+        $startsWithPercent = str_starts_with($right, '%');
+        if (!$startsWithPercent) {
+            $pattern = '^' . $pattern;
+        }
+
+        $endsWithPercent   = str_ends_with($right, '%');
+        if (!$endsWithPercent) {
+            $pattern .= '$';
+        }
+
+        return (bool) preg_match('/' . $pattern . '/i', $left);
     }
 }
