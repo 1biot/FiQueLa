@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.6]
+
+- Fiquela conditions support compare values between row fields
+
 ## [2.0.5]
 
 - Fixed evaluating `LIKE` operator 

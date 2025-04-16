@@ -4,17 +4,24 @@ namespace FQL\Conditions;
 
 use FQL\Enum;
 use FQL\Exception\UnexpectedValueException;
+use FQL\Interface;
 use FQL\Traits\Helpers;
 
+/**
+ * @phpstan-import-type ConditionValue from Interface\Query
+ */
 class SimpleCondition extends Condition
 {
     use Helpers\NestedArrayAccessor;
 
+    /**
+     * @param ConditionValue $value
+     */
     public function __construct(
         Enum\LogicalOperator $logicalOperator,
         public readonly string $field,
         public readonly Enum\Operator $operator,
-        public readonly mixed $value
+        public readonly null|array|float|int|string|Enum\Type $value
     ) {
         parent::__construct($logicalOperator);
     }
@@ -29,9 +36,16 @@ class SimpleCondition extends Condition
             : $item[$this->field]
                 ?? throw new UnexpectedValueException(sprintf('Field %s not found in item', $this->field));
 
+        $compareValue = $this->value;
+        if (is_scalar($this->value)) {
+            $compareValue = $nestingValues
+                ? ($this->accessNestedValue($item, (string) $this->value, false) ?? $this->value)
+                : ($item[$this->value] ?? $this->value);
+        }
+
         return $this->operator->evaluate(
             $value,
-            $this->value
+            $compareValue
         );
     }
 

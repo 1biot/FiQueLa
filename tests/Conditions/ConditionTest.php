@@ -109,7 +109,7 @@ class ConditionTest extends TestCase
         $condition->evaluate([], false);
     }
 
-    public function testAccessNestedValue(): void
+    public function testAccessNestedLeftValue(): void
     {
         $condition = new SimpleCondition(LogicalOperator::AND, 'user.age', Operator::GREATER_THAN, 18);
 
@@ -118,5 +118,22 @@ class ConditionTest extends TestCase
 
         $data = ['user' => ['age' => 17]];
         $this->assertFalse($condition->evaluate($data, true));
+    }
+
+    public function testAccessNestedRightValue(): void
+    {
+        $condition = new SimpleCondition(LogicalOperator::AND, 'user.age', Operator::EQUAL, 'user.status');
+
+        $data = ['user' => ['age' => 20, 'status' => 20]];
+        $this->assertTrue($condition->evaluate($data, true));
+
+        $data = ['user' => ['age' => 20, 'status' => 30]];
+        $this->assertFalse($condition->evaluate($data, true));
+
+        $data = ['user.age' => 20, 'user.status' => 30];
+        $this->assertFalse($condition->evaluate($data, false));
+
+        $data = ['user.age' => 10, 'user.status' => 10];
+        $this->assertTrue($condition->evaluate($data, false));
     }
 }
