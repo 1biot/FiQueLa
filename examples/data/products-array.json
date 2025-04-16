@@ -2,21 +2,29 @@
   {
     "id": 1,
     "name": "Product A",
-    "price": 100
+    "price": 100,
+    "code": "A1B2C3",
+    "isAvailable": true
   },
   {
     "id": 2,
     "name": "Product B",
-    "price": 200
+    "price": 200,
+    "code": "Z1B2C4",
+    "isAvailable": false
   },
   {
     "id": 3,
     "name": "Product C",
-    "price": 300
+    "price": 300,
+    "code": null,
+    "isAvailable": true
   },
   {
     "id": 4,
     "name": "Product D",
-    "price": 400
+    "price": 400,
+    "code": null,
+    "isAvailable": false
   }
 ]

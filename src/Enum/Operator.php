@@ -58,7 +58,12 @@ enum Operator: string
         return match ($this) {
             self::IN, self::NOT_IN => sprintf('%s %s (%s)', $value, $this->value, implode(', ', $right)),
             self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
-            default => sprintf('%s %s %s', $value, $this->value, is_string($right) ? "'$right'" : $right),
+            default => sprintf(
+                '%s %s %s',
+                $value,
+                $this->value,
+                is_string($right) ? "'$right'" : ($right instanceof Type ? strtoupper($right->value) : $right)
+            ),
         };
     }
 

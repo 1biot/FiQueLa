@@ -297,7 +297,13 @@ LEFT JOIN
 ```sql
 logical_operator:
     AND | OR | XOR
-                
+
+compare_type_value:
+    BOOLEAN | TRUE | FALSE | NUMBER | INT | DOUBLE | STRING | NULL | ARRAY | OBJECT
+
+value_type:
+    string | float | int | array | null | bool
+
 where_condition:
     expr OR expr
   | expr XOR expr
@@ -312,7 +318,7 @@ field_expr:
 comparison_operator: = | >= | > | <= | < | <> | != | !== | == | LIKE | NOT LIKE | IS | IS NOT | IN | NOT IN
 
 value_expr:
-    string | number | boolean | NULL | ARRAY | OBJECT | ENUM
+    value_type | compare_type_value
 
 [[WHERE | HAVING]
     where_condition

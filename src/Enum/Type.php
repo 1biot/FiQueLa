@@ -7,15 +7,15 @@ use FQL\Exception\InvalidArgumentException;
 enum Type: string
 {
     case BOOLEAN = 'boolean';
-    case TRUE = 'TRUE';
-    case FALSE = 'FALSE';
+    case TRUE = 'true';
+    case FALSE = 'false';
 
     case NUMBER = 'number';
     case INTEGER = 'int';
     case FLOAT = 'double';
 
     case STRING = 'string';
-    case NULL = 'NULL';
+    case NULL = 'null';
 
     case ARRAY = 'array';
     case OBJECT = 'object';
@@ -25,7 +25,7 @@ enum Type: string
     case RESOURCE = 'resource';
     case RESOURCE_CLOSED = 'resource (closed)';
 
-    case UNKNOWN = 'unknown type';
+    case UNKNOWN = 'unknown';
 
     public static function castValue(mixed $value, ?Type $type = null): mixed
     {
@@ -70,12 +70,12 @@ enum Type: string
     public static function matchByString(string $value): mixed
     {
         // Null
-        if (in_array($value, ['null', self::NULL->value])) {
+        if (in_array($value, ['null', 'NULL'])) {
             return null;
         }
 
         // Boolean
-        if (in_array($value, ['true', self::TRUE->value, 'false', self::FALSE->value], true)) {
+        if (in_array($value, ['true', 'TRUE', 'false', 'FALSE'], true)) {
             return self::castValue(strtolower($value) === 'true' ? 1 : 0, self::BOOLEAN);
         }
 

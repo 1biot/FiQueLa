@@ -254,22 +254,22 @@ Operators are enums that represent the comparison operators used in the conditio
 use FQL\Enum\Operator;
 ```
 
-| Operator                | Description |
-|-------------------------|-------------|
-| `EQUAL`                 | `=`         |
-| `EQUAL_STRICT`          | `==`        |
-| `NOT_EQUAL`             | `!=`        |
-| `NOT_EQUAL_STRICT`      | `!==`       |
-| `GREATER_THAN`          | `>`         |
-| `GREATER_THAN_OR_EQUAL` | `>=`        |
-| `LESS_THAN`             | `<`         |
-| `LESS_THAN_OR_EQUAL`    | `<=`        |
-| `IN`                    | `IN`        |
-| `NOT_IN`                | `NOT IN`    |
-| `LIKE`                  | `LIKE`      |
-| `NOT_LIKE`              | `NOT LIKE`  |
-| `IS`                    | `IS`        |
-| `NOT_IS`                | `IS NOT`    |
+| Enum constant           | Operator   | Description                                                                                                 |
+|-------------------------|------------|-------------------------------------------------------------------------------------------------------------|
+| `EQUAL`                 | `=`        |                                                                                                             |
+| `EQUAL_STRICT`          | `==`       |                                                                                                             |
+| `NOT_EQUAL`             | `!=`       |                                                                                                             |
+| `NOT_EQUAL_STRICT`      | `!==`      |                                                                                                             |
+| `GREATER_THAN`          | `>`        |                                                                                                             |
+| `GREATER_THAN_OR_EQUAL` | `>=`       |                                                                                                             |
+| `LESS_THAN`             | `<`        |                                                                                                             |
+| `LESS_THAN_OR_EQUAL`    | `<=`       |                                                                                                             |
+| `IN`                    | `IN`       | Compare if field is in array list.                                                                          |
+| `NOT_IN`                | `NOT IN`   | Same as `IN` operator but with oposite result.                                                              |
+| `LIKE`                  | `LIKE`     | Fully compatible `LIKE` in MYSQL databases. Supports `_` and `%`.                                           |
+| `NOT_LIKE`              | `NOT LIKE` | Same as `LIKE` operator but with oposite result.                                                            |
+| `IS`                    | `IS`       | Supported types: `BOOLEAN`, `TRUE`, `FALSE`, `NUMBER`, `INT`, `DOUBLE`, `STRING`, `NULL`, `ARRAY`, `OBJECT` |
+| `NOT_IS`                | `IS NOT`   | Same as `IS` operator but with oposite result.                                                              |
 
 **Example:**
 

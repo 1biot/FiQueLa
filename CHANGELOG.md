@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.7]
+
+- Fixed support for comparing data types with `IS` or `IS_NOT` operator for fql syntax
+
 ## [2.0.6]
 
 - Fiquela conditions support compare values between row fields

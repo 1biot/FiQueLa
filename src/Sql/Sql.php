@@ -345,10 +345,10 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             $operator = Enum\Operator::fromOrFail($operator);
-            $value = Enum\Type::matchByString($this->nextToken());
-            $value = $operator === Enum\Operator::IS
-                ? Enum\Type::match($value)
-                : $value;
+            $value = $this->nextToken();
+            $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
+                ? Enum\Type::from(strtolower($value))
+                : Enum\Type::matchByString($value);
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
                 $firstIter = false;
