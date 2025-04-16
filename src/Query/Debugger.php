@@ -287,7 +287,7 @@ class Debugger
                     }
 
                     // FROM [].data.item
-                    if ($hasStream && preg_match('/^' . FileQuery::getRegexp(14) . '$/', $token, $matches)) {
+                    if ($hasStream && preg_match('/^' . FileQuery::getRegexp() . '$/', $token, $matches)) {
                         $ext = $matches['t'] ?? '';
                         $file = $matches['p'] ?? '';
                         $encoding = $matches['e'] ?? '';

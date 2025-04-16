@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.8]
+
+- Fixed support for loading csv data with more attributes
+
+```sql
+SELECT * FROM [csv](file.csv, utf-8, ";").*
+```
+
 ## [2.0.7]
 
 - Fixed support for comparing data types with `IS` or `IS_NOT` operator for fql syntax

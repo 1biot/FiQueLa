@@ -32,7 +32,7 @@ class SqlLexer implements \Iterator
         // Regex to split SQL while respecting quoted strings
         $regex = '/
             (\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)   # Function calls (e.g., FUNC_1(arg1)) - name must follow rules
-            | ' . FileQuery::getRegexp() . '     # File query regexp
+            | ' . FileQuery::getRegexp(13) . '   # File query regexp
             |\'[^\']*\'                          # Single quoted strings
             | "[^"]*"                            # Double quoted strings
             | [(),]                              # Parentheses and commas
