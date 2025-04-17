@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.9]
+
+- Previous fix for loading csv data with more attributes is fixing parsing only but this fix is knows works with files properly at FQL parser too
+- Parsing `ORDER BY` clause supports default sorting by `ASC` when not specified
+ 
 ## [2.0.8]
 
 - Fixed support for loading csv data with more attributes

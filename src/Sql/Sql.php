@@ -36,33 +36,17 @@ class Sql extends SqlLexer implements Interface\Parser
     public function toQuery(): Interface\Query
     {
         $this->rewind();
-        $stream = null;
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             if (strtoupper($token) !== 'FROM') {
                 continue;
             }
 
-            $fileQueryString = $this->nextToken();
-            $this->validateFileQueryPath($fileQueryString);
-
-            $fileQuery = new Query\FileQuery($fileQueryString);
-            $fileName = null;
-            if ($fileQuery->file !== null) {
-                $fileName = $this->basePath !== null
-                    ? $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file
-                    : $fileQuery->file;
-            }
-
-            $stream = Stream\Provider::fromFile($fileName ?? '', $fileQuery->extension);
-            break;
+            $fileQuery = $this->validateFileQueryPath($this->nextToken());
+            return $this->parseWithQuery(Query\Provider::fromFileQuery((string) $fileQuery));
         }
 
-        if ($stream === null) {
-            throw new Exception\UnexpectedValueException('No query found');
-        }
-
-        return $this->parseWithQuery($stream->query());
+        throw new Exception\UnexpectedValueException('Undefined file in query');
     }
 
     /**
@@ -81,9 +65,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     break;
 
                 case Interface\Query::FROM:
-                    $fileQuery = new Query\FileQuery($this->nextToken());
-                    $this->validateFileQueryPath($fileQuery);
-
+                    $fileQuery = $this->validateFileQueryPath($this->nextToken());
                     $query->from($fileQuery->query ?? '');
                     break;
 
@@ -91,16 +73,15 @@ class Sql extends SqlLexer implements Interface\Parser
                 case 'LEFT':
                     $this->nextToken(); // Consume "JOIN"
 
-                    $joinQuery = $this->nextToken();
-                    $this->validateFileQueryPath($joinQuery);
+                    $joinQuery = $this->validateFileQueryPath($this->nextToken());
 
                     $this->expect('AS');
                     $alias = $this->nextToken();
 
                     if (strtolower($token) === 'left') {
-                        $query->leftJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                        $query->leftJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     } elseif (strtolower($token) === 'inner') {
-                        $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                        $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     }
                     $this->expect('ON');
 
@@ -111,13 +92,11 @@ class Sql extends SqlLexer implements Interface\Parser
                     $query->on($field, $operator, $value);
                     break;
                 case 'JOIN':
-                    $joinQuery = $this->nextToken();
-                    $this->validateFileQueryPath($joinQuery);
-
+                    $joinQuery = $this->validateFileQueryPath($this->nextToken());
                     $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
-                    $query->innerJoin(Query\Provider::fromFileQuery($joinQuery), $alias);
+                    $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     $this->expect('ON');
 
                     $field = $this->nextToken();
@@ -238,6 +217,7 @@ class Sql extends SqlLexer implements Interface\Parser
     {
         $functionName = $this->getFunction($field);
         $arguments = $this->getFunctionArguments($field);
+        dump($arguments);
 
         match (strtoupper($functionName)) {
             // aggregate
@@ -393,8 +373,12 @@ class Sql extends SqlLexer implements Interface\Parser
             $direction = match ($directionString) {
                 'ASC' => Enum\Sort::ASC,
                 'DESC' => Enum\Sort::DESC,
-                default => throw new Exception\SortException(sprintf('Invalid direction %s', $directionString)),
+                default => false,
             };
+            if ($direction === false) {
+                $direction = Enum\Sort::ASC;
+                $this->rewindToken();
+            }
             $query->orderBy($field, $direction);
         }
     }
@@ -454,15 +438,15 @@ class Sql extends SqlLexer implements Interface\Parser
     /**
      * @throws Exception\InvalidFormatException
      */
-    private function validateFileQueryPath(string $fileQueryString): void
+    private function validateFileQueryPath(string $fileQueryString): Query\FileQuery
     {
+        $fileQuery = new Query\FileQuery($fileQueryString);
         if ($this->basePath === null) {
-            return;
+            return $fileQuery;
         }
 
-        $fileQuery = new Query\FileQuery($fileQueryString);
         if ($fileQuery->file === null) {
-            return;
+            return $fileQuery;
         }
 
         $fileName = $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file;
@@ -473,7 +457,9 @@ class Sql extends SqlLexer implements Interface\Parser
             $basePathRealPath === false ||
             !str_starts_with($fileNameRealPath, $basePathRealPath)
         ) {
-            throw new Exception\InvalidFormatException('Invalid query base path');
+            throw new Exception\InvalidFormatException('Invalid path of file');
         }
+
+        return $fileQuery->withFile($fileNameRealPath);
     }
 }

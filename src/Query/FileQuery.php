@@ -4,6 +4,7 @@ namespace FQL\Query;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Exception\InvalidFormatException;
 use FQL\Interface;
 
 final class FileQuery implements \Stringable
@@ -51,6 +52,81 @@ final class FileQuery implements \Stringable
     }
 
     /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     */
+    public function withFile(?string $file): self
+    {
+        return new self(self::toString(
+            $this->extension,
+            $file,
+            $this->encoding,
+            $this->delimiter,
+            $this->query
+        ));
+    }
+
+    /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     */
+    public function withEncoding(string $encoding): self
+    {
+        return new self(self::toString(
+            $this->extension,
+            $this->file,
+            $encoding,
+            $this->delimiter,
+            $this->query
+        ));
+    }
+
+    /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     */
+    public function withDelimiter(string $delimiter): self
+    {
+        return new self(self::toString(
+            $this->extension,
+            $this->file,
+            $this->encoding,
+            $delimiter,
+            $this->query
+        ));
+    }
+
+    /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     */
+    public function withQuery(?string $query): self
+    {
+        return new self(self::toString(
+            $this->extension,
+            $this->file,
+            $this->encoding,
+            $this->delimiter,
+            $query
+        ));
+    }
+
+    /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     */
+    public function withExtension(?Enum\Format $extension): self
+    {
+        return new self(self::toString(
+            $extension,
+            $this->file,
+            $this->encoding,
+            $this->delimiter,
+            $this->query
+        ));
+    }
+
+    /**
      * @throws Exception\InvalidFormatException
      */
     public static function fromStream(Interface\Stream $stream): self
@@ -65,20 +141,45 @@ final class FileQuery implements \Stringable
 
     public function __toString(): string
     {
+        return self::toString(
+            $this->extension,
+            $this->file,
+            $this->encoding,
+            $this->delimiter,
+            $this->query
+        );
+    }
+
+    private static function toString(
+        ?Enum\Format $extension,
+        ?string $file,
+        ?string $encoding,
+        ?string $delimiter,
+        ?string $query
+    ): string {
         $fileQueryString = '';
-        if ($this->extension !== null) {
-            $fileQueryString .= "[{$this->extension->value}]";
+        if ($extension !== null) {
+            $fileQueryString .= "[{$extension->value}]";
         }
 
-        if ($this->file !== null) {
-            $fileQueryString .= "({$this->file})";
+        if ($file !== null) {
+            $fileQueryStringParts = [$file];
+            if ($encoding !== null && $encoding !== '' && $encoding !== 'utf-8') {
+                $fileQueryStringParts[] = $encoding;
+            }
+
+            if ($delimiter !== null && $delimiter !== '' && $delimiter !== ',') {
+                $fileQueryStringParts[] = sprintf('"%s"', $delimiter);
+            }
+
+            $fileQueryString .= sprintf('(%s)', implode(', ', $fileQueryStringParts));
         }
 
-        if ($this->query !== null) {
-            if ($this->file !== null) {
+        if ($query !== null) {
+            if ($file !== null) {
                 $fileQueryString .= '.';
             }
-            $fileQueryString .= $this->query;
+            $fileQueryString .= $query;
         }
 
         return $fileQueryString;
