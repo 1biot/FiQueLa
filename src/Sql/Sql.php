@@ -217,7 +217,6 @@ class Sql extends SqlLexer implements Interface\Parser
     {
         $functionName = $this->getFunction($field);
         $arguments = $this->getFunctionArguments($field);
-        dump($arguments);
 
         match (strtoupper($functionName)) {
             // aggregate
