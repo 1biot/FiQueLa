@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.11]
+- Do not throw an exception when field in condition does not exist. It was last place where was throwing an exception,
+and we need to compare values through `IS NULL` or `IS NOT NULL`.
+- Fixed parsing `DATE_FORMAT` second parameter and setting the default value to `c` format (`Y-m-d\TH:i:sP`).
+
+## [2.0.10]
+- hotfix, removed dump function
+- Use this version instead of v2.0.9.
+
 ## [2.0.9]
 
 - Previous fix for loading csv data with more attributes is fixing parsing only but this fix is knows works with files properly at FQL parser too

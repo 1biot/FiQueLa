@@ -101,12 +101,16 @@ class ConditionTest extends TestCase
         $this->assertTrue($group->evaluate([], false)); // Empty group should return true.
     }
 
-    public function testNonExistentKeyThrowsException(): void
+    public function testNonExistentKeyReturnsNull(): void
     {
-        $this->expectException(UnexpectedValueException::class);
+        $condition = new SimpleCondition(LogicalOperator::AND, 'nonexistent', Operator::EQUAL, 'value');
+        $this->assertTrue($condition->evaluate([], false));
+
+        $condition = new SimpleCondition(LogicalOperator::AND, 'existent', Operator::EQUAL, 'value');
+        $this->assertFalse($condition->evaluate(['existent' => 10], false));
 
         $condition = new SimpleCondition(LogicalOperator::AND, 'nonexistent', Operator::EQUAL, 'value');
-        $condition->evaluate([], false);
+        $this->assertFalse($condition->evaluate(['value' => 10], false));
     }
 
     public function testAccessNestedLeftValue(): void

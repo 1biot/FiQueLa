@@ -26,8 +26,12 @@ abstract class NDJsonProvider extends AbstractStream
 
         $ndjson->setFlags(\SplFileObject::DROP_NEW_LINE);
         foreach ($ndjson as $line) {
+            if ($line === false || !is_string($line)) {
+                break;
+            }
+
             if (trim($line) === '') {
-                continue;
+                break;
             }
 
             $data = json_decode($line, true);

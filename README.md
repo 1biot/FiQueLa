@@ -8,7 +8,7 @@
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
 ![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_182-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_610-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_612-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 

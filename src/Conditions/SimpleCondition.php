@@ -34,7 +34,7 @@ class SimpleCondition extends Condition
         $value = $nestingValues
             ? $this->accessNestedValue($item, $this->field)
             : $item[$this->field]
-                ?? throw new UnexpectedValueException(sprintf('Field %s not found in item', $this->field));
+                ?? $this->value;
 
         $compareValue = $this->value;
         if (is_scalar($this->value)) {

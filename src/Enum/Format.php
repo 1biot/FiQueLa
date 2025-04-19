@@ -17,7 +17,7 @@ enum Format: string
     case NEON = 'neon';
 
     /**
-     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml>
+     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson>
      */
     public function getFormatProviderClass(): string
     {
