@@ -22,7 +22,7 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 - 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, and NEON.
 - 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
 - ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
-- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `GROUP_CONCAT`, `ARRAY_MERGE`, `FORMAT_DATE` and many more.
+- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `GROUP_CONCAT`, `ARRAY_MERGE`, `DATE_FORMAT` and many more.
 - 🚀 **Efficient with Large Files**: Optimized for processing JSON, XML, and CSV files with tens of thousands of rows using stream processing.
 - 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
 - ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
