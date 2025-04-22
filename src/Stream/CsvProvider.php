@@ -103,7 +103,7 @@ abstract class CsvProvider extends AbstractStream
             $params[] = basename($this->csvFilePath);
         }
 
-        if ($this->inputEncoding !== null && $this->inputEncoding !== 'utf-8') {
+        if ($this->inputEncoding !== null) {
             $params[] = $this->inputEncoding;
         }
 
