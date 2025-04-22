@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.13]
+
+- Fixed generating providing source for CSV files 
+
 ## [2.0.12]
 
 - interface `FQL\Interface\Query` has been extended with new method `provideFileQuery(): FQL\Query\FileQuery`. It is useful for
