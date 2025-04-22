@@ -14,7 +14,7 @@ use FQL\Results\ResultsProvider;
 
 /**
  * @phpstan-type InArrayList string[]|int[]|float[]|array<int|string>
- * @phpstan-type ConditionValue null|int|float|string|InArrayList|Type
+ * @phpstan-type ConditionValue int|float|string|InArrayList|Type
  * @phpstan-type Condition array{
  *     type: LogicalOperator,
  *     key: string,
@@ -485,19 +485,19 @@ interface Query extends \Stringable
      * Add a conditional clause to the query.
      * @param ConditionValue $value The value to compare against.
      */
-    public function where(string $field, Operator $operator, null|array|float|int|string|Type $value): Query;
+    public function where(string $field, Operator $operator, array|float|int|string|Type $value): Query;
 
     /** @param ConditionValue $value The value to compare against. */
-    public function having(string $field, Operator $operator, null|array|float|int|string|Type $value): Query;
+    public function having(string $field, Operator $operator, array|float|int|string|Type $value): Query;
 
     /** @param ConditionValue $value */
-    public function and(string $field, Operator $operator, null|int|float|string|array|Type $value): Query;
+    public function and(string $field, Operator $operator, int|float|string|array|Type $value): Query;
 
     /** @param ConditionValue $value */
-    public function or(string $field, Operator $operator, null|int|float|string|array|Type $value): Query;
+    public function or(string $field, Operator $operator, int|float|string|array|Type $value): Query;
 
     /** @param ConditionValue $value */
-    public function xor(string $field, Operator $operator, null|int|float|string|array|Type $value): Query;
+    public function xor(string $field, Operator $operator, int|float|string|array|Type $value): Query;
 
     /** Add a conditional group clause in WHERE context to the query */
     public function whereGroup(): Query;

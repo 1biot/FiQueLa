@@ -1,8 +1,13 @@
 # Changelog
 
+## [2.0.14]
+
+- Finally fixed and tested issue with generating provide sources from FileQuery
+- Conditions are now evaluated left-part non-existence fields like `null` values
+
 ## [2.0.13]
 
-- Fixed generating providing source for CSV files 
+- Fixed generating providing source for CSV files
 
 ## [2.0.12]
 

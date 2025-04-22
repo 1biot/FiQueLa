@@ -3,7 +3,7 @@
 namespace Conditions;
 
 use FQL\Conditions\ConditionEnvelope;
-use FQL\Exception\UnexpectedValueException;
+use FQL\Enum\Type;
 use PHPUnit\Framework\TestCase;
 use FQL\Conditions\GroupCondition;
 use FQL\Conditions\SimpleCondition;
@@ -104,13 +104,22 @@ class ConditionTest extends TestCase
     public function testNonExistentKeyReturnsNull(): void
     {
         $condition = new SimpleCondition(LogicalOperator::AND, 'nonexistent', Operator::EQUAL, 'value');
-        $this->assertTrue($condition->evaluate([], false));
+        $this->assertFalse($condition->evaluate([], true));
+        $this->assertFalse($condition->evaluate(['value' => 10], true));
+        $this->assertFalse($condition->evaluate(['value' => null], true));
+        $this->assertFalse($condition->evaluate([], false));
+        $this->assertFalse($condition->evaluate(['value' => 10], false));
+        $this->assertFalse($condition->evaluate(['value' => null], false));
 
         $condition = new SimpleCondition(LogicalOperator::AND, 'existent', Operator::EQUAL, 'value');
+        $this->assertFalse($condition->evaluate(['existent' => 10], true));
         $this->assertFalse($condition->evaluate(['existent' => 10], false));
 
-        $condition = new SimpleCondition(LogicalOperator::AND, 'nonexistent', Operator::EQUAL, 'value');
-        $this->assertFalse($condition->evaluate(['value' => 10], false));
+        $condition = new SimpleCondition(LogicalOperator::AND, 'nonexistent', Operator::IS, Type::NULL);
+        $this->assertFalse($condition->evaluate([], false));
+        $this->assertFalse($condition->evaluate(['value' => null], false));
+        $this->assertTrue($condition->evaluate([], true));
+        $this->assertTrue($condition->evaluate(['value' => null], true));
     }
 
     public function testAccessNestedLeftValue(): void

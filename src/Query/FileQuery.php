@@ -164,11 +164,19 @@ final class FileQuery implements \Stringable
 
         if ($file !== null) {
             $fileQueryStringParts = [$file];
-            if ($encoding !== null && $encoding !== '' && $encoding !== 'utf-8') {
+            $hasEncoding = $encoding !== null && $encoding !== '';
+            $hasDefaultEncoding = $hasEncoding && strtolower($encoding) === 'utf-8';
+            $hasDelimiter = $delimiter !== null && $delimiter !== '';
+            $hasDefaultDelimiter = $hasDelimiter && strtolower($delimiter) === ',';
+
+            $encodingSet = ($hasDelimiter && !$hasDefaultDelimiter) || ($hasEncoding && !$hasDefaultEncoding);
+            if ($hasDelimiter && !$hasDefaultDelimiter) {
+                $fileQueryStringParts[] = $hasEncoding ? $encoding : 'utf-8';
+            } elseif ($hasEncoding && !$hasDefaultEncoding) {
                 $fileQueryStringParts[] = $encoding;
             }
 
-            if ($delimiter !== null && $delimiter !== '' && $delimiter !== ',') {
+            if ($encodingSet && !$hasDefaultDelimiter) {
                 $fileQueryStringParts[] = sprintf('"%s"', $delimiter);
             }
 

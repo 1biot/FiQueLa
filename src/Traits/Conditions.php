@@ -37,7 +37,7 @@ trait Conditions
     public function where(
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): Interface\Query {
         $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         return $this;
@@ -50,7 +50,7 @@ trait Conditions
     public function having(
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): Interface\Query {
         $this->currentGroup = $this->havingConditions;
         $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
@@ -64,7 +64,7 @@ trait Conditions
     public function and(
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): Interface\Query {
         $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         return $this;
@@ -77,7 +77,7 @@ trait Conditions
     public function or(
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): Interface\Query {
         $this->addCondition(Enum\LogicalOperator::OR, $key, $operator, $value);
         return $this;
@@ -90,7 +90,7 @@ trait Conditions
     public function xor(
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): Interface\Query {
         $this->addCondition(Enum\LogicalOperator::XOR, $key, $operator, $value);
         return $this;
@@ -149,7 +149,7 @@ trait Conditions
         Enum\LogicalOperator $type,
         string $key,
         Enum\Operator $operator,
-        null|array|float|int|string|Enum\Type $value
+        array|float|int|string|Enum\Type $value
     ): void {
         $this->currentGroup->addCondition($type, new SimpleCondition($type, $key, $operator, $value));
     }

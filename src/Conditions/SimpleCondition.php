@@ -21,7 +21,7 @@ class SimpleCondition extends Condition
         Enum\LogicalOperator $logicalOperator,
         public readonly string $field,
         public readonly Enum\Operator $operator,
-        public readonly null|array|float|int|string|Enum\Type $value
+        public readonly array|float|int|string|Enum\Type $value
     ) {
         parent::__construct($logicalOperator);
     }
@@ -32,9 +32,8 @@ class SimpleCondition extends Condition
     public function evaluate(array $item, bool $nestingValues): bool
     {
         $value = $nestingValues
-            ? $this->accessNestedValue($item, $this->field)
-            : $item[$this->field]
-                ?? $this->value;
+            ? $this->accessNestedValue($item, $this->field, false)
+            : ($item[$this->field] ?? $this->field);
 
         $compareValue = $this->value;
         if (is_scalar($this->value)) {
