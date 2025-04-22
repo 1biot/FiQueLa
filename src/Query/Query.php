@@ -2,6 +2,7 @@
 
 namespace FQL\Query;
 
+use FQL\Exception\InvalidFormatException;
 use FQL\Exception\QueryLogicException;
 use FQL\Interface;
 use FQL\Results;
@@ -105,5 +106,10 @@ class Query implements Interface\Query
         $queryParts[] = $this->limitToString();
 
         return trim(str_replace("\t", "  ", implode('', $queryParts)));
+    }
+
+    public function provideFileQuery(): FileQuery
+    {
+        return new FileQuery($this->stream->provideSource());
     }
 }

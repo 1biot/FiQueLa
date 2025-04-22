@@ -8,6 +8,7 @@ use FQL\Enum\Operator;
 use FQL\Enum\Sort;
 use FQL\Enum\Type;
 use FQL\Exception;
+use FQL\Query\FileQuery;
 use FQL\Results;
 use FQL\Results\ResultsProvider;
 
@@ -535,4 +536,9 @@ interface Query extends \Stringable
      * @return ResultsProvider
      */
     public function execute(?string $resultClass = null): Results\ResultsProvider;
+
+    /**
+     * @throws Exception\InvalidFormatException
+     */
+    public function provideFileQuery(): FileQuery;
 }

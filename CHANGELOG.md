@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.12]
+
+- interface `FQL\Interface\Query` has been extended with new method `provideFileQuery(): FQL\Query\FileQuery`. It is useful for
+  getting parsed information about stream.
+
 ## [2.0.11]
 - Do not throw an exception when field in condition does not exist. It was last place where was throwing an exception,
 and we need to compare values through `IS NULL` or `IS NOT NULL`.

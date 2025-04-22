@@ -69,4 +69,9 @@ class TestProvider implements Query
     {
         return '';
     }
+
+    public function provideFileQuery(): FileQuery
+    {
+        return new FileQuery($this->getFromSource());
+    }
 }
