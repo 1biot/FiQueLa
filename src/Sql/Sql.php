@@ -8,7 +8,6 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface;
 use FQL\Query;
-use FQL\Stream;
 use FQL\Traits;
 
 class Sql extends SqlLexer implements Interface\Parser
@@ -197,12 +196,21 @@ class Sql extends SqlLexer implements Interface\Parser
      */
     private function getFunctionArguments(string $token): array
     {
-        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)\((.*?)\)/i', $token, $matches);
+        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)(\(.*?\))/i', $token, $matches);
+        return $this->parserArgumentsFromParentheses($matches[1] ?? '');
+    }
+
+    /**
+     * @param string $token
+     * @return string[]
+     */
+    private function parserArgumentsFromParentheses(string $token): array
+    {
         return array_values(
             array_filter(
                 array_map(
                     fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
-                    array_map('trim', explode(',', $matches[1] ?? ''))
+                    array_map('trim', explode(',', trim($token, '()')))
                 )
             )
         );
@@ -317,6 +325,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 $upperNextToken = mb_strtoupper($nextToken);
                 if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN'])) {
                     $operator = $upperOperator . ' ' . $upperNextToken;
+                    $upperOperator .= ' ' . $upperNextToken;
                 } else {
                     $operator = $upperOperator;
                     $this->rewindToken();
@@ -324,10 +333,15 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             $operator = Enum\Operator::fromOrFail($operator);
-            $value = $this->nextToken();
-            $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
-                ? Enum\Type::from(strtolower($value))
-                : Enum\Type::matchByString($value);
+            if (str_contains($upperOperator, 'IN')) {
+                $value = $this->parserArgumentsFromParentheses($this->nextToken());
+            } else {
+                $value = $this->nextToken();
+                $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
+                    ? Enum\Type::from(strtolower($value))
+                    : Enum\Type::matchByString($value);
+            }
+
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
                 $firstIter = false;

@@ -56,7 +56,17 @@ enum Operator: string
     public function render(mixed $value, mixed $right): string
     {
         return match ($this) {
-            self::IN, self::NOT_IN => sprintf('%s %s (%s)', $value, $this->value, implode(', ', $right)),
+            self::IN, self::NOT_IN => sprintf('%s %s (%s)', $value, $this->value, implode(
+                ', ',
+                array_map(
+                    function ($value) {
+                        return is_string($value)
+                            ? sprintf('"%s"', $value)
+                            : $value;
+                    },
+                    $right
+                )
+            )),
             self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
             default => sprintf(
                 '%s %s %s',

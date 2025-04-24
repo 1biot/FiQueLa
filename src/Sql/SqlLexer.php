@@ -33,12 +33,9 @@ class SqlLexer implements \Iterator
         $regex = '/
             (\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)   # Function calls (e.g., FUNC_1(arg1)) - name must follow rules
             | ' . FileQuery::getRegexp(13) . '   # File query regexp
-            |\'[^\']*\'                          # Single quoted strings
-            | "[^"]*"                            # Double quoted strings
-            | [(),]                              # Parentheses and commas
             | \b(AND|OR|XOR)\b                   # Logical operators as whole words
-            | [^\s\'"(),]+                       # All other non-whitespace tokens
-            | \s+)                               # Whitespace (to split tokens)
+            | \([^()]*\)                         # Capture everything inside parentheses
+            | [^\s(),]+)                         # All other non-whitespace tokens
         /xi';
 
         preg_match_all($regex, $sql, $matches);

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.15]
+
+- Improved FQL parser to parse parameters for `IN` and `NOT IN` operators
+
 ## [2.0.14]
 
 - Finally fixed and tested issue with generating provide sources from FileQuery

@@ -302,7 +302,7 @@ compare_type_value:
     BOOLEAN | TRUE | FALSE | NUMBER | INT | DOUBLE | STRING | NULL | ARRAY | OBJECT
 
 value_type:
-    string | float | int | array | null | bool
+    string | float | int | array | bool
 
 where_condition:
     expr OR expr
@@ -332,7 +332,7 @@ value_expr:
 - _**comparison_operator**_: is an operator for comparing values.
 - _**expr**_: is a combination of _**field_expr**_, _**comparison_operator**_ and _**value_expr**_.
 
-> ⚠️ **FQL** still does not support parentheses.
+> ⚠️ **FQL** still does not support parentheses for conditions.
 
 **Example:**
 
