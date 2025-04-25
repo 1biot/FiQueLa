@@ -179,7 +179,7 @@ class SelectTest extends TestCase
         $this->assertInstanceOf(Functions\Aggregate\Avg::class, $selectedFields['avgPrice']['function']);
 
         $this->assertNotNull($selectedFields['lengthName']['function']);
-        $this->assertInstanceOf(Functions\String\Length::class, $selectedFields['lengthName']['function']);
+        $this->assertInstanceOf(Functions\Utils\Length::class, $selectedFields['lengthName']['function']);
 
         $this->assertNotNull($selectedFields['lowerName']['function']);
         $this->assertInstanceOf(Functions\String\Lower::class, $selectedFields['lowerName']['function']);

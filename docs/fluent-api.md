@@ -84,7 +84,6 @@ result of the function.
 |----------------|------------------------------------------|
 | `concat`       | Concatenate values with no separator.    |
 | `concatWS`     | Concatenate values with separator.       |
-| `length`       | Get length of string.                    |
 | `lower`        | Convert string to lower case.            |
 | `upper`        | Convert string to upper case.            |
 | `reverse`      | Reverse string.                          |
@@ -100,7 +99,6 @@ result of the function.
 ```php
 $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->concatWS('/', 'ArticleNr', 'CatalogNr')->as('CONCAT_WS')
-    ->length('name')->as('LENGTH')
     ->lower('name')->as('LOWER')
     ->upper('name')->as('UPPER')
     ->reverse('name')->as('REVERSE')
@@ -121,6 +119,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `coalesce`         | Coalesce values (first non-null value)                                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
+| `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `randomBytes`      | Generates cryptographically secure random bytes.                       |
 
 **Example:**
@@ -131,6 +130,8 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->coalesce('whatever', 'ArticleNr')->as('COALESCE')
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
     ->formatDate('dateField', 'Y-m-d')->as('FORMAT_DATE')
+    ->length('fieldWithArrayKeys')->as('keysCount')
+    ->length('Hello world')->as('stringLength')
     ->randomBytes(16)->as('RANDOM_BYTES');
 ```
 
@@ -204,8 +205,8 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 |-----------|-------------|
 | `INNER`   | Inner join  |
 | `LEFT`    | Left join   |
-| `RIGHT`   | ❌          |
-| `FULL`    | ❌          |
+| `RIGHT`   | ❌           |
+| `FULL`    | ❌           |
 
 **Example:**
 
@@ -265,11 +266,11 @@ use FQL\Enum\Operator;
 | `LESS_THAN`             | `<`        |                                                                                                             |
 | `LESS_THAN_OR_EQUAL`    | `<=`       |                                                                                                             |
 | `IN`                    | `IN`       | Compare if field is in array list.                                                                          |
-| `NOT_IN`                | `NOT IN`   | Same as `IN` operator but with oposite result.                                                              |
+| `NOT_IN`                | `NOT IN`   | Same as `IN` operator but with opposite result.                                                             |
 | `LIKE`                  | `LIKE`     | Fully compatible `LIKE` in MYSQL databases. Supports `_` and `%`.                                           |
-| `NOT_LIKE`              | `NOT LIKE` | Same as `LIKE` operator but with oposite result.                                                            |
+| `NOT_LIKE`              | `NOT LIKE` | Same as `LIKE` operator but with opposite result.                                                           |
 | `IS`                    | `IS`       | Supported types: `BOOLEAN`, `TRUE`, `FALSE`, `NUMBER`, `INT`, `DOUBLE`, `STRING`, `NULL`, `ARRAY`, `OBJECT` |
-| `NOT_IS`                | `IS NOT`   | Same as `IS` operator but with oposite result.                                                              |
+| `NOT_IS`                | `IS NOT`   | Same as `IS` operator but with opposite result.                                                             |
 
 **Example:**
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.16] - Unreleased
+
+- Improve `LENGTH` function and extends support to non-string values
+
 ## [2.0.15]
 
 - Improved FQL parser to parse parameters for `IN` and `NOT IN` operators

@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_182-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_627-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_187-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_634-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 
@@ -88,15 +88,15 @@ composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tr
 
 ## 3. Supported Formats
 
-| Format     | Name                   | File Support     | String Support | Dependencies                                   |
-|------------|------------------------|------------------|----------------|------------------------------------------------|
-| `csv`      | CSV                    | ✅              | ❌              | `league/csv`                                   |
-| `xml`      | XML                    | ✅              | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml` |
-| `jsonFile` | JSON Stream            | ✅              | ❌              | `halaxa/json-machine`                          |
-| `json`     | JSON (json_decode)     | ✅              | ✅              | `ext-json`                                     |
-| `ndJson`   | Newline Delimited JSON | ✅              | ❌              | `ext-fileinfo`                                 |
-| `yaml`     | YAML                   | ✅              | ✅              | `symfony/yaml`                                 |
-| `neon`     | NEON                   | ✅              | ✅              | `nette/neon`                                   |
+| Format      | Name                    | File Support   | String Support | Dependencies                                    |
+|-------------|-------------------------|----------------|----------------|-------------------------------------------------|
+| `csv`       | CSV                     | ✅              | ❌              | `league/csv`                                    |
+| `xml`       | XML                     | ✅              | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml`  |
+| `jsonFile`  | JSON Stream             | ✅              | ❌              | `halaxa/json-machine`                           |
+| `json`      | JSON (json_decode)      | ✅              | ✅              | `ext-json`                                      |
+| `ndJson`    | Newline Delimited JSON  | ✅              | ❌              | `ext-fileinfo`                                  |
+| `yaml`      | YAML                    | ✅              | ✅              | `symfony/yaml`                                  |
+| `neon`      | NEON                    | ✅              | ✅              | `nette/neon`                                    |
 
 ## 4. Getting Started
 
@@ -117,6 +117,28 @@ $results = Query\Provider::fromFileQuery('(./path/to/file.xml).SHOP.SHOPITEM')
 
 print_r(iterator_to_array($results));
 ```
+
+Or using the FQL syntax:
+
+```php
+use FQL\Query;
+
+$query = <<<FQL
+    SELECT *
+    FROM (./path/to/file.xml).SHOP.SHOPITEM
+    WHERE
+        EAN = "1234567891011"
+        OR PRICE <= 200
+    ORDER BY PRICE DESC
+    LIMIT 10
+FQL;
+$results = Query\Provider::fql($query)
+    ->execute()
+    ->fetchAll();
+
+print_r(iterator_to_array($results));
+````
+
 
 Output:
 

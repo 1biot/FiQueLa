@@ -174,7 +174,7 @@ trait Select
 
     public function length(string $field): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\String\Length($field));
+        return $this->addFieldFunction(new Functions\Utils\Length($field));
     }
 
     public function reverse(string $field): Interface\Query

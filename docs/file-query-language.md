@@ -148,7 +148,6 @@ SELECT
 |---------------------------|---------------------------------------|
 | `CONCAT`                  | Concatenate values with no separator. |
 | `CONCAT_WS`               | Concatenate values with separator.    |
-| `LENGTH`                  | Get length of string.                 |
 | `LOWER`                   | Convert string to lower case.         |
 | `UPPER`                   | Convert string to upper case.         |
 | `REVERSE`                 | Reverse string.                       |
@@ -164,7 +163,6 @@ SELECT
 ```sql
 SELECT
     CONCAT('Hello', ' ', 'World') AS greeting,
-    LENGTH('Hello World') AS length,
     LOWER('Hello World') AS lower,
     UPPER('Hello World') AS upper,
     REVERSE('Hello World') AS reverse,
@@ -199,24 +197,27 @@ ORDER BY _score DESC
 
 ### Utils functions
 
-| Function        | Description                                                           |
-|-----------------|-----------------------------------------------------------------------|
-| `ARRAY_COMBINE` | Combine two array with keys and array with values into a single array |
-| `ARRAY_MERGE`   | Merge two arrays into a single array                                  |
-| `COALESCE`      | Coalesce values (first non-null value)                                |
-| `COALESCE_NE`   | Coalesce values when not empty (first non-empty value)                |
-| `FORMAT_DATE`   | Format date field to string                                           |
-| `RANDOM_BYTES`  | Generates cryptographically secure random bytes.                      |
+| Function        | Description                                                            |
+|-----------------|------------------------------------------------------------------------|
+| `ARRAY_COMBINE` | Combine two array with keys and array with values into a single array  |
+| `ARRAY_MERGE`   | Merge two arrays into a single array                                   |
+| `COALESCE`      | Coalesce values (first non-null value)                                 |
+| `COALESCE_NE`   | Coalesce values when not empty (first non-empty value)                 |
+| `FORMAT_DATE`   | Format date field to string                                            |
+| `LENGTH`        | Get length of value. Recognizes arrays as count, null as 0 and strings |
+| `RANDOM_BYTES`  | Generates cryptographically secure random bytes.                       |
 
 **Examples:**
 
 ```sql
 SELECT
-    ARRAY_COMBINE(filedWitArrayKeys, FieldWithArrayValues) AS arrayCombine,
+    ARRAY_COMBINE(filedWitArrayKeys, fieldWithArrayValues) AS arrayCombine,
     ARRAY_MERGE(fieldWithArray1, fieldWithArray2) AS arrayMerge,
     COALESCE(NULL, 'Hello World') AS coalesce,
-    COALESCE_NE(NULL, 'Hello World') AS coalesceNe,
+    COALESCE_NE(0, 'Hello World') AS coalesceNe,
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
+    LENGTH(filedWitArrayKeys) AS keysCount,
+    LENGTH('Hello World') AS stringLength,
     RANDOM_BYTES(16) AS randomBytes
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ```
@@ -303,6 +304,7 @@ compare_type_value:
 
 value_type:
     string | float | int | array | bool
+    string | float | int | array | bool
 
 where_condition:
     expr OR expr
@@ -361,14 +363,14 @@ WHERE
 
 ### Aggregations
 
-| Function      | Description                 |
-|---------------|-----------------------------|
-| `COUNT`       | Count rows                  |
-| `SUM`         | Sum values                  |
-| `AVG`         | Average values              |
-| `MIN`         | Minimum value               |
-| `MAX`         | Maximum value               |
-| `GROUP_CONCAT`| Concatenate values          |
+| Function        | Description        |
+|-----------------|--------------------|
+| `COUNT`         | Count rows         |
+| `SUM`           | Sum values         |
+| `AVG`           | Average values     |
+| `MIN`           | Minimum value      |
+| `MAX`           | Maximum value      |
+| `GROUP_CONCAT`  | Concatenate values |
 
 **Example:**
 
