@@ -28,15 +28,13 @@ class SqlLexer implements \Iterator
      */
     protected function tokenize(string $sql): array
     {
-        // Basic tokenization (can be enhanced for better SQL support)
-        // Regex to split SQL while respecting quoted strings
         $regex = '/
             (\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)   # Function calls (e.g., FUNC_1(arg1)) - name must follow rules
             | ' . FileQuery::getRegexp(13) . '   # File query regexp
             | \b(AND|OR|XOR)\b                   # Logical operators as whole words
             | \([^()]*\)                         # Capture everything inside parentheses
             | [^\s(),]+)                         # All other non-whitespace tokens
-        /xi';
+        /uxi';
 
         preg_match_all($regex, $sql, $matches);
         // Remove empty tokens and trim

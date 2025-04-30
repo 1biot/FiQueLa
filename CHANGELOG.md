@@ -3,6 +3,7 @@
 ## [2.0.16] - Unreleased
 
 - Improve `LENGTH` function and extends support to non-string values
+- Fixed FQL parsing utf-8 special chars
 
 ## [2.0.15]
 

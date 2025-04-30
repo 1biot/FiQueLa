@@ -258,7 +258,7 @@ class Debugger
         | [(),] # bracket or comma
         | \b(' . implode('|', $keywords) . ')\b # operators
         | [^\s\'"(),]+ # other than spaces and quoteshe
-        )/xi';
+        )/uxi';
 
         // Preserving multi-line structure
         $lines = explode(PHP_EOL, $sql);
