@@ -6,7 +6,7 @@ use FQL\Exception\InvalidArgumentException;
 use FQL\Exception\UnexpectedValueException;
 use FQL\Interface\Invokable;
 use FQL\Stream\ArrayStreamProvider;
-use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 use FQL\Traits\Helpers\StringOperations;
 
 /**
@@ -15,7 +15,7 @@ use FQL\Traits\Helpers\StringOperations;
 abstract class BaseFunction implements Invokable, \Stringable
 {
     use StringOperations;
-    use NestedArrayAccessor;
+    use EnhancedNestedArrayAccessor;
 
     /**
      * @throws UnexpectedValueException

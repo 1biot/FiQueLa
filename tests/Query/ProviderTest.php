@@ -222,4 +222,21 @@ class ProviderTest extends TestCase
         $this->assertIsList($data[0]->categoryIds);
         $this->assertIsList($data[1]->categoryIds);
     }
+
+    public function testExcludedFields(): void
+    {
+        $query = $this->json->query()
+            ->select('id, name, price')
+            ->exclude('price')
+            ->from('data.products')
+            ->where('price', Operator::GREATER_THAN, 200);
+
+        $results = $query->execute();
+        $data = iterator_to_array($results->fetchAll());
+
+        $this->assertCount(3, $data);
+        $this->assertArrayNotHasKey('price', $data[0]);
+        $this->assertArrayNotHasKey('price', $data[1]);
+        $this->assertArrayNotHasKey('price', $data[2]);
+    }
 }

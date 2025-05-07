@@ -7,10 +7,15 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Functions\Core;
 use FQL\Interface;
+use FQL\Interface\Query;
 
 /**
  * @codingStandardsIgnoreStart
- * @phpstan-type SelectedField array{originField: string, alias: bool, function: null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction}
+ * @phpstan-type SelectedField array{
+ *     originField: string,
+ *     alias: bool,
+ *     function: null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction
+ * }
  * @codingStandardsIgnoreEnd
  * @phpstan-type SelectedFields array<string, SelectedField>
  */
@@ -286,6 +291,20 @@ trait Select
     public function formatDate(string $dateField, string $format = 'c'): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));
+    }
+
+    public function if(string $conditionString, string $trueStatement, string $falseStatement): Interface\Query
+    {
+        return $this->addFieldFunction(
+            new Functions\Utils\SelectIf($conditionString, $trueStatement, $falseStatement)
+        );
+    }
+
+    public function ifNull(string $field, string $trueStatement): Query
+    {
+        return $this->addFieldFunction(
+            new Functions\Utils\SelectIfNull($field, $trueStatement)
+        );
     }
 
     private function addFieldFunction(

@@ -12,8 +12,6 @@ use FQL\Traits;
 
 class Sql extends SqlLexer implements Interface\Parser
 {
-    use Traits\Helpers\StringOperations;
-
     public function __construct(private readonly string $sql, private ?string $basePath = null)
     {
         $this->tokenize($this->sql);
@@ -74,7 +72,7 @@ class Sql extends SqlLexer implements Interface\Parser
 
                     $joinQuery = $this->validateFileQueryPath($this->nextToken());
 
-                    $this->expect('AS');
+                    $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
                     if (strtolower($token) === 'left') {
@@ -82,7 +80,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     } elseif (strtolower($token) === 'inner') {
                         $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     }
-                    $this->expect('ON');
+                    $this->expect(Interface\Query::ON);
 
                     $field = $this->nextToken();
                     $operator = Enum\Operator::fromOrFail($this->nextToken());
@@ -96,7 +94,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     $alias = $this->nextToken();
 
                     $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
-                    $this->expect('ON');
+                    $this->expect(Interface\Query::ON);
 
                     $field = $this->nextToken();
                     $operator = Enum\Operator::fromOrFail($this->nextToken());
@@ -111,12 +109,12 @@ class Sql extends SqlLexer implements Interface\Parser
                     break;
 
                 case 'GROUP':
-                    $this->expect('BY');
+                    $this->expect(Interface\Query::BY);
                     $this->parseGroupBy($query);
                     break;
 
                 case 'ORDER':
-                    $this->expect('BY');
+                    $this->expect(Interface\Query::BY);
                     $this->parseSort($query);
                     break;
 
@@ -162,12 +160,6 @@ class Sql extends SqlLexer implements Interface\Parser
                 if ($this->isFunction($field)) {
                     $this->applyFunctionToQuery($field, $query);
                 } else {
-                    $nextToken = $this->nextToken();
-                    if (str_starts_with($nextToken, '[]->')) {
-                        $field .= $nextToken;
-                    } else {
-                        $this->rewindToken();
-                    }
                     $query->select($field);
                 }
 
@@ -178,42 +170,6 @@ class Sql extends SqlLexer implements Interface\Parser
                 }
             }
         }
-    }
-
-    private function isFunction(string $token): bool
-    {
-        return preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)/i', $token) === 1;
-    }
-
-    private function getFunction(string $token): string
-    {
-        return preg_replace('/(\b(?!_)[A-Z0-9_]{2,}(?<!_))\(.*?\)/i', '$1', $token) ?? '';
-    }
-
-    /**
-     * @param string $token
-     * @return array<scalar|null>
-     */
-    private function getFunctionArguments(string $token): array
-    {
-        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)(\(.*?\))/i', $token, $matches);
-        return $this->parserArgumentsFromParentheses($matches[1] ?? '');
-    }
-
-    /**
-     * @param string $token
-     * @return string[]
-     */
-    private function parserArgumentsFromParentheses(string $token): array
-    {
-        return array_values(
-            array_filter(
-                array_map(
-                    fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
-                    array_map('trim', explode(',', trim($token, '()')))
-                )
-            )
-        );
     }
 
     /**
@@ -287,6 +243,12 @@ class Sql extends SqlLexer implements Interface\Parser
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
+            'IF' => $query->if(
+                (string) ($arguments[0] ?? ''),
+                (string) ($arguments[1] ?? ''),
+                (string) ($arguments[2] ?? '')
+            ),
+            'IFNULL' => $query->ifNull((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
     }
@@ -297,51 +259,14 @@ class Sql extends SqlLexer implements Interface\Parser
         $firstIter = true;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $token = strtoupper($this->peekToken());
-
-            if ($token === 'AND') {
-                $logicalOperator = Enum\LogicalOperator::AND;
-                $this->nextToken(); // Consume "AND"
-                continue;
-            }
-
-            if ($token === 'OR') {
-                $logicalOperator = Enum\LogicalOperator::OR;
-                $this->nextToken(); // Consume "OR"
-                continue;
-            }
-
-            if ($token === 'XOR') {
-                $logicalOperator = Enum\LogicalOperator::XOR;
-                $this->nextToken(); // Consume "OR"
+            if (in_array($token, Enum\LogicalOperator::casesValues(), true) !== false) {
+                $logicalOperator = Enum\LogicalOperator::from($token);
+                $this->nextToken();
                 continue;
             }
 
             // Parse a single condition
-            $field = $this->nextToken();
-            $operator = $this->nextToken();
-            $upperOperator = mb_strtoupper($operator);
-            if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN'])) {
-                $nextToken = $this->nextToken();
-                $upperNextToken = mb_strtoupper($nextToken);
-                if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN'])) {
-                    $operator = $upperOperator . ' ' . $upperNextToken;
-                    $upperOperator .= ' ' . $upperNextToken;
-                } else {
-                    $operator = $upperOperator;
-                    $this->rewindToken();
-                }
-            }
-
-            $operator = Enum\Operator::fromOrFail($operator);
-            if (str_contains($upperOperator, 'IN')) {
-                $value = $this->parserArgumentsFromParentheses($this->nextToken());
-            } else {
-                $value = $this->nextToken();
-                $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
-                    ? Enum\Type::from(strtolower($value))
-                    : Enum\Type::matchByString($value);
-            }
-
+            [$field, $operator, $value] = $this->parseSingleCondition();
             if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
                 $query->where($field, $operator, $value);
                 $firstIter = false;
@@ -392,6 +317,11 @@ class Sql extends SqlLexer implements Interface\Parser
                 $direction = Enum\Sort::ASC;
                 $this->rewindToken();
             }
+
+            if ($this->isBacktick($field)) {
+                $field = $this->removeQuotes($field);
+            }
+
             $query->orderBy($field, $direction);
         }
     }
@@ -422,20 +352,6 @@ class Sql extends SqlLexer implements Interface\Parser
             $fulltextArguments[1]
         );
         $this->nextToken();
-    }
-
-    /**
-     * @return array{0: string|null, 1: Enum\Fulltext}
-     */
-    private function parseSearchMode(string $input): array
-    {
-        $pattern = '/^([\'"])(.*?)\1\s+IN\s+(NATURAL|BOOLEAN)\s+MODE$/i';
-        if (!preg_match($pattern, $input, $matches)) {
-            throw new Exception\QueryLogicException('Invalid AGAINST syntax');
-        }
-
-        $searchQuery = trim($matches[2]);
-        return [$searchQuery === '' ? null : $searchQuery, Enum\Fulltext::from($matches[3])];
     }
 
     public function getBasePath(): ?string

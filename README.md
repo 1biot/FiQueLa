@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_187-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_634-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_196-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_664-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
 
@@ -88,15 +88,20 @@ composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tr
 
 ## 3. Supported Formats
 
-| Format      | Name                    | File Support   | String Support | Dependencies                                    |
-|-------------|-------------------------|----------------|----------------|-------------------------------------------------|
-| `csv`       | CSV                     | ✅              | ❌              | `league/csv`                                    |
-| `xml`       | XML                     | ✅              | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml`  |
-| `jsonFile`  | JSON Stream             | ✅              | ❌              | `halaxa/json-machine`                           |
-| `json`      | JSON (json_decode)      | ✅              | ✅              | `ext-json`                                      |
-| `ndJson`    | Newline Delimited JSON  | ✅              | ❌              | `ext-fileinfo`                                  |
-| `yaml`      | YAML                    | ✅              | ✅              | `symfony/yaml`                                  |
-| `neon`      | NEON                    | ✅              | ✅              | `nette/neon`                                    |
+| Format      | Name                    | Class                   | File Support | String Support | Dependencies                                    |
+|-------------|-------------------------|-------------------------|--------------|----------------|-------------------------------------------------|
+| `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              | `league/csv`                                    |
+| `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml`  |
+| `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              | `halaxa/json-machine`                           |
+| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              | `ext-json`                                      |
+| `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              | `ext-fileinfo`                                  |
+| `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              | `symfony/yaml`                                  |
+| `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              | `nette/neon`                                    |
+
+### Directory provider
+
+Is special provider `FQL\Stream\Dir` class. It allows you to use directory as a source.
+You can query all files recursively by queries.
 
 ## 4. Getting Started
 

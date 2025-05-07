@@ -15,6 +15,7 @@ enum Format: string
     case CSV = 'csv';
     case YAML = 'yaml';
     case NEON = 'neon';
+    case DIR = 'dir';
 
     /**
      * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson>
@@ -29,6 +30,7 @@ enum Format: string
             self::CSV => Stream\Csv::class,
             self::YAML => Stream\Yaml::class,
             self::NEON => Stream\Neon::class,
+            self::DIR => Stream\Dir::class,
         };
     }
 
@@ -44,6 +46,7 @@ enum Format: string
             'csv', 'tsv' => self::CSV,
             'yaml', 'yml' => self::YAML,
             'neon' => self::NEON,
+            'dir' => self::DIR,
             default => throw new Exception\InvalidFormatException(sprintf('Unsupported file format "%s"', $extension)),
         };
     }

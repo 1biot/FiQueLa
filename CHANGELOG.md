@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.1.0] - unreleased
+
+### Added
+
+- new directory provider `FQL\Stream\Dir` for reading content from directory supporting all FiQueLa features
+- two new functions `IF` and `IFNULL` for selecting values based on conditions
+
+### Changed
+
+- Changed regex for FQL tokenizer for supports dot path access as one token
+- Refactored `FQL\Traits\Helpers\NestedArrayAccessor` and created new `FQL\Traits\Helpers\EnhancedNestedArrayAccessor` trait
+
+Supports:
+ - Standard access: `a.b.c`
+ - Indexed access: `a.b.0.c`
+ - Iterated access: `a.b[].c.d`
+ - Escaped keys: \`key.with.dot\`, \`key with space\`
+ - Indexed access into scalar via [index] if scalar is wrapped (e.g., x[0])
+
 ## [2.0.16]
 
 - Improve `LENGTH` function and extends support to non-string values

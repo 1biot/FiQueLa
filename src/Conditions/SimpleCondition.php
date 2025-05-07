@@ -3,7 +3,6 @@
 namespace FQL\Conditions;
 
 use FQL\Enum;
-use FQL\Exception\UnexpectedValueException;
 use FQL\Interface;
 use FQL\Traits\Helpers;
 
@@ -12,7 +11,7 @@ use FQL\Traits\Helpers;
  */
 class SimpleCondition extends Condition
 {
-    use Helpers\NestedArrayAccessor;
+    use Helpers\EnhancedNestedArrayAccessor;
 
     /**
      * @param ConditionValue $value

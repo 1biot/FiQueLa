@@ -26,6 +26,18 @@ trait StringOperations
         return preg_match('/^".*"$/', $input) === 1 || preg_match('/^\'.*\'$/', $input) === 1;
     }
 
+    public function isBacktick(string $input): bool
+    {
+        return preg_match('/^`.*`$/', $input) === 1;
+    }
+
+    public function translateToBacktickField(string $field): string
+    {
+        return count(preg_split('/\s+/', $field, -1, PREG_SPLIT_NO_EMPTY)) > 1
+            ? sprintf('`%s`', $field)
+            : $field;
+    }
+
     public function removeQuotes(string $input): string
     {
         return substr($input, 1, -1);

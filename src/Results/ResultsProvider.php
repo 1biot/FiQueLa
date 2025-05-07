@@ -5,7 +5,7 @@ namespace FQL\Results;
 use FQL\Exception\InvalidArgumentException;
 use FQL\Functions;
 use FQL\Interface\Results;
-use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from Stream
@@ -13,7 +13,7 @@ use FQL\Traits\Helpers\NestedArrayAccessor;
  */
 abstract class ResultsProvider implements Results, \IteratorAggregate
 {
-    use NestedArrayAccessor;
+    use EnhancedNestedArrayAccessor;
 
     public function fetchAll(?string $dto = null): \Generator
     {

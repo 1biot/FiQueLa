@@ -35,6 +35,8 @@ interface Query extends \Stringable
     public const DISTINCT = 'DISTINCT';
     public const EXCLUDE = 'EXCLUDE';
     public const AS = 'AS';
+    public const ON = 'ON';
+    public const BY = 'BY';
     public const FROM = 'FROM';
     public const WHERE = 'WHERE';
     public const HAVING = 'HAVING';
@@ -453,6 +455,9 @@ interface Query extends \Stringable
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Query;
     public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
     public function formatDate(string $dateField, string $format = 'c'): Query;
+
+    public function if(string $conditionString, string $trueStatement, string $falseStatement): Query;
+    public function ifNull(string $field, string $trueStatement): Query;
 
     /**
      * Specify a specific part of the data to select.

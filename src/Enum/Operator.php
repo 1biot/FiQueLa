@@ -6,6 +6,8 @@ use FQL\Exception\InvalidArgumentException;
 
 enum Operator: string
 {
+    use \FQL\Traits\Helpers\StringOperations;
+
     case EQUAL = '=';
     case EQUAL_STRICT = '==';
 
@@ -70,9 +72,11 @@ enum Operator: string
             self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
             default => sprintf(
                 '%s %s %s',
-                $value,
+                $this->isBacktick($value) ? $this->removeQuotes($value) : $value,
                 $this->value,
-                is_string($right) ? "'$right'" : ($right instanceof Type ? strtoupper($right->value) : $right)
+                is_string($right)
+                    ? ($this->isBacktick($right) ? $right : "'$right'")
+                    : ($right instanceof Type ? strtoupper($right->value) : $right)
             ),
         };
     }

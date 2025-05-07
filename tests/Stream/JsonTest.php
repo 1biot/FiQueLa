@@ -2,6 +2,7 @@
 
 namespace Stream;
 
+use FQL\Stream\JsonStream;
 use PHPUnit\Framework\TestCase;
 use FQL\Exception\FileNotFoundException;
 use FQL\Exception\InvalidFormatException;
@@ -24,6 +25,12 @@ class JsonTest extends TestCase
     {
         $json = Json::open($this->jsonFile);
         $this->assertInstanceOf(Json::class, $json);
+    }
+
+    public function testOpenStream(): void
+    {
+        $json = JsonStream::open($this->jsonFile);
+        $this->assertInstanceOf(JsonStream::class, $json);
     }
 
     public function testOpenFileNotExisted(): void

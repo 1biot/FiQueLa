@@ -21,7 +21,9 @@
 7) **ORDER BY**:
     - Results are sorted based on the specified columns or expressions.
     - Sorting can be in ascending (`ASC`), descending (`DESC`) or shuffled (`SHUFFLE`) and naturally sorted (`NATSORT`) order.
-8) **LIMIT** and **OFFSET**:
+8) **EXCLUDE**:
+    - Excludes specified columns from the output.
+9) **LIMIT** and **OFFSET**:
     - Limits the number of rows returned by the query using `LIMIT`.
     - If `OFFSET` is present, it skips a specified number of rows before returning the results.
 
@@ -37,7 +39,9 @@ For the query:
 ```sql
 SELECT
     name,
-    SUM(sales) AS total_sales
+    SUM(sales) AS total_sales,
+    ROUND(total_sales, 2) AS rounded_sales
+EXCLUDE total_sales
 FROM (customers.xml).customers.customer
 WHERE age > 30
 GROUP BY name
@@ -48,7 +52,7 @@ LIMIT 10;
 
 **Execution Order**:
 1) **FROM** and **JOIN**:
-    - Data are loaded from the employees file `customers.xml`. And using `customers.customer` as path.
+    - Data are loaded from the employees file `customers.xml`. And using `customers.customer` as query path.
 2) **WHERE**:
     - Filters rows where `age > 30`.
 3) **GROUP BY**:
@@ -59,7 +63,9 @@ LIMIT 10;
     - Filters groups where `total_sales > 1000`.
 6) **ORDER BY**:
     - Sorts results by `total_sales` in descending order.
-7) **LIMIT**:
+7) **EXCLUDE**:
+    - Excludes the `total_sales` column from the final output.
+8) **LIMIT**:
     - Returns only the top 10 rows.
 
 ## Next steps

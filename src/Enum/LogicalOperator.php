@@ -21,4 +21,17 @@ enum LogicalOperator: string
     {
         return sprintf($spaces ? ' %s ' : '%s', $this->value);
     }
+
+    /**
+     * @return string[]
+     */
+    public static function casesValues(): array
+    {
+        $return = [];
+        foreach (self::cases() as $case) {
+            $return[] = $case->value;
+        }
+
+        return $return;
+    }
 }

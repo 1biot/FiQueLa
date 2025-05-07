@@ -35,6 +35,13 @@ class TestProvider implements Query
     {
         return $this->selectedFields;
     }
+    /**
+     * @return string[]
+     */
+    public function getExcludedFields(): array
+    {
+        return $this->excludedFields;
+    }
 
     /**
      * @return array{0: int|null, 1: int|null}

@@ -223,4 +223,13 @@ class SelectTest extends TestCase
             $selectedFields['groupConcatenated']['function']
         );
     }
+
+    public function testExcludeField(): void
+    {
+        $this->query->select('id, name, price')
+            ->exclude('price');
+
+        $excludedFields = $this->query->getExcludedFields();
+        $this->assertCount(1, $excludedFields);
+    }
 }

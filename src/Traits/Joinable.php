@@ -10,7 +10,6 @@ use FQL\Stream\ArrayStreamProvider;
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
- * @codingStandardsIgnoreStart
  * @phpstan-type JoinAbleArray array{
  *     type: Enum\Join,
  *     table: Query,
@@ -19,7 +18,6 @@ use FQL\Stream\ArrayStreamProvider;
  *     operator: ?Enum\Operator,
  *     rightKey: ?string
  * }
- * @codingStandardsIgnoreEnd
 */
 trait Joinable
 {

@@ -17,6 +17,7 @@ use FQL\Stream\Neon;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
+use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -29,7 +30,8 @@ use FQL\Traits;
  */
 class Stream extends ResultsProvider
 {
-    use Traits\Helpers\NestedArrayAccessor;
+    use Traits\Helpers\EnhancedNestedArrayAccessor;
+    use Traits\Helpers\StringOperations;
 
     /** @var array<string, float> */
     private array $avgCache = [];
@@ -203,7 +205,6 @@ class Stream extends ResultsProvider
     /**
      * @implements \Traversable<StreamProviderArrayIteratorValue>
      * @return \Generator<StreamProviderArrayIteratorValue>
-     * @throws Exception\UnableOpenFileException
      * @throws Exception\InvalidArgumentException
      */
     private function buildStream(): \Traversable
@@ -254,7 +255,7 @@ class Stream extends ResultsProvider
         }
 
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = $finalField;
+            $fieldName = $this->isBacktick($finalField) ? $this->removeQuotes($finalField) : $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
                 continue;
@@ -268,17 +269,26 @@ class Stream extends ResultsProvider
 
             $result[$fieldName] = $this->accessNestedValue(
                 $item,
-                $fieldData['alias'] ? $fieldData['originField'] : $finalField,
+                $fieldData['originField'],
                 false
             );
         }
 
+        return $result;
+    }
+
+    /**
+     * @param array<string|int, mixed> $item
+     * @return array<string|int, mixed>
+     */
+    private function applyExcludeFromSelect(array $item): array
+    {
         // Exclude fields
         foreach ($this->excludedFields as $excludedField) {
-            $this->removeNestedValue($result, $excludedField);
+            $this->removeNestedValue($item, $excludedField);
         }
 
-        return $result;
+        return $item;
     }
 
     /**
@@ -316,7 +326,7 @@ class Stream extends ResultsProvider
                 continue;
             }
 
-            yield $resultItem; // Return result
+            yield $this->applyExcludeFromSelect($resultItem); // Return result
 
             $count++;
             if ($applyLimitAtStream && $this->limit !== null && $count >= $this->limit) {
@@ -348,7 +358,7 @@ class Stream extends ResultsProvider
             // Aggregate grouped items
             $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL]);
             if ($this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
-                return yield $aggregatedItem;
+                return yield $this->applyExcludeFromSelect($aggregatedItem); // Return result
             }
         }
 
@@ -368,7 +378,7 @@ class Stream extends ResultsProvider
                 continue;
             }
 
-            yield $aggregatedItem; // Return aggregated result
+            yield $this->applyExcludeFromSelect($aggregatedItem); // Return aggregated result
 
             $count++;
             if ($applyLimitAtStream && $this->limit !== null && $count >= $this->limit) {

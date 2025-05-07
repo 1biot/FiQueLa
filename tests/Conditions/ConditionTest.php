@@ -149,4 +149,11 @@ class ConditionTest extends TestCase
         $data = ['user.age' => 10, 'user.status' => 10];
         $this->assertTrue($condition->evaluate($data, false));
     }
+
+    public function testAccessValueWithSpaces(): void
+    {
+        $condition = new SimpleCondition(LogicalOperator::AND, 'user age', Operator::EQUAL, 'user status');
+        $data = ['user age' => 10, 'user status' => 10];
+        $this->assertTrue($condition->evaluate($data, false));
+    }
 }

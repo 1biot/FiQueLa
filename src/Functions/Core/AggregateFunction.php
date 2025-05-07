@@ -5,7 +5,7 @@ namespace FQL\Functions\Core;
 use FQL\Exception\UnexpectedValueException;
 use FQL\Interface\InvokableAggregate;
 use FQL\Stream\ArrayStreamProvider;
-use FQL\Traits\Helpers\NestedArrayAccessor;
+use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 use FQL\Traits\Helpers\StringOperations;
 
 /**
@@ -14,7 +14,7 @@ use FQL\Traits\Helpers\StringOperations;
 abstract class AggregateFunction implements InvokableAggregate, \Stringable
 {
     use StringOperations;
-    use NestedArrayAccessor;
+    use EnhancedNestedArrayAccessor;
 
     /**
      * @throws UnexpectedValueException
