@@ -46,6 +46,12 @@ trait Joinable
         return $this;
     }
 
+    public function rightJoin(Query $query, string $alias): Query
+    {
+        $this->addJoin($query, Enum\Join::RIGHT, $alias);
+        return $this;
+    }
+
     public function on(string $leftKey, Enum\Operator $operator, string $rightKey): Query
     {
         $joinKey = array_key_last($this->joins);

@@ -68,6 +68,7 @@ class Sql extends SqlLexer implements Interface\Parser
 
                 case 'INNER':
                 case 'LEFT':
+                case 'RIGHT':
                     $this->nextToken(); // Consume "JOIN"
 
                     $joinQuery = $this->validateFileQueryPath($this->nextToken());
@@ -79,6 +80,8 @@ class Sql extends SqlLexer implements Interface\Parser
                         $query->leftJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     } elseif (strtolower($token) === 'inner') {
                         $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                    } elseif (strtolower($token) === 'right') {
+                        $query->rightJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     }
                     $this->expect(Interface\Query::ON);
 
@@ -241,6 +244,7 @@ class Sql extends SqlLexer implements Interface\Parser
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
             'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
             'IF' => $query->if(

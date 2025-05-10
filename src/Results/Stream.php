@@ -153,12 +153,26 @@ class Stream extends ResultsProvider
      */
     private function applyJoin(\Traversable $leftData, array $join): \Traversable
     {
+        // Always execute right side (needed in any case)
         $rightData = $join['table']->execute(self::class)->getIterator();
         $alias = $join['alias'];
-        $leftKey = $join['leftKey'];
-        $rightKey = $join['rightKey'];
+        $leftKey = $this->isBacktick($join['leftKey']) ? $this->removeQuotes($join['leftKey']) : $join['leftKey'];
+        $rightKey = $this->isBacktick($join['rightKey']) ? $this->removeQuotes($join['rightKey']) : $join['rightKey'];
         $operator = $join['operator'] ?? Enum\Operator::EQUAL;
         $type = $join['type'];
+
+        // If RIGHT JOIN, swap sides and keys AFTER both are Traversable
+        if ($type === Enum\Join::RIGHT) {
+            $temp = $leftData;
+            $leftData = $rightData;
+            $rightData = $temp;
+
+            $tempKey = $leftKey;
+            $leftKey = $rightKey;
+            $rightKey = $tempKey;
+
+            $type = Enum\Join::LEFT; // treat as LEFT join from swapped view
+        }
 
         // Build a hashmap for the right table
         $hashmap = [];

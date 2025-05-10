@@ -288,6 +288,11 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\ArrayMerge($arrayField, $arrayField2));
     }
 
+    public function arrayFilter(string $field): Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\ArrayFilter($field));
+    }
+
     public function formatDate(string $dateField, string $format = 'c'): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));

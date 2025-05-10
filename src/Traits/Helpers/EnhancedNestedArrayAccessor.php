@@ -25,9 +25,7 @@ trait EnhancedNestedArrayAccessor
      */
     public function accessNestedValue(array $data, string $field, bool $throwOnMissing = true): mixed
     {
-        $tokens = $this->parsePath($field);
-
-        return $this->resolvePath($data, $tokens, $throwOnMissing);
+        return $this->resolvePath($data, $this->parsePath($field), $throwOnMissing);
     }
 
     /**
@@ -55,7 +53,7 @@ trait EnhancedNestedArrayAccessor
      */
     private function parsePath(string $path): array
     {
-        $pattern = '/`([^`]+)`|([^.`\[\]]+)|(\[\])/';
+        $pattern = '/`([^`]+)`|([^.`\[\]]+)|(\[])/';
         preg_match_all($pattern, $path, $matches);
 
         $tokens = [];
@@ -91,6 +89,10 @@ trait EnhancedNestedArrayAccessor
      */
     private function resolvePath(mixed $current, array $tokens, bool $throwOnMissing): mixed
     {
+        if (empty($tokens)) {
+            return null;
+        }
+
         $token = array_shift($tokens);
         $key = $token['key'];
 

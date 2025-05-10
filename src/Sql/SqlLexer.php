@@ -32,20 +32,97 @@ class SqlLexer implements \Iterator
      */
     public function tokenize(string $sql): array
     {
-        $regex = '/(
-            \b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)    # function calls (e.g., FUNC_1(arg1)) - name must follow rules
-            | ' . FileQuery::getRegexp(13) . '   # File Query regexp
-            | \'[^\']*\' | \"[^\"]*\"            # string literals
-            | (?:`[^`]+`|[^\s`,()])+             # full accessor (dot chains, [] etc.)
-            | \(|\)                              # parentheses
-            | [^\s(),]+                         # all other non-whitespace tokens
-        )/uxi';
+        $pattern = '/\b(' . implode('|', self::CONTROL_KEYWORDS) . ')\b/i';
+        preg_match_all($pattern, $sql, $matches, PREG_OFFSET_CAPTURE);
 
-        preg_match_all($regex, $sql, $matches);
-        // Remove empty tokens and trim
-        $this->tokens = array_values(array_filter(array_map('trim', $matches[0]), fn ($value) => $value !== ''));
+        if (empty($matches[0])) {
+            $this->tokens = $this->defaultTokenize($sql);
+            return $this->tokens;
+        }
+
+        $count = count($matches[0]);
+        $lastOffset = 0;
+
+        for ($i = 0; $i < $count; $i++) {
+            $keyword = strtoupper($matches[1][$i][0]);
+            $start = $matches[0][$i][1];
+
+            // tokenize content before the current keyword
+            $prefix = trim(substr($sql, $lastOffset, $start - $lastOffset));
+            if ($prefix !== '') {
+                $this->tokens = array_merge($this->tokens, $this->defaultTokenize($prefix));
+            }
+
+            $this->tokens[] = $keyword;
+
+            // get content for current keyword block
+            $nextStart = isset($matches[0][$i + 1]) ? $matches[0][$i + 1][1] : strlen($sql);
+            $chunk = trim(substr($sql, $start + strlen($keyword), $nextStart - $start - strlen($keyword)));
+
+            if ($keyword === 'FROM') {
+                $this->tokens = array_merge($this->tokens, $this->sourceTokenize($chunk));
+            } elseif ($keyword === 'JOIN') {
+                $joinParts = preg_split('/\b(AS|ON)\b/i', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+                $partCount = count($joinParts);
+
+                for ($j = 0; $j < $partCount; $j++) {
+                    $part = trim($joinParts[$j]);
+                    $upper = strtoupper($part);
+
+                    if ($upper === 'AS' || $upper === 'ON') {
+                        $this->tokens[] = $upper;
+                        $j++;
+                        if (isset($joinParts[$j])) {
+                            $this->tokens = array_merge($this->tokens, $this->defaultTokenize(trim($joinParts[$j])));
+                        }
+                    } else {
+                        $this->tokens = array_merge($this->tokens, $this->sourceTokenize($part));
+                    }
+                }
+            } else {
+                $this->tokens = array_merge($this->tokens, $this->defaultTokenize($chunk));
+            }
+
+            $lastOffset = $nextStart;
+        }
+
+        // tokenize any trailing content
+        $remaining = trim(substr($sql, $lastOffset));
+        if ($remaining !== '') {
+            $this->tokens = array_merge($this->tokens, $this->defaultTokenize($remaining));
+        }
+
         return $this->tokens;
     }
+
+
+    /**
+     * @return string[]
+     */
+    private function defaultTokenize(string $chunk): array
+    {
+        $regex = '/(
+            \b(?!_)[A-Z0-9_]{2,}(?<!_)\((?:[^()`\'"]+|`[^`]*`|\'[^\']*\'|"[^"]*")*\)  # function calls
+            | \'[^\']*\' | \"[^\"]*\"                                                 # string literals
+            | (?:`[^`]+`|[^\s`,()])+                                                  # data accessor - dot chains
+            | \(|\)                                                                   # parentheses
+            | [^\s(),]+                                                               # all other non-whitespace tokens
+        )/uxi';
+
+        preg_match_all($regex, $chunk, $matches);
+        return array_values(array_filter(array_map('trim', $matches[0]), fn ($t) => $t !== ''));
+    }
+
+    /**
+     * @return string[]
+     */
+    private function sourceTokenize(string $chunk): array
+    {
+        $regex = '/(' . FileQuery::getRegexp(13) . ')/uxi';
+        preg_match_all($regex, $chunk, $matches);
+        return array_values(array_filter(array_map('trim', $matches[0]), fn ($t) => $t !== ''));
+    }
+
 
     protected function nextToken(): string
     {
@@ -143,12 +220,13 @@ class SqlLexer implements \Iterator
 
     protected function isFunction(string $token): bool
     {
-        return preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)\(.*?\)/i', $token) === 1;
+        return preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)\((?:[^()`\'"]+|`[^`]*`|\'[^\']*\'|"[^"]*")*\)/i', $token) === 1;
     }
 
     protected function getFunction(string $token): string
     {
-        return preg_replace('/(\b(?!_)[A-Z0-9_]{2,}(?<!_))\(.*?\)/i', '$1', $token) ?? '';
+        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)/i', $token, $matches);
+        return $matches[0] ?? '';
     }
 
     /**
@@ -157,7 +235,7 @@ class SqlLexer implements \Iterator
      */
     protected function getFunctionArguments(string $token): array
     {
-        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)(\(.*?\))/i', $token, $matches);
+        preg_match('/\b(?!_)[A-Z0-9_]{2,}(?<!_)\(((?:[^()`\'"]+|`[^`]*`|\'[^\']*\'|"[^"]*")*)\)/i', $token, $matches);
         return $this->parserArgumentsFromParentheses($matches[1] ?? '');
     }
 
@@ -168,10 +246,11 @@ class SqlLexer implements \Iterator
     protected function parserArgumentsFromParentheses(string $token): array
     {
         return array_values(
-            array_filter(
-                array_map(
-                    fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
-                    array_map('trim', explode(',', trim($token, '()')))
+            array_map(
+                fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
+                array_filter(
+                    array_map('trim', explode(',', trim($token, '()'))),
+                    fn ($value) => $value !== ''
                 )
             )
         );

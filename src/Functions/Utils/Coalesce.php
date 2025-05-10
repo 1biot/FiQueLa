@@ -17,6 +17,8 @@ class Coalesce extends MultipleFieldsFunction
             $value = $this->getFieldValue($field, $item, $resultItem);
             if ($value !== null) {
                 return $value;
+            } elseif ($this->isQuoted($field)) {
+                return $this->removeQuotes($field);
             }
         }
 

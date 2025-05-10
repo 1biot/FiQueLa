@@ -272,12 +272,12 @@ FROM file_reference
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
 
-| Join type | Description |
-|-----------|-------------|
-| `INNER`   | Inner join  |
-| `LEFT`    | Left join   |
-| `RIGHT`   | ❌          |
-| `FULL`    | ❌          |
+| Join type | Description  |
+|-----------|--------------|
+| `INNER`   | Inner join   |
+| `LEFT`    | Left join    |
+| `RIGHT`   | Right join   |
+| `FULL`    | ❌            |
 
 **Example:**
 

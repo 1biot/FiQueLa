@@ -40,7 +40,7 @@ class SelectIf extends MultipleFieldsFunction
         } else {
             $falseStatement = $this->getFieldValue($this->falseStatement, $item, $resultItem) ?? $this->falseStatement;
             if (is_string($falseStatement)) {
-                $falseStatement = Enum\Type::matchByString($this->falseStatement);
+                $falseStatement = Enum\Type::matchByString($falseStatement);
             }
             return $falseStatement;
         }

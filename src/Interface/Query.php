@@ -454,6 +454,7 @@ interface Query extends \Stringable
 
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Query;
     public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
+    public function arrayFilter(string $field): Query;
     public function formatDate(string $dateField, string $format = 'c'): Query;
 
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Query;
@@ -484,6 +485,7 @@ interface Query extends \Stringable
     public function join(Query $query, string $alias): Query;
     public function innerJoin(Query $query, string $alias): Query;
     public function leftJoin(Query $query, string $alias): Query;
+    public function rightJoin(Query $query, string $alias): Query;
     public function on(string $leftKey, Operator $operator, string $rightKey): Query;
 
     /**

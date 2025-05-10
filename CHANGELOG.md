@@ -4,11 +4,16 @@
 
 ### Added
 
+- supports for `RIGHT JOIN`
 - new directory provider `FQL\Stream\Dir` for reading content from directory supporting all FiQueLa features
-- two new functions `IF` and `IFNULL` for selecting values based on conditions
+- 3 new functions
+  - `IF`
+  - `IFNULL`
+  - `ARRAY_FILTER`
 
 ### Changed
 
+- Improved `FQL\Sql\SqlLexer` for better tokenization
 - Changed regex for FQL tokenizer for supports dot path access as one token
 - Refactored `FQL\Traits\Helpers\NestedArrayAccessor` and created new `FQL\Traits\Helpers\EnhancedNestedArrayAccessor` trait
 

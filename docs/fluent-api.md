@@ -205,7 +205,8 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 |-----------|-------------|
 | `INNER`   | Inner join  |
 | `LEFT`    | Left join   |
-| `RIGHT`   | ❌           |
+| `RIGHT`   | Right join  |
+|           |             |
 | `FULL`    | ❌           |
 
 **Example:**
