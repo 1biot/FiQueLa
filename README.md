@@ -10,7 +10,7 @@
 ![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_196-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_664-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPStan_7|8-16_errors-orange)
+![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
 like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,

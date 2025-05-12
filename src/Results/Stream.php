@@ -156,8 +156,10 @@ class Stream extends ResultsProvider
         // Always execute right side (needed in any case)
         $rightData = $join['table']->execute(self::class)->getIterator();
         $alias = $join['alias'];
-        $leftKey = $this->isBacktick($join['leftKey']) ? $this->removeQuotes($join['leftKey']) : $join['leftKey'];
-        $rightKey = $this->isBacktick($join['rightKey']) ? $this->removeQuotes($join['rightKey']) : $join['rightKey'];
+        $leftKey = $join['leftKey'] ?? '';
+        $rightKey = $join['rightKey'] ?? '';
+        $leftKey = $this->isBacktick($leftKey) ? $this->removeQuotes($leftKey) : $leftKey;
+        $rightKey = $this->isBacktick($rightKey) ? $this->removeQuotes($rightKey) : $rightKey;
         $operator = $join['operator'] ?? Enum\Operator::EQUAL;
         $type = $join['type'];
 
@@ -257,8 +259,8 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @param array<string|int, mixed> $item
-     * @return array<string|int, mixed>
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
      * @throws Exception\InvalidArgumentException
      */
     private function applySelect(array $item): array

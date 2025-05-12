@@ -37,6 +37,10 @@ trait EnhancedNestedArrayAccessor
     public function removeNestedValue(array &$data, string $field): void
     {
         $tokens = $this->parsePath($field);
+        if (empty($tokens)) {
+            return;
+        }
+
         $last = array_pop($tokens);
         $ref = &$this->resolveReference($data, $tokens);
 

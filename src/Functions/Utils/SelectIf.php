@@ -4,6 +4,7 @@ namespace FQL\Functions\Utils;
 
 use FQL\Conditions\SimpleCondition;
 use FQL\Enum;
+use FQL\Exception;
 use FQL\Functions\Core\MultipleFieldsFunction;
 use FQL\Sql;
 

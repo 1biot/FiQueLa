@@ -18,7 +18,7 @@ enum Format: string
     case DIR = 'dir';
 
     /**
-     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson>
+     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson|Stream\Dir>
      */
     public function getFormatProviderClass(): string
     {

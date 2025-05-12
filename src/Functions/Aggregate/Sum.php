@@ -21,6 +21,10 @@ class Sum extends SingleFieldAggregateFunction
                 $value = Type::matchByString($value);
             }
 
+            if ($value === '') {
+                $value = 0;
+            }
+
             if (!is_numeric($value)) {
                 throw new UnexpectedValueException(
                     sprintf(

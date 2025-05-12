@@ -330,7 +330,7 @@ class Debugger
                     // Functions
                     if (preg_match('/' . $functionPattern . '/', $token, $matches)) {
                         $functionName = $matches[1];
-                        $innerContent = $matches[2];
+                        $innerContent = $matches[2] ?? '';
 
                         // Highlight parameters in content
                         $highlightedContent = implode(

@@ -33,7 +33,8 @@ trait StringOperations
 
     public function translateToBacktickField(string $field): string
     {
-        return count(preg_split('/\s+/', $field, -1, PREG_SPLIT_NO_EMPTY)) > 1
+        $splitField = preg_split('/\s+/', $field, -1, PREG_SPLIT_NO_EMPTY);
+        return count($splitField !== false ? $splitField : []) > 1
             ? sprintf('`%s`', $field)
             : $field;
     }

@@ -63,10 +63,10 @@ class SqlLexer implements \Iterator
                 $this->tokens = array_merge($this->tokens, $this->sourceTokenize($chunk));
             } elseif ($keyword === 'JOIN') {
                 $joinParts = preg_split('/\b(AS|ON)\b/i', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-                $partCount = count($joinParts);
+                $partCount = count($joinParts !== false ? $joinParts : []);
 
                 for ($j = 0; $j < $partCount; $j++) {
-                    $part = trim($joinParts[$j]);
+                    $part = trim($joinParts[$j] ?? '');
                     $upper = strtoupper($part);
 
                     if ($upper === 'AS' || $upper === 'ON') {
@@ -186,7 +186,8 @@ class SqlLexer implements \Iterator
     }
 
     /**
-     * @return array{0: string, 1: Enum\Operator, 2: Enum\Type|scalar|null|string[]}
+     * @throws Exception\UnexpectedValueException
+     * @return array{0: string, 1: Enum\Operator, 2: Enum\Type|float|int|string|string[]}
      */
     public function parseSingleCondition(): array
     {
@@ -213,6 +214,12 @@ class SqlLexer implements \Iterator
             $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
                 ? Enum\Type::from(strtolower($value))
                 : Enum\Type::matchByString($value);
+        }
+
+        if ($value === null || is_bool($value)) {
+            throw new Exception\UnexpectedValueException(
+                'For compare NULL or BOOLEAN value, use IS or IS NOT operator'
+            );
         }
 
         return [$field, $operator, $value];
