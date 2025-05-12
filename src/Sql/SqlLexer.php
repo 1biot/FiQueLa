@@ -32,7 +32,7 @@ class SqlLexer implements \Iterator
      */
     public function tokenize(string $sql): array
     {
-        $pattern = '/\b(' . implode('|', self::CONTROL_KEYWORDS) . ')\b/i';
+        $pattern = '/(?<=^|\s)(' . implode('|', self::CONTROL_KEYWORDS) . ')\b/i';
         preg_match_all($pattern, $sql, $matches, PREG_OFFSET_CAPTURE);
 
         if (empty($matches[0])) {
