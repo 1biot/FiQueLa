@@ -95,6 +95,22 @@ class SelectTest extends TestCase
         $this->assertCount(0, $selectedFields);
     }
 
+    public function testSelectionSpecialFields(): void
+    {
+        $this->query
+            ->select('`Pripojene produkty (oddelujte znakom "|", max 8 vyrobku)`, `Postovne - priplatky (X,A-O)`')
+            ->select('anotherField AS whatever');
+
+        $selectedFields = $this->query->getSelectedFields();
+        $this->assertCount(5, $selectedFields);
+
+        foreach ($selectedFields as $field => $data) {
+            $this->assertEquals($field, $data['originField']);
+            $this->assertFalse($data['alias']);
+            $this->assertNull($data['function']);
+        }
+    }
+
     public function testFunction(): void
     {
         $this->query

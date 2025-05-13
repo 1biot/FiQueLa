@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_196-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_664-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_197-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_680-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
 
@@ -208,12 +208,13 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.1899 (emalloc)
-> Memory peak usage (MB): 1.5636 (emalloc)
+> Memory usage (MB): 1.196 (emalloc)
+> Memory peak usage (MB): 1.5637 (emalloc)
 ------------------------------
-> Execution time (s): 5.3E-5
-> Execution time (ms): 0.053
-> Execution time (µs): 53
+> Execution time (s): 5.9E-5
+> Execution time (ms): 0.059
+> Execution time (µs): 59
+> Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
 =========================
@@ -223,12 +224,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 > SELECT
 >   ean ,
 >   defaultCategory ,
->   EXPLODE(" > ", defaultCategory) AS categoryArray ,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray ,
 >   price ,
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv).*
+> FROM [csv](products-w-1250.csv, windows-1250, ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 ================
@@ -236,7 +237,7 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ================
 > Result class: FQL\Results\InMemory
 > Results size memory (KB): 3.55
-> Result exists: TRUE
+> Result exists: true
 > Result count: 15
 ========================
 ### Fetch first row: ###
@@ -253,12 +254,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.4509 (emalloc)
-> Memory peak usage (MB): 2.5911 (emalloc)
+> Memory usage (MB): 2.5525 (emalloc)
+> Memory peak usage (MB): 2.6933 (emalloc)
 ------------------------------
-> Execution time (s): 0.024494
-> Execution time (ms): 24.494
-> Execution time (µs): 24494
+> Execution time (s): 0.035236
+> Execution time (ms): 35.236
+> Execution time (µs): 35236
+> Execution memory peak usage (MB): 1.1296
 ========================
 ### Benchmark Query: ###
 ========================
@@ -269,27 +271,28 @@ array (7)
 > SELECT
 >   ean ,
 >   defaultCategory ,
->   EXPLODE(" > ", defaultCategory) AS categoryArray ,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray ,
 >   price ,
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv).*
+> FROM [csv](products-w-1250.csv, windows-1250, ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 =========================
 ### STREAM BENCHMARK: ###
 =========================
-> Size (KB): 2.61
+> Size (KB): 2.65
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.4404 (emalloc)
-> Memory peak usage (MB): 2.6138 (emalloc)
+> Memory usage (MB): 2.5419 (emalloc)
+> Memory peak usage (MB): 2.7163 (emalloc)
 ------------------------------
-> Execution time (s): 10.107137
-> Execution time (ms): 10107.137
-> Execution time (µs): 10107137
+> Execution time (s): 15.815553
+> Execution time (ms): 15815.553
+> Execution time (µs): 15815553
+> Execution memory peak usage (MB): 0.023
 ============================
 ### IN_MEMORY BENCHMARK: ###
 ============================
@@ -297,21 +300,22 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.4509 (emalloc)
-> Memory peak usage (MB): 2.6138 (emalloc)
+> Memory usage (MB): 2.5525 (emalloc)
+> Memory peak usage (MB): 2.7163 (emalloc)
 ------------------------------
-> Execution time (s): 0.00673
-> Execution time (ms): 6.73
-> Execution time (µs): 6730
+> Execution time (s): 0.009213
+> Execution time (ms): 9.213
+> Execution time (µs): 9213
+> Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 2.44 (emalloc)
-> Memory peak usage (MB): 2.6138 (emalloc)
+> Memory usage (MB): 2.5416 (emalloc)
+> Memory peak usage (MB): 2.7163 (emalloc)
 ------------------------------
-> Final execution time (s): 10.138434
-> Final execution time (ms): 10138.434
-> Final execution time (µs): 10138434
+> Final execution time (s): 15.860123
+> Final execution time (ms): 15860.123
+> Final execution time (µs): 15860123
 ```
 
 ## 7. Knowing issues

@@ -8,6 +8,7 @@ use FQL\Functions;
 use FQL\Functions\Core;
 use FQL\Interface;
 use FQL\Interface\Query;
+use FQL\Sql;
 
 /**
  * @codingStandardsIgnoreStart
@@ -37,9 +38,11 @@ trait Select
 
     public function exclude(string ...$fields): Interface\Query
     {
+        $fqlTokenizer = new Sql\SqlLexer();
+        $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         $this->excludedFields = array_filter(array_merge(
             $this->excludedFields,
-            array_filter(array_map('trim', explode(',', implode(',', $fields))))
+            array_filter(array_map('trim', $fields))
         ));
         return $this;
     }
@@ -51,8 +54,8 @@ trait Select
      */
     public function select(string ...$fields): Interface\Query
     {
-        $fields = implode(',', $fields);
-        $fields = array_map('trim', explode(',', $fields));
+        $fqlTokenizer = new Sql\SqlLexer();
+        $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         foreach ($fields as $field) {
             if ($field === Interface\Query::SELECT_ALL) {
                 $this->selectedFields = [];
