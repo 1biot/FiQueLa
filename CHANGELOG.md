@@ -1,15 +1,18 @@
 # Changelog
 
-## [2.1.0] - unreleased
+## [2.1.0]
 
 ### Added
 
 - supports for `RIGHT JOIN`
-- new directory provider `FQL\Stream\Dir` for reading content from directory supporting all FiQueLa features
 - 3 new functions
   - `IF`
   - `IFNULL`
   - `ARRAY_FILTER`
+- new directory provider `FQL\Stream\Dir` for reading content from directory supporting all FiQueLa features
+- FQL supports commented lines and multi-line comments. These comments are ignored during parsing.
+  - Single-line comments start with `#` or `--`
+  - Multi-line comments are enclosed in `/* ... */`
 
 ### Changed
 

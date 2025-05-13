@@ -32,6 +32,7 @@ class SqlLexer implements \Iterator
      */
     public function tokenize(string $sql): array
     {
+        $sql = $this->removeComments($sql);
         $pattern = '/(?<=^|\s)(' . implode('|', self::CONTROL_KEYWORDS) . ')\b/i';
         preg_match_all($pattern, $sql, $matches, PREG_OFFSET_CAPTURE);
 
@@ -95,6 +96,22 @@ class SqlLexer implements \Iterator
         return $this->tokens;
     }
 
+    private function removeComments(string $sql): string
+    {
+        // Remove multi-line comments (/* ... */)
+        $sql = preg_replace('#/\*.*?\*/#s', '', $sql);
+
+        // Remove single-line comments (-- and #), but not inside quotes
+        $lines = explode("\n", $sql);
+        foreach ($lines as &$line) {
+            // ignore if inside string
+            if (preg_match('/^[^\'"`]*(--|#)/', $line, $m, PREG_OFFSET_CAPTURE)) {
+                $pos = $m[1][1];
+                $line = substr($line, 0, $pos);
+            }
+        }
+        return implode("\n", $lines);
+    }
 
     /**
      * @return string[]
