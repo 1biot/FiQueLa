@@ -360,7 +360,9 @@ trait Select
 
     public function endCase(): Query
     {
-        return $this->addFieldFunction($this->case);
+        $this->addFieldFunction($this->case);
+        $this->case = null;
+        return $this;
     }
 
     private function addFieldFunction(
