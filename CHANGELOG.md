@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.1.1] - not released yet
+## [2.1.1]
 
 ### Added
 
