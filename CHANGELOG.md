@@ -7,6 +7,31 @@
 - Support for `FULL JOIN`
 - Support for using `CASE` statement in `SELECT` clause
 - Support for using `ISNULL` function in `SELECT` clause
+- Support for own fields in `SELECT` clause. Previous solution was working only with `CONCAT`
+function (`SELECT CONCAT("my own value") AS myOwnField`). Values in quotes are cast from string to according type:
+  - `"1"` -> `1`
+  - `"1.0"` -> `1.0`
+  - `"true"` -> `true`
+  - `"false"` -> `false`
+  - `"null"` -> `null`
+  - `"2025-05-14 12:00:00"` -> `\DateTimeImmutable`
+  - `"whatever string"` -> `whatever string`
+
+```sql
+SELECT
+    "my own value" AS myOwnField,
+    "1" AS one,
+    "1.0" AS floatNumber
+```
+
+### Fixed
+ 
+- The value for the selected field is also retrieved from the result item, so this example now works too:
+```sql
+SELECT
+    explode(column, "|") AS myNewColumn,
+    myNewColumn[0] as myNewFirstValueOfColumn
+```
 
 ## [2.1.0]
 

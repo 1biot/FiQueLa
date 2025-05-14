@@ -291,7 +291,7 @@ class Stream extends ResultsProvider
         }
 
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = $this->isBacktick($finalField) ? $this->removeQuotes($finalField) : $finalField;
+            $fieldName = $this->isQuoted($finalField) ? $this->removeQuotes($finalField) : $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
                 continue;
@@ -307,7 +307,12 @@ class Stream extends ResultsProvider
                 $item,
                 $fieldData['originField'],
                 false
-            );
+            ) ?? $this->accessNestedValue($result, $fieldData['originField'], false)
+                ?? (
+                    $this->isQuoted($fieldData['originField'])
+                        ? Enum\Type::matchByString($this->removeQuotes($fieldData['originField']))
+                        : null
+                );
         }
 
         return $result;
