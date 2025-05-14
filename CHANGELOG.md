@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1] - not released yet
+
+### Added
+
+- Support for `FULL JOIN`
+- Support for using `CASE` statement in `SELECT` clause
+- Support for using `ISNULL` function in `SELECT` clause
+
 ## [2.1.0]
 
 ### Added

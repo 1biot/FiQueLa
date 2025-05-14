@@ -115,24 +115,40 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | Function           | Description                                                            |
 |--------------------|------------------------------------------------------------------------|
 | `arrayCombine`     | Combine two array with keys and array with values into a single array  |
+| `arrayFiler`       | Filter array from empty values                                         |
 | `arrayMerge`       | Merge two arrays into a single array                                   |
 | `coalesce`         | Coalesce values (first non-null value)                                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
 | `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `randomBytes`      | Generates cryptographically secure random bytes.                       |
+| `if`               | If condition, if true return first value, else second value            |
+| `ifNull`           | If value is null return second value, else first value                 |
+| `isNull`           | Check if value is null                                                 |
+| `case`             | Case statement for multiple conditions                                 |
 
 **Example:**
 
 ```php
 $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_COMBINE')
+    ->arrayFilter('fieldWithArray1')->as('ARRAY_FILTER')
     ->arrayMerge('fieldWithArray1', 'fieldWithArray2')->as('ARRAY_MERGE')
+    ->case()
+        ->whenCase('stock > 100', 'more than 100')
+        ->whenCase('stock > 50', 'more than 50')
+        ->whenCase('stock > 10', 'more than 10')
+        ->whenCase('stock > 0', 'last stock items')
+        ->elseCase('out of stock')
+    ->endCase()->as('CASE_WHEN')
     ->coalesce('whatever', 'ArticleNr')->as('COALESCE')
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
     ->formatDate('dateField', 'Y-m-d')->as('FORMAT_DATE')
     ->length('fieldWithArrayKeys')->as('keysCount')
     ->length('Hello world')->as('stringLength')
-    ->randomBytes(16)->as('RANDOM_BYTES');
+    ->randomBytes(16)->as('RANDOM_BYTES')
+    ->if('`some field` IN (1, 2, 3)', 'true', 'false')->as('IF')
+    ->ifNull('field', 'yes')->as('IFNULL')
+    ->isNull('`whatever field`')->as('ISNULL');
 ```
 
 ### Hashing functions
@@ -201,13 +217,12 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 
 ### Join types
 
-| Join type | Description |
-|-----------|-------------|
-| `INNER`   | Inner join  |
-| `LEFT`    | Left join   |
-| `RIGHT`   | Right join  |
-|           |             |
-| `FULL`    | ❌           |
+| Join type | Description      |
+|-----------|------------------|
+| `INNER`   | Inner join       |
+| `LEFT`    | Left outer join  |
+| `RIGHT`   | Right outer join |
+| `FULL`    | Full outer join  |
 
 **Example:**
 

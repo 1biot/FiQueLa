@@ -182,7 +182,7 @@ MATCH(field[, field ...]) AGAINST('search_query' [IN [NATURAL | BOOLEAN] MODE])
 ```
 
 Fulltext search is a special function for searching in text fields. It uses the `MATCH` and `AGAINST` functions.
-Supports two modes: `NATURAL` and `BOOLEAN`. Result is a score of the match and you can use it for filtering and sorting. 
+Supports two modes: `NATURAL` and `BOOLEAN`. Result is a score of the match, and you can use it for filtering and sorting. 
 
 ```sql
 SELECT
@@ -200,12 +200,17 @@ ORDER BY _score DESC
 | Function        | Description                                                            |
 |-----------------|------------------------------------------------------------------------|
 | `ARRAY_COMBINE` | Combine two array with keys and array with values into a single array  |
+| `ARRAY_FILTER`  | Filter array from empty values                                         |
 | `ARRAY_MERGE`   | Merge two arrays into a single array                                   |
 | `COALESCE`      | Coalesce values (first non-null value)                                 |
 | `COALESCE_NE`   | Coalesce values when not empty (first non-empty value)                 |
 | `FORMAT_DATE`   | Format date field to string                                            |
 | `LENGTH`        | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `RANDOM_BYTES`  | Generates cryptographically secure random bytes.                       |
+| `IF`            | If condition is true, return first value, otherwise second value.      |
+| `IFNULL`        | If value is null, return second value, otherwise first value.          |
+| `ISNULL`        | Check if value is null.                                                |
+| `CASE`          | Case statement for conditional logic.                                  |
 
 **Examples:**
 
@@ -218,7 +223,16 @@ SELECT
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
     LENGTH(filedWitArrayKeys) AS keysCount,
     LENGTH('Hello World') AS stringLength,
-    RANDOM_BYTES(16) AS randomBytes
+    RANDOM_BYTES(16) AS randomBytes,
+    CASE 
+        WHEN stock > 100 THEN 'more than 100'
+        WHEN stock > 50 THEN 'more than 50'
+        WHEN stock > 0 THEN 'last stock items'
+        ELSE 'out of stock'
+    END AS caseResult,
+    IF(condition, result1, result2) AS ifResult,
+    IFNULL(field, result) AS ifNull,
+    ISNULL(field) AS isNull
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ```
 
@@ -265,19 +279,22 @@ data sources, you must specify alias `AS` and `ON` condition. Multiple using of 
 
 ```sql
 FROM file_reference
-[JOIN file_reference
+[
+    {[INNER] JOIN | {LEFT|RIGHT|FULL} [OUTER] JOIN}
+    file_reference
     AS alias_reference
-    ON where_condition]
+    ON where_condition
+]
 ```
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
 
-| Join type | Description  |
-|-----------|--------------|
-| `INNER`   | Inner join   |
-| `LEFT`    | Left join    |
-| `RIGHT`   | Right join   |
-| `FULL`    | ❌            |
+| Join type | Description      |
+|-----------|------------------|
+| `INNER`   | Inner join       |
+| `LEFT`    | Left outer join  |
+| `RIGHT`   | Right outer join |
+| `FULL`    | Full outer join  |
 
 **Example:**
 

@@ -65,33 +65,37 @@ class Sql extends SqlLexer implements Interface\Parser
                     $fileQuery = $this->validateFileQueryPath($this->nextToken());
                     $query->from($fileQuery->query ?? '');
                     break;
-
-                case 'INNER':
                 case 'LEFT':
                 case 'RIGHT':
-                    $this->nextToken(); // Consume "JOIN"
+                case 'FULL':
+                    if (strtoupper($this->nextToken()) === 'OUTER') {
+                        $this->nextToken(); // Consume "JOIN"
+                    }
 
                     $joinQuery = $this->validateFileQueryPath($this->nextToken());
-
                     $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
                     if (strtolower($token) === 'left') {
                         $query->leftJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
-                    } elseif (strtolower($token) === 'inner') {
-                        $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     } elseif (strtolower($token) === 'right') {
                         $query->rightJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                    } elseif (strtolower($token) === 'full') {
+                        $query->fullJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
                     }
-                    $this->expect(Interface\Query::ON);
 
+                    $this->expect(Interface\Query::ON);
                     $field = $this->nextToken();
                     $operator = Enum\Operator::fromOrFail($this->nextToken());
                     $value = Enum\Type::matchByString($this->nextToken());
 
                     $query->on($field, $operator, $value);
                     break;
+                case 'INNER':
                 case 'JOIN':
+                    if (strtoupper($this->peekToken()) === 'INNER') {
+                        $this->nextToken(); // Consume "JOIN"
+                    }
                     $joinQuery = $this->validateFileQueryPath($this->nextToken());
                     $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
@@ -150,9 +154,29 @@ class Sql extends SqlLexer implements Interface\Parser
             } elseif (strtoupper($field) === Interface\Query::DISTINCT) {
                 $query->distinct();
                 continue;
-            }
+            } elseif (strtoupper($field) === Interface\Query::CASE) {
+                $query->case();
+                do {
+                    $this->expect(Interface\Query::WHEN);
+                    [$field, $operator, $value] = $this->parseSingleCondition();
+                    $this->expect(Interface\Query::THEN);
+                    $query->whenCase($operator->render($field, $value), $this->nextToken());
+                    if (strtoupper($this->nextToken()) !== Interface\Query::ELSE) {
+                        $this->rewindToken();
+                        continue;
+                    }
 
-            if (strtoupper($field) === Interface\Query::EXCLUDE) {
+                    $query->elseCase($this->nextToken());
+                } while ($this->peekToken() !== Interface\Query::END);
+                $this->expect(Interface\Query::END);
+                $query->endCase();
+                if (strtoupper($this->nextToken()) === Interface\Query::AS) {
+                    $query->as($this->nextToken());
+                } else {
+                    $this->rewindToken();
+                }
+                continue;
+            } elseif (strtoupper($field) === Interface\Query::EXCLUDE) {
                 $mode = 'selectOut';
                 continue;
             }
@@ -253,6 +277,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 (string) ($arguments[2] ?? '')
             ),
             'IFNULL' => $query->ifNull((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'ISNULL' => $query->isNull((string) ($arguments[0] ?? '')),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
     }

@@ -30,6 +30,8 @@ trait Select
     /** @var string[] $excludedFields */
     private array $excludedFields = [];
 
+    private ?Functions\Utils\SelectCase $case = null;
+
     public function selectAll(): Interface\Query
     {
         $this->select(Interface\Query::SELECT_ALL);
@@ -313,6 +315,52 @@ trait Select
         return $this->addFieldFunction(
             new Functions\Utils\SelectIfNull($field, $trueStatement)
         );
+    }
+
+    public function isNull(string $field): Query
+    {
+        return $this->addFieldFunction(
+            new Functions\Utils\SelectIsNull($field)
+        );
+    }
+
+    public function case(): Query
+    {
+        $this->case = new Functions\Utils\SelectCase();
+        return $this;
+    }
+
+    public function whenCase(string $conditionString, string $thenStatement): Query
+    {
+        if ($this->case === null) {
+            throw new Exception\CaseException('First create a CASE statement for using WHEN statement.');
+        }
+
+        $this->case->addCondition($conditionString, $thenStatement);
+        return $this;
+    }
+
+    public function elseCase(string $defaultCaseStatement): Query
+    {
+        if ($this->case === null) {
+            throw new Exception\CaseException('First create a CASE statement for using ELSE statement.');
+        }
+
+        if (!$this->case->hasConditions()) {
+            throw new Exception\CaseException('First add a WHEN statement.');
+        }
+
+        if ($this->case->hasDefaultStatement()) {
+            throw new Exception\CaseException('CASE statement already has a default statement.');
+        }
+
+        $this->case->addDefault($defaultCaseStatement);
+        return $this;
+    }
+
+    public function endCase(): Query
+    {
+        return $this->addFieldFunction($this->case);
     }
 
     private function addFieldFunction(

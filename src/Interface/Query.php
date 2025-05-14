@@ -33,6 +33,11 @@ interface Query extends \Stringable
 
     public const SELECT = 'SELECT';
     public const DISTINCT = 'DISTINCT';
+    public const CASE = 'CASE';
+    public const WHEN = 'WHEN';
+    public const THEN = 'THEN';
+    public const ELSE = 'ELSE';
+    public const END = 'END';
     public const EXCLUDE = 'EXCLUDE';
     public const AS = 'AS';
     public const ON = 'ON';
@@ -459,6 +464,11 @@ interface Query extends \Stringable
 
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Query;
     public function ifNull(string $field, string $trueStatement): Query;
+    public function isNull(string $field): Query;
+    public function case(): Query;
+    public function whenCase(string $conditionString, string $thenStatement): Query;
+    public function elseCase(string $defaultCaseStatement): Query;
+    public function endCase(): Query;
 
     /**
      * Specify a specific part of the data to select.
@@ -486,6 +496,7 @@ interface Query extends \Stringable
     public function innerJoin(Query $query, string $alias): Query;
     public function leftJoin(Query $query, string $alias): Query;
     public function rightJoin(Query $query, string $alias): Query;
+    public function fullJoin(Query $query, string $alias): Query;
     public function on(string $leftKey, Operator $operator, string $rightKey): Query;
 
     /**

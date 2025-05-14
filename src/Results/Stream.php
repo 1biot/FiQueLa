@@ -187,6 +187,8 @@ class Stream extends ResultsProvider
 
         // Get the structure of the right table from the hashmap
         $rightStructure = array_keys(current($hashmap)[0] ?? []);
+        $usedRightKeys = [];
+
         foreach ($leftData as $leftRow) {
             $leftKeyValue = $leftRow[$leftKey] ?? null;
             if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
@@ -199,10 +201,16 @@ class Stream extends ResultsProvider
 
                     if ($operator->evaluate($leftKeyValue, $rightRow[$rightKey] ?? null)) {
                         yield $joinedRow;
+                        $usedRightKeys[$leftKeyValue] = true;
                     }
                 }
-            } elseif ($type === Enum\Join::LEFT) {
-                // Handle LEFT JOIN (no match)
+
+                // Optimize memory: only if not FULL JOIN
+                if ($type !== Enum\Join::FULL) {
+                    unset($hashmap[$leftKeyValue]);
+                }
+            } elseif ($type === Enum\Join::LEFT || $type === Enum\Join::FULL) {
+                // Emit unmatched left row (null right side)
                 $nullRow = array_fill_keys($rightStructure, null);
                 /** @var StreamProviderArrayIteratorValue $joinedRow */
                 $joinedRow = $alias
@@ -211,9 +219,21 @@ class Stream extends ResultsProvider
 
                 yield $joinedRow;
             }
+        }
 
-            if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
-                unset($hashmap[$leftKeyValue]); // remove the used key from the hashmap
+        // Emit unmatched right rows (FULL JOIN only)
+        if ($type === Enum\Join::FULL) {
+            foreach ($hashmap as $key => $rightRows) {
+                if (!isset($usedRightKeys[$key])) {
+                    foreach ($rightRows as $rightRow) {
+                        $nullRow = array_fill_keys(array_keys($leftRow ?? []), null);
+                        $joinedRow = $alias
+                            ? array_merge($nullRow, [$alias => $rightRow])
+                            : array_merge($nullRow, $rightRow);
+
+                        yield $joinedRow;
+                    }
+                }
             }
         }
     }

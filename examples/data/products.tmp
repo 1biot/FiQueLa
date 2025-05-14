@@ -6,6 +6,7 @@
         "name": "Product A",
         "description": "Product A description",
         "price": 100,
+        "stock": 2,
         "brand": {
           "code": "BRAND-A",
           "name": "Brand A"
@@ -26,6 +27,7 @@
         "name": "Product B",
         "description": "Product B description",
         "price": 200,
+        "stock": 15,
         "brand": {
           "code": "BRAND-C",
           "name": "Brand C"
@@ -46,6 +48,7 @@
         "name": "Product C",
         "description": "Product C description",
         "price": 300,
+        "stock": 63,
         "brand": {
           "code": "BRAND-D",
           "name": "Brand D"
@@ -66,6 +69,7 @@
         "name": "Product D",
         "description": null,
         "price": 400,
+        "stock": 500,
         "brand": {
           "code": "BRAND-B",
           "name": "Brand B"
@@ -86,6 +90,7 @@
         "name": "Product E",
         "description": null,
         "price": 400,
+        "stock": 0,
         "brand": {
           "code": "BRAND-B",
           "name": "Brand B"
