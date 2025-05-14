@@ -326,7 +326,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [ ] **Custom cast type**: Add support for custom cast type for `SELECT` clause.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
