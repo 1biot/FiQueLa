@@ -42,7 +42,7 @@ enum Format: string
         return match ($extension) {
             'xml' => self::XML,
             'json', 'jsonFile' => self::JSON_STREAM,
-            'ndjson' => self::ND_JSON,
+            'ndjson', 'ndJson' => self::ND_JSON,
             'csv', 'tsv' => self::CSV,
             'yaml', 'yml' => self::YAML,
             'neon' => self::NEON,
