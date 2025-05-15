@@ -33,6 +33,12 @@ SELECT
     myNewColumn[0] as myNewFirstValueOfColumn
 ```
 
+### Changed
+
+- Removed direct support converting datetime string to `\DateTimeImmutable`.
+  Function `DATE_FORMAT` knows convert string to `\DateTimeImmutable` itself.
+  Cast to `DateTimeImmutable` will be possible in future by `CAST` statement or other function, it is not done yet
+
 ## [2.1.0]
 
 ### Added
