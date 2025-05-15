@@ -20,8 +20,6 @@ enum Type: string
     case ARRAY = 'array';
     case OBJECT = 'object';
 
-    case DATETIME = 'datetime';
-
     case RESOURCE = 'resource';
     case RESOURCE_CLOSED = 'resource (closed)';
 
@@ -36,10 +34,6 @@ enum Type: string
             self::FLOAT => is_numeric($value) ? (float) $value : 0.0,
             self::BOOLEAN => (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
             self::NULL => null,
-            self::DATETIME => match (true) {
-                $value instanceof \DateTimeInterface => $value,
-                default => \DateTimeImmutable::createFromFormat(DATE_ATOM, self::toString($value)),
-            },
             self::ARRAY => is_array($value) ? $value : [$value],
             self::OBJECT => is_object($value) ? $value : null,
             default => throw new InvalidArgumentException(
@@ -56,10 +50,7 @@ enum Type: string
             'double' => self::FLOAT,
             'string' => self::STRING,
             'array' => self::ARRAY,
-            'object' => match (true) {
-                $value instanceof \DateTimeInterface => self::DATETIME,
-                default => self::OBJECT,
-            },
+            'object' => self::OBJECT,
             'resource' => self::RESOURCE,
             'resource (closed)' => self::RESOURCE_CLOSED,
             'NULL' => self::NULL,
@@ -77,16 +68,6 @@ enum Type: string
         // Boolean
         if (in_array($value, ['true', 'TRUE', 'false', 'FALSE'], true)) {
             return self::castValue(strtolower($value) === 'true' ? 1 : 0, self::BOOLEAN);
-        }
-
-        // Datetime / Timestamp
-        if (preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/', $value)) {
-            try {
-                return self::castValue(new \DateTimeImmutable(self::toString($value)));
-            } catch (\Exception) {
-                // Invalid date format
-                return self::castValue($value, self::STRING);
-            }
         }
 
         // Integer or Float
@@ -149,7 +130,6 @@ enum Type: string
                 self::TRUE => 'true',
                 self::FALSE => 'false',
                 self::ARRAY => json_encode($value),
-                self::DATETIME => $value instanceof \DateTimeInterface ? $value->format('c') : 'null',
                 self::OBJECT => $value instanceof \Serializable ? $value->serialize() : 'object',
                 self::STRING => $value,
                 default => (string) $value,

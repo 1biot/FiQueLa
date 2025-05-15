@@ -14,6 +14,14 @@ class DateFormat extends Functions\Core\MultipleFieldsFunction
     public function __invoke(array $item, array $resultItem): ?string
     {
         $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
+        if (is_string($value) && strtotime($value) !== false) {
+            try {
+                $value = new \DateTimeImmutable($value);
+            } catch (\Exception) {
+                $value = null;
+            }
+        }
+
         if (!$value instanceof \DateTimeImmutable) {
             return null;
         }

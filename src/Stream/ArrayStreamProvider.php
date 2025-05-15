@@ -7,7 +7,7 @@ use FQL\Interface;
 
 /**
  * @codingStandardsIgnoreStart
- * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, \DateTimeImmutable|mixed>|scalar|null>
+ * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
  * @phpstan-type StreamProviderArrayIterator \ArrayIterator<int|string, StreamProviderArrayIteratorValue>|\ArrayIterator<int, StreamProviderArrayIteratorValue>|\ArrayIterator<string, StreamProviderArrayIteratorValue>
  * @codingStandardsIgnoreEnd
  */

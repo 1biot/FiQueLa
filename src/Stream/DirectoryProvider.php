@@ -40,8 +40,8 @@ abstract class DirectoryProvider extends AbstractStream
                 'size_KB' => round($file->getSize() / 1024, 2),
                 'size_MB' => round($file->getSize() / 1024 / 1024, 2),
                 'extension' => $file->getExtension(),
-                'created_at' => new \DateTimeImmutable(date('c', $file->getCTime())),
-                'modified_at' => new \DateTimeImmutable(date('c', $file->getMTime())),
+                'created_at' => date('c', $file->getCTime()),
+                'modified_at' => date('c', $file->getMTime()),
                 'permissions_octal' => sprintf("%04o", $file->getPerms() & 0777),
                 'permissions_string' => $this->getPermissionString($file->getPerms()),
                 'owner' => function_exists('posix_getpwuid')
