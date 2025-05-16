@@ -287,7 +287,6 @@ class Sql extends SqlLexer implements Interface\Parser
         $firstIter = true;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $token = strtoupper($this->peekToken());
-            dump($token);
             if (in_array($token, Enum\LogicalOperator::casesValues(), true) !== false) {
                 $logicalOperator = Enum\LogicalOperator::from($token);
                 $this->nextToken();
