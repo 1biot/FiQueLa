@@ -2,6 +2,7 @@
 
 namespace FQL\Functions\Core;
 
+use FQL\Enum\Type;
 use FQL\Exception\InvalidArgumentException;
 use FQL\Exception\UnexpectedValueException;
 use FQL\Interface\Invokable;
@@ -34,10 +35,14 @@ abstract class BaseFunction implements Invokable, \Stringable
     /**
      * @param StreamProviderArrayIteratorValue $item
      * @param StreamProviderArrayIteratorValue $resultItem
+     * @return array<int|string, mixed>|string|float|int|bool|null
      * @throws InvalidArgumentException
      */
-    protected function getFieldValue(string $field, array $item, array $resultItem): mixed
+    protected function getFieldValue(string $field, array $item, array $resultItem): array|string|float|int|bool|null
     {
-        return $this->accessNestedValue($item, $field, false) ?? $resultItem[$field] ?? null;
+        return $this->isQuoted($field)
+            ? Type::matchByString($field)
+            : ($this->accessNestedValue($item, $field, false)
+                ?? $this->accessNestedValue($resultItem, $field, false));
     }
 }

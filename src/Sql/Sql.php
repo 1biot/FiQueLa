@@ -8,7 +8,6 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface;
 use FQL\Query;
-use FQL\Traits;
 
 class Sql extends SqlLexer implements Interface\Parser
 {
@@ -288,8 +287,25 @@ class Sql extends SqlLexer implements Interface\Parser
         $firstIter = true;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
             $token = strtoupper($this->peekToken());
+            dump($token);
             if (in_array($token, Enum\LogicalOperator::casesValues(), true) !== false) {
                 $logicalOperator = Enum\LogicalOperator::from($token);
+                $this->nextToken();
+                continue;
+            } elseif ($this->peekToken() === '(') {
+                if ($logicalOperator === Enum\LogicalOperator::AND) {
+                    $query->andGroup();
+                    $this->nextToken();
+                    continue;
+                } elseif ($logicalOperator === Enum\LogicalOperator::OR) {
+                    $query->orGroup();
+                    $this->nextToken();
+                    continue;
+                } else {
+                    throw new Exception\UnexpectedValueException('Unexpected logical group');
+                }
+            } elseif ($this->peekToken() === ')') {
+                $query->endGroup();
                 $this->nextToken();
                 continue;
             }

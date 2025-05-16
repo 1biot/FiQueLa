@@ -351,7 +351,9 @@ value_expr:
 - _**comparison_operator**_: is an operator for comparing values.
 - _**expr**_: is a combination of _**field_expr**_, _**comparison_operator**_ and _**value_expr**_.
 
-> ⚠️ **FQL** still does not support parentheses for conditions.
+> ~~⚠️ **FQL** still does not support parentheses for conditions.~~
+
+> 📢 **FQL** Now supports parentheses for conditions !!! 🎉
 
 **Example:**
 

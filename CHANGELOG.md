@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.2] - wip
+
+### Added
+
+- Support for parentheses in `WHERE` and `HAVING` clauses. It is good sign for future because it will be possible to use
+  complex conditions for next functions and statements, for example `JOIN ... ON`, `IF`, `CASE WHEN ...`,
+  `ISNULL` and `IFNULL` and more functions in the future
+- More tests for date formating
+
+### Fixed
+
+- Fixed the behaviour for selecting nested values from already created columns structures
+
+### Preparing
+
+- `CURDATE` function
+
 ## [2.1.1]
 
 ### Added
