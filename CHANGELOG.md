@@ -11,6 +11,7 @@
 - 3 new functions
   - `CURDATE` for getting current date
   - `CURTIME` for getting current time
+  - `CURRENT_TIMESTAMP` for getting current unix timestamp
   - `NOW` for getting current date and time
   - All these functions are parameter `bool $numeric` to say if you want to return numeric value or string
   - `DATE_DIFF` for getting difference between two dates in days
