@@ -35,10 +35,9 @@ abstract class BaseFunction implements Invokable, \Stringable
     /**
      * @param StreamProviderArrayIteratorValue $item
      * @param StreamProviderArrayIteratorValue $resultItem
-     * @return array<int|string, mixed>|string|float|int|bool|null
      * @throws InvalidArgumentException
      */
-    protected function getFieldValue(string $field, array $item, array $resultItem): array|string|float|int|bool|null
+    protected function getFieldValue(string $field, array $item, array $resultItem): mixed
     {
         return $this->isQuoted($field)
             ? Type::matchByString($field)
