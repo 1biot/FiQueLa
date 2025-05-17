@@ -268,7 +268,12 @@ class Sql extends SqlLexer implements Interface\Parser
             'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),
+            'CURDATE' => $query->currentDay((bool) ($arguments[0] ?? 0)),
+            'CURTIME' => $query->currentTime((bool) ($arguments[0] ?? 0)),
+            'CURRENT_TIMESTAMP' => $query->currentTimestamp(),
+            'NOW' => $query->now((bool) ($arguments[0] ?? 0)),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
+            'DATE_DIFF' => $query->dateDiff((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
             'IF' => $query->if(
                 (string) ($arguments[0] ?? ''),
@@ -325,7 +330,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 $query->and($field, $operator, $value);
             } elseif ($logicalOperator === Enum\LogicalOperator::OR) {
                 $query->or($field, $operator, $value);
-            } else {
+            } elseif ($logicalOperator === Enum\LogicalOperator::XOR) {
                 $query->xor($field, $operator, $value);
             }
         }

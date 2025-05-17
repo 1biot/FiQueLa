@@ -313,6 +313,16 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\CurrentTime($numeric));
     }
 
+    public function currentTimestamp(): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\CurrentTimestamp());
+    }
+
+    public function now(bool $numeric = false): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Now($numeric));
+    }
+
     public function dateDiff(string $dateField, string $dateField2): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\DateDiff($dateField, $dateField2));
