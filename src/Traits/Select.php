@@ -303,6 +303,21 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));
     }
 
+    public function currentDay(bool $numeric = false): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\CurrentDay($numeric));
+    }
+
+    public function currentTime(bool $numeric = false): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\CurrentTime($numeric));
+    }
+
+    public function dateDiff(string $dateField, string $dateField2): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\DateDiff($dateField, $dateField2));
+    }
+
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Interface\Query
     {
         return $this->addFieldFunction(

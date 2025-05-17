@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.1.2] - wip
+## [2.1.2]
 
 ### Added
 
@@ -8,14 +8,16 @@
   complex conditions for next functions and statements, for example `JOIN ... ON`, `IF`, `CASE WHEN ...`,
   `ISNULL` and `IFNULL` and more functions in the future
 - More tests for date formating
+- 3 new functions
+  - `CURDATE` for getting current date
+  - `CURTIME` for getting current time
+  - `NOW` for getting current date and time
+  - All these functions are parameter `bool $numeric` to say if you want to return numeric value or string
+  - `DATE_DIFF` for getting difference between two dates in days
 
 ### Fixed
 
 - Fixed the behaviour for selecting nested values from already created columns structures
-
-### Preparing
-
-- `CURDATE` function
 
 ## [2.1.1]
 

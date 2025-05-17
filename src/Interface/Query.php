@@ -461,6 +461,10 @@ interface Query extends \Stringable
     public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
     public function arrayFilter(string $field): Query;
     public function formatDate(string $dateField, string $format = 'c'): Query;
+    public function currentDay(bool $numeric = false): Query;
+    public function currentTime(bool $numeric = false): Query;
+    public function now(): Query;
+    public function dateDiff(string $date, string $secondDate): Query;
 
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Query;
     public function ifNull(string $field, string $trueStatement): Query;
