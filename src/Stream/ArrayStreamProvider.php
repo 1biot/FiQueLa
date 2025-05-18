@@ -16,7 +16,7 @@ abstract class ArrayStreamProvider extends AbstractStream
     /**
      * @param StreamProviderArrayIterator $stream
      */
-    protected function __construct(private \ArrayIterator $stream)
+    public function __construct(protected \ArrayIterator $stream)
     {
     }
 
