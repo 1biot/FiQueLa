@@ -8,13 +8,15 @@
   complex conditions for next functions and statements, for example `JOIN ... ON`, `IF`, `CASE WHEN ...`,
   `ISNULL` and `IFNULL` and more functions in the future
 - More tests for date formating
-- 3 new functions
+- 7 new functions
   - `CURDATE` for getting current date
   - `CURTIME` for getting current time
   - `CURRENT_TIMESTAMP` for getting current unix timestamp
   - `NOW` for getting current date and time
   - All these functions are parameter `bool $numeric` to say if you want to return numeric value or string
   - `DATE_DIFF` for getting difference between two dates in days
+  - `LPAD` for left padding string with another string
+  - `RPAD` for right padding string with another string
 
 ### Fixed
 

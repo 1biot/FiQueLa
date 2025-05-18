@@ -283,6 +283,16 @@ trait Select
         return $this->fulltext($fields, $searchQuery);
     }
 
+    public function leftPad(string $field, int $length, string $padString = ' '): Query
+    {
+        return $this->addFieldFunction(new Functions\String\LeftPad($field, $length, $padString));
+    }
+
+    public function rightPad(string $field, int $length, string $padString = ' '): Query
+    {
+        return $this->addFieldFunction(new Functions\String\RightPad($field, $length, $padString));
+    }
+
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\ArrayCombine($keysArrayField, $valueArrayField));

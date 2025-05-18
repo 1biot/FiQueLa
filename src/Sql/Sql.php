@@ -265,6 +265,16 @@ class Sql extends SqlLexer implements Interface\Parser
                 )
             ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
+            'LPAD' => $query->leftPad(
+                (string) ($arguments[0] ?? ''),
+                (int) ($arguments[1] ?? 0),
+                (string) ($arguments[2] ?? ' ')
+            ),
+            'RPAD' => $query->rightPad(
+                (string) ($arguments[0] ?? ''),
+                (int) ($arguments[1] ?? 0),
+                (string) ($arguments[2] ?? ' ')
+            ),
             'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),

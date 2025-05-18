@@ -457,6 +457,9 @@ interface Query extends \Stringable
     /** @param string[] $fields */
     public function matchAgainst(array $fields, string $searchQuery, ?Fulltext $mode = null): Query;
 
+    public function leftPad(string $field, int $length, string $padString = ' '): Query;
+    public function rightPad(string $field, int $length, string $padString = ' '): Query;
+
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Query;
     public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
     public function arrayFilter(string $field): Query;

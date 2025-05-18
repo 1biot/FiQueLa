@@ -13,6 +13,6 @@ class ArrayFilter extends SingleFieldFunction
             return null;
         }
 
-        return array_filter($array);
+        return array_values(array_filter($array));
     }
 }

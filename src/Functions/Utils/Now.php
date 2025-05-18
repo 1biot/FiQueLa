@@ -12,7 +12,7 @@ class Now extends NoFieldFunction
 
     public function __toString(): string
     {
-        return sprintf('%s()', $this->getName());
+        return sprintf('%s(%s)', $this->getName(), $this->numeric ? 'true' : 'false');
     }
 
     public function __invoke(): string|int
