@@ -93,6 +93,8 @@ result of the function.
 | `toBase64`     | Encode string to base64.                 |
 | `randomString` | Generates random string.                 |
 | `matchAgainst` | Create a score by matching against query |
+| `lpad`         | Left pad string with another string.     |
+| `rpad`         | Right pad string with another string.    |
 
 **Example:**
 
@@ -107,7 +109,9 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->fromBase64('base64String')->as('BASE64_ENCODE')
     ->toBase64('string')->as('BASE64_DECODE')
     ->randomString(16)->as('RANDOM_STRING')
-    ->matchAgainst(['name'], 'search query')->as('MATCH_AGAINST');
+    ->matchAgainst(['name'], 'search query')->as('MATCH_AGAINST')
+    ->lpad('name', 10, '0')->as('LPAD')
+    ->rpad('name', 10, '0')->as('RPAD');
 ```
 
 ### Utils functions
@@ -120,6 +124,11 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `coalesce`         | Coalesce values (first non-null value)                                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
+| `dateDiff`         | Calculate difference between two dates                                 |
+| `now`              | Get current date and time                                              |
+| `currentTimestamp` | Get current unix timestamp                                             |
+| `currentDate`      | Get current date                                                       |
+| `currentTime`      | Get current time                                                       |
 | `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `randomBytes`      | Generates cryptographically secure random bytes.                       |
 | `if`               | If condition, if true return first value, else second value            |
@@ -148,7 +157,12 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->randomBytes(16)->as('RANDOM_BYTES')
     ->if('`some field` IN (1, 2, 3)', 'true', 'false')->as('IF')
     ->ifNull('field', 'yes')->as('IFNULL')
-    ->isNull('`whatever field`')->as('ISNULL');
+    ->isNull('`whatever field`')->as('ISNULL')
+    ->dateDiff('dateField1', 'dateField2')->as('DATE_DIFF')
+    ->now()->as('NOW')
+    ->currentTimestamp()->as('CURRENT_TIMESTAMP')
+    ->currentDate()->as('CURDATE')
+    ->currentTime()->as('CURTIME');
 ```
 
 ### Hashing functions

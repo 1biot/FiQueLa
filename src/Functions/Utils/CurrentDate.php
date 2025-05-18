@@ -4,7 +4,7 @@ namespace FQL\Functions\Utils;
 
 use FQL\Functions\Core\NoFieldFunction;
 
-class CurrentDay extends NoFieldFunction
+class CurrentDate extends NoFieldFunction
 {
     public function __construct(private readonly bool $numeric = false)
     {

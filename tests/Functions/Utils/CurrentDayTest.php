@@ -2,18 +2,18 @@
 
 namespace Functions\Utils;
 
-use FQL\Functions\Utils\CurrentDay;
+use FQL\Functions\Utils\CurrentDate;
 use PHPUnit\Framework\TestCase;
 
 class CurrentDayTest extends TestCase
 {
     public function testCurrentDay(): void
     {
-        $currentDay = new CurrentDay();
+        $currentDay = new CurrentDate();
         $result = $currentDay();
         $this->assertEquals(date('Y-m-d'), $result);
 
-        $currentDayNumeric = new CurrentDay(true);
+        $currentDayNumeric = new CurrentDate(true);
         $resultNumeric = $currentDayNumeric();
         $this->assertEquals(date('Ymd'), $resultNumeric);
         $this->assertIsInt($resultNumeric);

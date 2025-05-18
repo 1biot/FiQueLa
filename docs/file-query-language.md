@@ -144,19 +144,21 @@ SELECT
 
 ### String functions
 
-| Function                  | Description                           |
-|---------------------------|---------------------------------------|
-| `CONCAT`                  | Concatenate values with no separator. |
-| `CONCAT_WS`               | Concatenate values with separator.    |
-| `LOWER`                   | Convert string to lower case.         |
-| `UPPER`                   | Convert string to upper case.         |
-| `REVERSE`                 | Reverse string.                       |
-| `EXPLODE`                 | Split string to array.                |
-| `IMPLODE`                 | Join array to string.                 |
-| `BASE64_ENCODE`           | Decode base64 string.                 |
-| `BASE64_DECODE`           | Encode string to base64.              |
-| `RANDOM_STRING`           | Generates random string.              |
-| `MATCH(...) AGAINST(...)` | Simple fulltext score matching        |
+| Function                  | Description                            |
+|---------------------------|----------------------------------------|
+| `CONCAT`                  | Concatenate values with no separator.  |
+| `CONCAT_WS`               | Concatenate values with separator.     |
+| `LOWER`                   | Convert string to lower case.          |
+| `UPPER`                   | Convert string to upper case.          |
+| `REVERSE`                 | Reverse string.                        |
+| `EXPLODE`                 | Split string to array.                 |
+| `IMPLODE`                 | Join array to string.                  |
+| `BASE64_ENCODE`           | Decode base64 string.                  |
+| `BASE64_DECODE`           | Encode string to base64.               |
+| `RANDOM_STRING`           | Generates random string.               |
+| `MATCH(...) AGAINST(...)` | Simple fulltext score matching         |
+| `LPAD`                    | Left pad string with character.        |
+| `RPAD`                    | Right pad string with character.       |
 
 **Examples:**
 
@@ -171,6 +173,8 @@ SELECT
     BASE64_ENCODE('SGVsbG8gV29ybGQ=') AS fromBase64,
     BASE64_DECODE('Hello World') AS toBase64,
     RANDOM_STRING(10) AS randomString,
+    LPAD('Hello', 10, '-') AS lpad,
+    RPAD('Hello', 10, '-') AS rpad
     MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
 FROM [json](./examples/data/products.tmp).data.products
 ```
@@ -197,20 +201,25 @@ ORDER BY _score DESC
 
 ### Utils functions
 
-| Function        | Description                                                            |
-|-----------------|------------------------------------------------------------------------|
-| `ARRAY_COMBINE` | Combine two array with keys and array with values into a single array  |
-| `ARRAY_FILTER`  | Filter array from empty values                                         |
-| `ARRAY_MERGE`   | Merge two arrays into a single array                                   |
-| `COALESCE`      | Coalesce values (first non-null value)                                 |
-| `COALESCE_NE`   | Coalesce values when not empty (first non-empty value)                 |
-| `FORMAT_DATE`   | Format date field to string                                            |
-| `LENGTH`        | Get length of value. Recognizes arrays as count, null as 0 and strings |
-| `RANDOM_BYTES`  | Generates cryptographically secure random bytes.                       |
-| `IF`            | If condition is true, return first value, otherwise second value.      |
-| `IFNULL`        | If value is null, return second value, otherwise first value.          |
-| `ISNULL`        | Check if value is null.                                                |
-| `CASE`          | Case statement for conditional logic.                                  |
+| Function            | Description                                                            |
+|---------------------|------------------------------------------------------------------------|
+| `ARRAY_COMBINE`     | Combine two array with keys and array with values into a single array  |
+| `ARRAY_FILTER`      | Filter array from empty values                                         |
+| `ARRAY_MERGE`       | Merge two arrays into a single array                                   |
+| `COALESCE`          | Coalesce values (first non-null value)                                 |
+| `COALESCE_NE`       | Coalesce values when not empty (first non-empty value)                 |
+| `FORMAT_DATE`       | Format date field to string                                            |
+| `DATE_DIFF`         | Calculate difference between two dates                                 |
+| `NOW`               | Get current date and time                                              |
+| `CURRENT_TIMESTAMP` | Get current unix timestamp                                             |
+| `CURDATE`           | Get current date                                                       |
+| `CURTIME`           | Get current time                                                       |
+| `LENGTH`            | Get length of value. Recognizes arrays as count, null as 0 and strings |
+| `RANDOM_BYTES`      | Generates cryptographically secure random bytes.                       |
+| `IF`                | If condition is true, return first value, otherwise second value.      |
+| `IFNULL`            | If value is null, return second value, otherwise first value.          |
+| `ISNULL`            | Check if value is null.                                                |
+| `CASE`              | Case statement for conditional logic.                                  |
 
 **Examples:**
 
@@ -221,6 +230,11 @@ SELECT
     COALESCE(NULL, 'Hello World') AS coalesce,
     COALESCE_NE(0, 'Hello World') AS coalesceNe,
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
+    DATE_DIFF(dateField1, dateField2) AS dateDiff,
+    NOW() AS now,
+    CURRENT_TIMESTAMP() AS currentTimestamp,
+    CURDATE() AS curdate,
+    CURTIME() AS curtime,
     LENGTH(filedWitArrayKeys) AS keysCount,
     LENGTH('Hello World') AS stringLength,
     RANDOM_BYTES(16) AS randomBytes,
