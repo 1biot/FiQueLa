@@ -95,6 +95,8 @@ result of the function.
 | `matchAgainst` | Create a score by matching against query |
 | `lpad`         | Left pad string with another string.     |
 | `rpad`         | Right pad string with another string.    |
+| `substring`    | Get substring of string.                 |
+| `locate`       | Find position of substring in string.    |
 
 **Example:**
 
@@ -285,22 +287,24 @@ Operators are enums that represent the comparison operators used in the conditio
 use FQL\Enum\Operator;
 ```
 
-| Enum constant           | Operator   | Description                                                                                                 |
-|-------------------------|------------|-------------------------------------------------------------------------------------------------------------|
-| `EQUAL`                 | `=`        |                                                                                                             |
-| `EQUAL_STRICT`          | `==`       |                                                                                                             |
-| `NOT_EQUAL`             | `!=`       |                                                                                                             |
-| `NOT_EQUAL_STRICT`      | `!==`      |                                                                                                             |
-| `GREATER_THAN`          | `>`        |                                                                                                             |
-| `GREATER_THAN_OR_EQUAL` | `>=`       |                                                                                                             |
-| `LESS_THAN`             | `<`        |                                                                                                             |
-| `LESS_THAN_OR_EQUAL`    | `<=`       |                                                                                                             |
-| `IN`                    | `IN`       | Compare if field is in array list.                                                                          |
-| `NOT_IN`                | `NOT IN`   | Same as `IN` operator but with opposite result.                                                             |
-| `LIKE`                  | `LIKE`     | Fully compatible `LIKE` in MYSQL databases. Supports `_` and `%`.                                           |
-| `NOT_LIKE`              | `NOT LIKE` | Same as `LIKE` operator but with opposite result.                                                           |
-| `IS`                    | `IS`       | Supported types: `BOOLEAN`, `TRUE`, `FALSE`, `NUMBER`, `INT`, `DOUBLE`, `STRING`, `NULL`, `ARRAY`, `OBJECT` |
-| `NOT_IS`                | `IS NOT`   | Same as `IS` operator but with opposite result.                                                             |
+| Enum constant           | Operator      | Description                                                                                                 |
+|-------------------------|---------------|-------------------------------------------------------------------------------------------------------------|
+| `EQUAL`                 | `=`           |                                                                                                             |
+| `EQUAL_STRICT`          | `==`          |                                                                                                             |
+| `NOT_EQUAL`             | `!=`          |                                                                                                             |
+| `NOT_EQUAL_STRICT`      | `!==`         |                                                                                                             |
+| `GREATER_THAN`          | `>`           |                                                                                                             |
+| `GREATER_THAN_OR_EQUAL` | `>=`          |                                                                                                             |
+| `LESS_THAN`             | `<`           |                                                                                                             |
+| `LESS_THAN_OR_EQUAL`    | `<=`          |                                                                                                             |
+| `IN`                    | `IN`          | Compare if field is in array list.                                                                          |
+| `NOT_IN`                | `NOT IN`      | Same as `IN` operator but with opposite result.                                                             |
+| `LIKE`                  | `LIKE`        | Fully compatible `LIKE` in MYSQL databases. Supports `_` and `%`.                                           |
+| `NOT_LIKE`              | `NOT LIKE`    | Same as `LIKE` operator but with opposite result.                                                           |
+| `IS`                    | `IS`          | Supported types: `BOOLEAN`, `TRUE`, `FALSE`, `NUMBER`, `INT`, `DOUBLE`, `STRING`, `NULL`, `ARRAY`, `OBJECT` |
+| `NOT_IS`                | `IS NOT`      | Same as `IS` operator but with opposite result.                                                             |
+| `BETWEEN`               | `BETWEEN`     | Compare if field is between two values.                                                                     |
+| `NOT_BETWEEN`           | `NOT BETWEEN` | Same as `BETWEEN` operator but with opposite result.                                                        |
 
 **Example:**
 
@@ -309,7 +313,7 @@ use FQL\Enum\Operator;
 
 $query->where('price', Operator::GREATER_THAN, 100)
     ->and('description', Operator::LIKE, '%very usefully')
-    ->or('price', Operator::LESS_THAN_OR_EQUAL, 300);
+    ->or('price', Operator::BETWEEN, [300, 500]);
 ```
 
 ### Grouping conditions

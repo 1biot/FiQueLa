@@ -348,7 +348,8 @@ expr:
 field_expr:
     column_name | alias_column_name | array_nested_field
                 
-comparison_operator: = | >= | > | <= | < | <> | != | !== | == | LIKE | NOT LIKE | IS | IS NOT | IN | NOT IN
+comparison_operator: = | >= | > | <= | < | <> | != | !== | == | LIKE | NOT LIKE | IS | IS NOT | IN | NOT IN | 
+    BETWEEN | NOT BETWEEN
 
 value_expr:
     value_type | compare_type_value

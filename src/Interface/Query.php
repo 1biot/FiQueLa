@@ -241,6 +241,9 @@ interface Query extends \Stringable
     public function implode(string $field, string $separator = ','): Query;
     public function glue(string $field, string $separator = ','): Query;
 
+    public function substring(string $field, int $start, ?int $length = null): Query;
+    public function locate(string $substring, string $field, ?int $position = null): Query;
+
     /**
      * Apply the SHA1 function to a field in the query.
      *

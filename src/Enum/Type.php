@@ -112,13 +112,18 @@ enum Type: string
 
     private static function isNumeric(string $value): bool
     {
-        // Remove thousands separators (space, period, comma)
-        $value = preg_replace('/[ ,]/', '', $value);
+        $value = trim($value); // Trim whitespace from both ends
+        $value = preg_replace('/[ ]/', '', $value); // Remove spaces (used as thousand separators)
+        $value = str_replace(',', '.', $value); // Normalize decimal separator to dot
+        if (substr_count($value, '.') > 1) {
+            return false; // More than one decimal point — invalid numeric format
+        }
 
-        // Replace comma with dot for unified decimal separator
-        $value = str_replace(',', '.', $value ?? '');
+        if (preg_match('/[.,]$/', $value)) {
+            return false; // Ends with a dot or comma — likely invalid
+        }
 
-        return is_numeric($value);
+        return is_numeric($value); // Final numeric check
     }
 
     private static function toString(mixed $value): string

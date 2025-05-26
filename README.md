@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_215-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_766-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_225-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_785-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
 
@@ -325,7 +325,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 
 ## 8. Planning Features
 
-- [ ] **Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.
+- [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
 - [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [ ] **Custom cast type**: Add support for custom cast type for `SELECT` clause.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
@@ -335,7 +335,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] **Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
-for exporting data to files (CSV, NDJson, MessagePack, and more...).
+for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.
 
 ## 9. Contributions
 

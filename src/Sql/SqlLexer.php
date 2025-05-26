@@ -211,10 +211,10 @@ class SqlLexer implements \Iterator
         $field = $this->nextToken();
         $operator = $this->nextToken();
         $upperOperator = mb_strtoupper($operator);
-        if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN'])) {
+        if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN', 'BETWEEN'])) {
             $nextToken = $this->nextToken();
             $upperNextToken = mb_strtoupper($nextToken);
-            if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN'])) {
+            if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN', 'BETWEEN'])) {
                 $operator = $upperOperator . ' ' . $upperNextToken;
                 $upperOperator .= ' ' . $upperNextToken;
             } else {
@@ -226,6 +226,10 @@ class SqlLexer implements \Iterator
         $operator = Enum\Operator::fromOrFail($operator);
         if (str_contains($upperOperator, 'IN')) {
             $value = $this->parserArgumentsFromParentheses($this->nextToken());
+        } elseif (str_contains($upperOperator, 'BETWEEN')) {
+            $value = [$this->nextToken()];
+            $this->expect('AND');
+            $value[] = $this->nextToken();
         } else {
             $value = $this->nextToken();
             $value = $operator === Enum\Operator::IS || $operator === Enum\Operator::NOT_IS
@@ -269,13 +273,43 @@ class SqlLexer implements \Iterator
      */
     protected function parserArgumentsFromParentheses(string $token): array
     {
+        $token = trim($token, '()');
+        $args = [];
+        $current = '';
+        $quoteChar = null;
+        $length = strlen($token);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $token[$i];
+            if ($quoteChar !== null) {
+                $current .= $char;
+                if ($char === $quoteChar) {
+                    $quoteChar = null;
+                }
+                continue;
+            }
+
+            if ($char === ',' && $quoteChar === null) {
+                $args[] = trim($current);
+                $current = '';
+                continue;
+            }
+
+            if ($char === '"' || $char === '\'' || $char === '`') {
+                $quoteChar = $char;
+            }
+
+            $current .= $char;
+        }
+
+        if ($current !== '') {
+            $args[] = trim($current);
+        }
+
         return array_values(
             array_map(
                 fn ($value) => $this->isQuoted($value) ? $this->removeQuotes($value) : $value,
-                array_filter(
-                    array_map('trim', explode(',', trim($token, '()'))),
-                    fn ($value) => $value !== ''
-                )
+                array_filter($args, fn (string $v) => $v !== '')
             )
         );
     }

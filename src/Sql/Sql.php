@@ -292,6 +292,16 @@ class Sql extends SqlLexer implements Interface\Parser
             ),
             'IFNULL' => $query->ifNull((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ISNULL' => $query->isNull((string) ($arguments[0] ?? '')),
+            'SUBSTRING', 'SUBSTR' => $query->substring(
+                (string) ($arguments[0] ?? ''),
+                (int) ($arguments[1] ?? 0),
+                isset($arguments[2]) ? (int) $arguments[2] : null
+            ),
+            'LOCATE' => $query->locate(
+                (string) ($arguments[0] ?? ''),
+                (string) ($arguments[1] ?? ''),
+                isset($arguments[2]) ? (int) $arguments[2] : null
+            ),
             default => throw new Exception\UnexpectedValueException("Unknown function: $functionName"),
         };
     }

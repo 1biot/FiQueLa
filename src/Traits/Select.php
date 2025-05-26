@@ -400,6 +400,16 @@ trait Select
         return $this;
     }
 
+    public function substring(string $field, int $start, ?int $length = null): Query
+    {
+        return $this->addFieldFunction(new Functions\String\Substring($field, $start, $length));
+    }
+
+    public function locate(string $substring, string $field, ?int $position = null): Query
+    {
+        return $this->addFieldFunction(new Functions\String\Locate($substring, $field, $position));
+    }
+
     private function addFieldFunction(
         Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function
     ): Interface\Query {

@@ -29,6 +29,9 @@ enum Operator: string
     case IS = 'IS';
     case NOT_IS = 'IS NOT';
 
+    case BETWEEN = 'BETWEEN';
+    case NOT_BETWEEN = 'NOT BETWEEN';
+
     public function evaluate(mixed $left, mixed $right): bool
     {
         return match ($this) {
@@ -52,6 +55,9 @@ enum Operator: string
 
             self::IS => $this->evaluateIs($left, $right),
             self::NOT_IS => !$this->evaluateIs($left, $right),
+
+            self::BETWEEN => $this->evaluateBetween($left, $right),
+            self::NOT_BETWEEN => !$this->evaluateBetween($left, $right),
         };
     }
 
@@ -70,6 +76,7 @@ enum Operator: string
                 )
             )),
             self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
+            self::BETWEEN, self::NOT_BETWEEN => sprintf('%s %s %s', $value, $this->value, implode(' AND ', $right)),
             default => sprintf(
                 '%s %s %s',
                 $this->isBacktick($value) ? $this->removeQuotes($value) : $value,
@@ -141,5 +148,34 @@ enum Operator: string
         }
 
         return (bool) preg_match('/' . $pattern . '/i', $left);
+    }
+
+    private function evaluateBetween(mixed $left, mixed $right): bool
+    {
+        if (!is_array($right) || count($right) !== 2) {
+            throw new InvalidArgumentException(
+                sprintf('BETWEEN operator requires an array with two elements, %s given', gettype($right))
+            );
+        }
+
+        [$min, $max] = $right;
+
+        // If all values are numeric, compare numerically
+        if (is_numeric($left) && is_numeric($min) && is_numeric($max)) {
+            return $left >= $min && $left <= $max;
+        }
+
+        // If all values are date-like, compare as dates
+        if ($this->isDateLike($left) && $this->isDateLike($min) && $this->isDateLike($max)) {
+            $leftTime = strtotime($left);
+            $minTime = strtotime($min);
+            $maxTime = strtotime($max);
+
+            return $leftTime >= $minTime && $leftTime <= $maxTime;
+        }
+
+        // Fallback to string comparison (e.g. alphabetic ranges)
+        return strcmp((string) $left, (string) $min) >= 0 &&
+            strcmp((string) $left, (string) $max) <= 0;
     }
 }

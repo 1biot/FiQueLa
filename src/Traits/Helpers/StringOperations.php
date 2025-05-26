@@ -76,4 +76,10 @@ trait StringOperations
         $cleaned = preg_replace('/\s+/', ' ', $cleaned) ?? '';
         return strtolower(trim($cleaned));
     }
+
+    private function isDateLike(string $value): bool
+    {
+        $timestamp = strtotime($value);
+        return $timestamp !== false && !ctype_digit($value); // Avoid pure timestamps like "1700000000"
+    }
 }

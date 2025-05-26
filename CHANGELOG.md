@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.3]
+
+### Fixed
+
+- Fixed number parsing to handle formatted decimals and reject malformed values with trailing separators.
+- Fixed parsing arguments of the functions. Knows separate arguments correctly instead of using simple `explode()` function.
+
+### Added
+
+- Added support for `BETWEEN` and `NOT BETWEEN` operator in `WHERE` and `HAVING` clauses.
+  And also in `IF` and `CASE WHEN ...` statements.
+- Added `SUBSTRING` function for extracting a substring from a string.
+- Added `LOCATE` function for finding the position of a substring within a string.
+
 ## [2.1.2]
 
 ### Added
