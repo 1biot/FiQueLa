@@ -159,6 +159,8 @@ SELECT
 | `MATCH(...) AGAINST(...)` | Simple fulltext score matching         |
 | `LPAD`                    | Left pad string with character.        |
 | `RPAD`                    | Right pad string with character.       |
+| `SUBSTRING`, `SUBSTR`     | Extract substring from string.         |
+| `LOCATE`                  | Find position of substring in string.  |
 
 **Examples:**
 
@@ -176,6 +178,9 @@ SELECT
     LPAD('Hello', 10, '-') AS lpad,
     RPAD('Hello', 10, '-') AS rpad
     MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
+    SUBSTRING('Hello World', 1, 5) AS substring,
+    SUBSTR('Hello World', 1, 5) AS substr,
+    LOCATE('World', 'Hello World') AS locate
 FROM [json](./examples/data/products.tmp).data.products
 ```
 
@@ -186,7 +191,7 @@ MATCH(field[, field ...]) AGAINST('search_query' [IN [NATURAL | BOOLEAN] MODE])
 ```
 
 Fulltext search is a special function for searching in text fields. It uses the `MATCH` and `AGAINST` functions.
-Supports two modes: `NATURAL` and `BOOLEAN`. Result is a score of the match, and you can use it for filtering and sorting. 
+Supports two modes: `NATURAL` and `BOOLEAN`. Result is a score of the match, and you can use it for filtering and sorting.
 
 ```sql
 SELECT

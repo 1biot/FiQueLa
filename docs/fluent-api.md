@@ -107,13 +107,15 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->upper('name')->as('UPPER')
     ->reverse('name')->as('REVERSE')
     ->explode('Partner_Article', '|')->as('EXPLODE')
-    ->implode('categories[]->id', '|')->as('IMPLODE')
+    ->implode('categories[].id', '|')->as('IMPLODE')
     ->fromBase64('base64String')->as('BASE64_ENCODE')
     ->toBase64('string')->as('BASE64_DECODE')
     ->randomString(16)->as('RANDOM_STRING')
     ->matchAgainst(['name'], 'search query')->as('MATCH_AGAINST')
     ->lpad('name', 10, '0')->as('LPAD')
-    ->rpad('name', 10, '0')->as('RPAD');
+    ->rpad('name', 10, '0')->as('RPAD')
+    ->substring('name', 0, 5)->as('SUBSTRING')
+    ->locate('05', 'name')->as('LOCATE');
 ```
 
 ### Utils functions
