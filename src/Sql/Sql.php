@@ -92,7 +92,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     break;
                 case 'INNER':
                 case 'JOIN':
-                    if (strtoupper($this->peekToken()) === 'INNER') {
+                    if (strtoupper($token) === 'INNER') {
                         $this->nextToken(); // Consume "JOIN"
                     }
                     $joinQuery = $this->validateFileQueryPath($this->nextToken());

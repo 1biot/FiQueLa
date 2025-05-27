@@ -291,7 +291,9 @@ class Stream extends ResultsProvider
         }
 
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = $this->isQuoted($finalField) ? $this->removeQuotes($finalField) : $finalField;
+            $fieldName = ($this->isQuoted($finalField) || $this->isBacktick($finalField))
+                ? $this->removeQuotes($finalField)
+                : $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
                 continue;
