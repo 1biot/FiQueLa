@@ -77,8 +77,12 @@ trait StringOperations
         return strtolower(trim($cleaned));
     }
 
-    private function isDateLike(string $value): bool
+    private function isDateLike(mixed $value): bool
     {
+        if (!is_string($value)) {
+            return false; // Only strings can be date-like
+        }
+
         $timestamp = strtotime($value);
         return $timestamp !== false && !ctype_digit($value); // Avoid pure timestamps like "1700000000"
     }

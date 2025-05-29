@@ -159,19 +159,28 @@ enum Operator: string
         }
 
         [$min, $max] = $right;
+        if ((!is_scalar($min) && $min !== null ) || (!is_scalar($max) && $max !== null)) {
+            throw new InvalidArgumentException(
+                'BETWEEN operator requires both min and max values to be scalar types'
+            );
+        }
 
-        // If all values are numeric, compare numerically
-        if (is_numeric($left) && is_numeric($min) && is_numeric($max)) {
-            return $left >= $min && $left <= $max;
+        if (is_numeric($left)) {
+            // If all values are numeric, compare numerically
+            if (is_numeric($min) && is_numeric($max)) {
+                return $left >= $min && $left <= $max;
+            }
         }
 
         // If all values are date-like, compare as dates
-        if ($this->isDateLike($left) && $this->isDateLike($min) && $this->isDateLike($max)) {
-            $leftTime = strtotime($left);
-            $minTime = strtotime($min);
-            $maxTime = strtotime($max);
+        if ($this->isDateLike($left)) {
+            if ($this->isDateLike($min) && $this->isDateLike($max)) {
+                $leftTime = strtotime($left);
+                $minTime = strtotime($min);
+                $maxTime = strtotime($max);
 
-            return $leftTime >= $minTime && $leftTime <= $maxTime;
+                return $leftTime >= $minTime && $leftTime <= $maxTime;
+            }
         }
 
         // Fallback to string comparison (e.g. alphabetic ranges)

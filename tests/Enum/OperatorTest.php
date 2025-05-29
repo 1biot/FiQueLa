@@ -220,4 +220,36 @@ class OperatorTest extends TestCase
         $this->assertSame(true, Operator::NOT_IS->evaluate(['test'], Type::NUMBER));
         $this->assertSame(true, Operator::NOT_IS->evaluate(1, Type::OBJECT));
     }
+
+    public function testBetweenNumeric(): void
+    {
+        $this->assertSame(true, Operator::BETWEEN->evaluate(5, [1, 10]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate(0, [1, 10]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate(11, [1, 10]));
+        $this->assertSame(true, Operator::BETWEEN->evaluate(1, [1, 10]));
+        $this->assertSame(true, Operator::BETWEEN->evaluate(10, [1, 10]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate('', [1, 10]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate(null, [1, 10]));
+    }
+
+    public function testBetweenString(): void
+    {
+        $this->assertSame(true, Operator::BETWEEN->evaluate("dog", ["cat", "lion"]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate("ant", ["cat", "lion"]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate("", ["cat", "lion"]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate(null, ["cat", "lion"]));
+    }
+
+    public function testBetweenDate(): void
+    {
+        $date1 = '2023-01-01';
+        $date2 = '2023-12-31';
+        $dateToCheck = '2023-06-15';
+
+        $this->assertSame(true, Operator::BETWEEN->evaluate($dateToCheck, [$date1, $date2]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate('2022-12-31', [$date1, $date2]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate('2024-01-01', [$date1, $date2]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate('', [$date1, $date2]));
+        $this->assertSame(false, Operator::BETWEEN->evaluate(null, [$date1, $date2]));
+    }
 }
