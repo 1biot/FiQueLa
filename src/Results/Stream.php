@@ -398,6 +398,10 @@ class Stream extends ResultsProvider
         }
 
         if ($groupKey === Query::SELECT_ALL) {
+            if (empty($groupedData[Query::SELECT_ALL] ?? null)) {
+                return yield from [];
+            }
+
             // Aggregate grouped items
             $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL]);
             if ($this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
