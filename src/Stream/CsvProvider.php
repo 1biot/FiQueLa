@@ -51,7 +51,7 @@ abstract class CsvProvider extends AbstractStream
     public function getStreamGenerator(?string $query): \Generator
     {
         try {
-            $csv = Csv\Reader::createFromPath($this->csvFilePath);
+            $csv = Csv\Reader::from($this->csvFilePath);
             $csv->setDelimiter($this->delimiter);
             if ($this->inputEncoding !== null && $this->inputEncoding !== '' && $this->inputEncoding !== 'UTF-8') {
                 $csv->appendStreamFilterOnRead(sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding));

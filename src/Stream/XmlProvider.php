@@ -55,10 +55,6 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
         }
 
         $depth = substr_count($query, '.');
-        if ($depth === 0) {
-            $depth = 1;
-        }
-
         while ($xmlReader->read()) {
             if ($this->isReadValid($xmlReader, $query, $depth)) {
                 try {

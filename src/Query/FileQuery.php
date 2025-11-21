@@ -42,7 +42,7 @@ final class FileQuery implements \Stringable
         $this->file = $filePath ?? null;
 
         $this->encoding = $matches['e'] ?? 'utf-8';
-        $this->delimiter = $matches['d'] ?? ',';
+        $this->delimiter = (($matches['d'] ?? '') === '' ? null : $matches['d']) ?? ',';
 
         $query = $matches['q'] ?? null;
         if ($query !== null) {
