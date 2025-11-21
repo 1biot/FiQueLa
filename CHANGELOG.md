@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.4]
+
+### Fixed
+
+- Fixed loading of zero depth xml files.
+- Fixed bad parsing delimiter for XML files.
+- Updated using deprecated method `createFromPath` to method `from` at `\FQL\Stream\CsvProvider` class.
+
 ## [2.1.3]
 
 ### Fixed
