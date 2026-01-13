@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.5] - Unreleased
+
+### Added
+
+- Added `REPLACE` function for replacing occurrences of a substring within a string.
+
 ## [2.1.4]
 
 ### Fixed

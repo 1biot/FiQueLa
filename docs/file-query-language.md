@@ -161,6 +161,7 @@ SELECT
 | `RPAD`                    | Right pad string with character.       |
 | `SUBSTRING`, `SUBSTR`     | Extract substring from string.         |
 | `LOCATE`                  | Find position of substring in string.  |
+| `REPLACE`                 | Replace all occurrences of a substring |
 
 **Examples:**
 
@@ -180,7 +181,8 @@ SELECT
     MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
     SUBSTRING('Hello World', 1, 5) AS substring,
     SUBSTR('Hello World', 1, 5) AS substr,
-    LOCATE('World', 'Hello World') AS locate
+    LOCATE('World', 'Hello World') AS locate,
+    REPLACE('SQL Tutorial', 'SQL', 'HTML') AS replace
 FROM [json](./examples/data/products.tmp).data.products
 ```
 

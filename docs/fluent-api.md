@@ -80,23 +80,24 @@ result of the function.
 
 ### String functions
 
-| Function       | Description                              |
-|----------------|------------------------------------------|
-| `concat`       | Concatenate values with no separator.    |
-| `concatWS`     | Concatenate values with separator.       |
-| `lower`        | Convert string to lower case.            |
-| `upper`        | Convert string to upper case.            |
-| `reverse`      | Reverse string.                          |
-| `explode`      | Split string to array.                   |
-| `implode`      | Join array to string.                    |
-| `fromBase64`   | Decode base64 string.                    |
-| `toBase64`     | Encode string to base64.                 |
-| `randomString` | Generates random string.                 |
-| `matchAgainst` | Create a score by matching against query |
-| `lpad`         | Left pad string with another string.     |
-| `rpad`         | Right pad string with another string.    |
-| `substring`    | Get substring of string.                 |
-| `locate`       | Find position of substring in string.    |
+| Function       | Description                                                    |
+|----------------|----------------------------------------------------------------|
+| `concat`       | Concatenate values with no separator.                          |
+| `concatWS`     | Concatenate values with separator.                             |
+| `lower`        | Convert string to lower case.                                  |
+| `upper`        | Convert string to upper case.                                  |
+| `reverse`      | Reverse string.                                                |
+| `explode`      | Split string to array.                                         |
+| `implode`      | Join array to string.                                          |
+| `fromBase64`   | Decode base64 string.                                          |
+| `toBase64`     | Encode string to base64.                                       |
+| `randomString` | Generates random string.                                       |
+| `matchAgainst` | Create a score by matching against query                       |
+| `lpad`         | Left pad string with another string.                           |
+| `rpad`         | Right pad string with another string.                          |
+| `substring`    | Get substring of string.                                       |
+| `locate`       | Find position of substring in string.                          |
+| `replace`      | Replace all occurrences of a substring with another substring. |
 
 **Example:**
 
@@ -116,6 +117,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
     ->rpad('name', 10, '0')->as('RPAD')
     ->substring('name', 0, 5)->as('SUBSTRING')
     ->locate('05', 'name')->as('LOCATE');
+    ->replace('SQL Tutorial', 'SQL', 'HTML')->as('REPLACE');
 ```
 
 ### Utils functions

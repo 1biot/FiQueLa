@@ -248,6 +248,11 @@ class Sql extends SqlLexer implements Interface\Parser
             'LENGTH' => $query->length((string) ($arguments[0] ?? '')),
             'LOWER' => $query->lower((string) ($arguments[0] ?? '')),
             'RANDOM_STRING' => $query->randomString((int) ($arguments[0] ?? 10)),
+            'REPLACE' => $query->replace(
+                (string) ($arguments[0] ?? ''),
+                (string) ($arguments[1] ?? ''),
+                (string) ($arguments[2] ?? '')
+            ),
             'REVERSE' => $query->reverse((string) ($arguments[0] ?? '')),
             'UPPER' => $query->upper((string) ($arguments[0] ?? '')),
 

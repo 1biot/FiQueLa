@@ -283,14 +283,19 @@ trait Select
         return $this->fulltext($fields, $searchQuery);
     }
 
-    public function leftPad(string $field, int $length, string $padString = ' '): Query
+    public function leftPad(string $field, int $length, string $padString = ' '): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\LeftPad($field, $length, $padString));
     }
 
-    public function rightPad(string $field, int $length, string $padString = ' '): Query
+    public function rightPad(string $field, int $length, string $padString = ' '): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\RightPad($field, $length, $padString));
+    }
+
+    public function replace(string $field, string $search, string $replace): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\String\Replace($field, $search, $replace));
     }
 
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Interface\Query

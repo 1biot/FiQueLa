@@ -463,6 +463,8 @@ interface Query extends \Stringable
     public function leftPad(string $field, int $length, string $padString = ' '): Query;
     public function rightPad(string $field, int $length, string $padString = ' '): Query;
 
+    public function replace(string $field, string $search, string $replace): Query;
+
     public function arrayCombine(string $keysArrayField, string $valueArrayField): Query;
     public function arrayMerge(string $keysArrayField, string $valueArrayField): Query;
     public function arrayFilter(string $field): Query;
