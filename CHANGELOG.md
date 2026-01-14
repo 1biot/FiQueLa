@@ -1,9 +1,10 @@
 # Changelog
 
-## [2.1.5] - Unreleased
+## [2.2.0] - Unreleased
 
 ### Added
 
+- Added support for **XLS** and **XLSX** files.
 - Added `REPLACE` function for replacing occurrences of a substring within a string.
 
 ## [2.1.4]

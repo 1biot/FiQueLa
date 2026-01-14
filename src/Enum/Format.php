@@ -15,10 +15,11 @@ enum Format: string
     case CSV = 'csv';
     case YAML = 'yaml';
     case NEON = 'neon';
+    case XLS = 'xls';
     case DIR = 'dir';
 
     /**
-     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson|Stream\Dir>
+     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson|Stream\Xls|Stream\Dir>
      */
     public function getFormatProviderClass(): string
     {
@@ -30,6 +31,7 @@ enum Format: string
             self::CSV => Stream\Csv::class,
             self::YAML => Stream\Yaml::class,
             self::NEON => Stream\Neon::class,
+            self::XLS => Stream\Xls::class,
             self::DIR => Stream\Dir::class,
         };
     }
@@ -46,13 +48,14 @@ enum Format: string
             'csv', 'tsv' => self::CSV,
             'yaml', 'yml' => self::YAML,
             'neon' => self::NEON,
+            'xls', 'xlsx' => self::XLS,
             'dir' => self::DIR,
             default => throw new Exception\InvalidFormatException(sprintf('Unsupported file format "%s"', $extension)),
         };
     }
 
     /**
-     * @implements Interface\Stream<Stream\Xml|Stream\Json|Stream\JsonStream|Stream\Yaml|Stream\Neon|Stream\Csv>
+     * @implements Interface\Stream<Stream\Xml|Stream\Json|Stream\JsonStream|Stream\Yaml|Stream\Neon|Stream\Csv|Stream\Xls>
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
      */

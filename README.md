@@ -7,19 +7,19 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_232-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_805-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_236-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_812-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
-like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity, it allows you to filter,
-join, and aggregate data with a familiar and efficient syntax. Whether you're working with large datasets or integrating
-various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
+like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** and **XLS**. Designed for simplicity and modularity,
+it allows you to filter, join, and aggregate data with a familiar and efficient syntax. Whether you're working with
+large datasets or integrating various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
 
 **Features**:
 
-- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, and NEON.
+- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, NEON, and XLS.
 - 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
 - ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
 - 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `GROUP_CONCAT`, `ARRAY_MERGE`, `DATE_FORMAT` and many more.
@@ -48,12 +48,12 @@ various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and e
 ## 1. Overview
 
 Why limit SQL to databases when it can be just as effective for querying structured data? **F**i**Q**ue**L**a (File Query Language)
-brings the power of SQL to your files. Whether you're working with **XML**, **CSV**, **JSON**, **NDJSON**, **YAML** or **NEON**,
+brings the power of SQL to your files. Whether you're working with **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** or **XLS**,
 **F**i**Q**ue**L**a enables you to interact with these formats using familiar SQL syntax.
 
 Key highlights:
 - **Universal Querying**: Use SQL-like queries to filter, sort, join, and aggregate data across multiple file types.
-- **Data Formats Support**: Seamlessly work with JSON, XML, CSV, YAML, and more.
+- **Data Formats Support**: Seamlessly work with JSON, XML, CSV, XLS, YAML, and more.
 - **Powerful Features**: Access advanced SQL features like `GROUP BY`, `HAVING`, and functions for data transformation directly on your file-based datasets.
 - **Developer-Friendly**: Whether you're a beginner or an experienced developer, FiQueLa offers a simple and consistent API for all your data needs.
 - **Flexible Integration**: Ideal for scenarios where data lives in files rather than traditional databases.
@@ -77,13 +77,14 @@ composer require 1biot/fiquela
 Install packages for optional features:
 
 ```bash
-composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tracy
+composer require league/csv halaxa/json-machine symfony/yaml nette/neon phpoffice/phpspreadsheet tracy/tracy
 ```
 
 - **`league/csv`**: Required for CSV file support.
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
+- **`phpoffice/phpspreadsheet`**: Required for XLS/XLSX file support.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -92,11 +93,13 @@ composer require league/csv halaxa/json-machine symfony/yaml nette/neon tracy/tr
 |-------------|-------------------------|-------------------------|--------------|----------------|-------------------------------------------------|
 | `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              | `league/csv`                                    |
 | `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml`  |
+| `xls`       | XLS/XLSX                | `FQL\Stream\Xls`        | ✅            | ❌              | `phpoffice/phpspreadsheet`                      |
 | `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              | `halaxa/json-machine`                           |
-| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              | `ext-json`                                      |
 | `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              | `ext-fileinfo`                                  |
+| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              | `ext-json`                                      |
 | `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              | `symfony/yaml`                                  |
 | `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              | `nette/neon`                                    |
+
 
 ### Directory provider
 
@@ -326,7 +329,8 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [XLSX](https://en.wikipedia.org/wiki/Excel_Open_XML_file_formats), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [x] ~~**XLS/XLSX**: Add Excel file support.~~
 - [ ] **Custom cast type**: Add support for custom cast type for `SELECT` clause.
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.

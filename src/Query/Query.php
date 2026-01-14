@@ -2,7 +2,6 @@
 
 namespace FQL\Query;
 
-use FQL\Exception\InvalidFormatException;
 use FQL\Exception\QueryLogicException;
 use FQL\Interface;
 use FQL\Results;
@@ -10,6 +9,7 @@ use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
 use FQL\Stream\Neon;
+use FQL\Stream\Xls;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
@@ -31,7 +31,7 @@ class Query implements Interface\Query
     use Traits\Sortable;
 
     /**
-     * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
+     * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
      */
     public function __construct(private readonly Interface\Stream $stream)
     {

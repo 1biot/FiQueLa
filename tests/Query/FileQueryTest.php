@@ -33,6 +33,8 @@ class FileQueryTest extends TestCase
             '[jsonFile](./path/to/file)' => null,
             '[neon](./path/to/file)' => null,
             '[yaml](./path/to/file)' => null,
+            '[xls](./path/to/file)' => null,
+            '[xlsx](./path/to/file)' => '[xls](./path/to/file)',
             '[csv](./path/to/file).query.path' => null,
         ];
 
@@ -50,7 +52,6 @@ class FileQueryTest extends TestCase
             '[csv].SHOP.SHOPITEM' => 'Invalid query path "[csv].SHOP.SHOPITEM"',
             '[cs](./path/to/file).query.path' => 'Unsupported file format "cs"',
             '[xmls](./path/to/file).query.path' => 'Unsupported file format "xmls"',
-            '[xlsx](./path/to/file).query.path' => 'Unsupported file format "xlsx"',
             '[jsonfike](./path/to/file).query.path' => 'Unsupported file format "jsonfike"',
             '[doc](./path/to/file).query.path' => 'Unsupported file format "doc"',
             '[css](./path/to/file).query.path' => 'Unsupported file format "css"',

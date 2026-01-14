@@ -1,4 +1,5 @@
 .idea
+.opencode
 .run
 vendor
 .phpunit.result.cache

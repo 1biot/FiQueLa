@@ -33,4 +33,11 @@ class ReplaceTest extends TestCase
         $replace = new Replace('field', 'foo', 'bar');
         $this->assertEquals('REPLACE(field, "foo", "bar")', (string) $replace);
     }
+
+    public function testFieldAsText(): void
+    {
+        $replace = new Replace('"SQL Tutorial"', 'SQL', 'HTML');
+        $result = $replace([], []);
+        $this->assertEquals('HTML Tutorial', $result);
+    }
 }
