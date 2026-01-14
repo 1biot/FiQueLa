@@ -294,6 +294,11 @@ class Sql extends SqlLexer implements Interface\Parser
             'NOW' => $query->now((bool) ($arguments[0] ?? 0)),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
             'DATE_DIFF' => $query->dateDiff((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'DATE_ADD' => $query->dateAdd((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'DATE_SUB' => $query->dateSub((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
+            'YEAR' => $query->year((string) ($arguments[0] ?? '')),
+            'MONTH' => $query->month((string) ($arguments[0] ?? '')),
+            'DAY' => $query->day((string) ($arguments[0] ?? '')),
             'MATCH' => $this->processMatchFunction($query, $arguments),
             'IF' => $query->if(
                 (string) ($arguments[0] ?? ''),

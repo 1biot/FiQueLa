@@ -5,8 +5,14 @@
 ### Added
 
 - Added support for **XLS** and **XLSX** files.
-- Added `REPLACE` function for replacing occurrences of a substring within a string.
-- Added new function `COL_SPLIT` for splitting a column into multiple columns based on a delimiter.
+- Added 7 new functions
+  - `REPLACE` function for replacing occurrences of a substring within a string.
+  - `COL_SPLIT` for splitting a column into multiple columns based on a delimiter.
+  - `DATE_ADD` for adding a specified interval to a date.
+  - `DATE_SUB` for subtracting a specified interval from a date.
+  - `DAY` for extracting the day from a date.
+  - `MONTH` for extracting the month from a date.
+  - `YEAR` for extracting the year from a date.
 - Added big amount of missing tests
 
 ## [2.1.4]

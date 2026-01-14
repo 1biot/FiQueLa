@@ -218,6 +218,11 @@ ORDER BY _score DESC
 | `COALESCE_NE`       | Coalesce values when not empty (first non-empty value)                 |
 | `FORMAT_DATE`       | Format date field to string                                            |
 | `DATE_DIFF`         | Calculate difference between two dates                                 |
+| `DATE_ADD`          | Add interval to date                                                   |
+| `DATE_SUB`          | Subtract interval from date                                            |
+| `YEAR`              | Get year from date                                                     |
+| `MONTH`             | Get month from date                                                    |
+| `DAY`               | Get day of month from date                                             |
 | `NOW`               | Get current date and time                                              |
 | `CURRENT_TIMESTAMP` | Get current unix timestamp                                             |
 | `CURDATE`           | Get current date                                                       |
@@ -240,6 +245,11 @@ SELECT
     COALESCE_NE(0, 'Hello World') AS coalesceNe,
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
     DATE_DIFF(dateField1, dateField2) AS dateDiff,
+    DATE_ADD(dateField, '+1 day') AS dateAdd,
+    DATE_SUB(dateField, '+1 day') AS dateSub,
+    YEAR(dateField) AS year,
+    MONTH(dateField) AS month,
+    DAY(dateField) AS day,
     NOW() AS now,
     CURRENT_TIMESTAMP() AS currentTimestamp,
     CURDATE() AS curdate,

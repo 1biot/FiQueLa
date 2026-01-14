@@ -138,6 +138,11 @@ class SelectTest extends TestCase
             ->concatWithSeparator(' ', 'name', 'price')->as('concatenatedWS')
             ->concat('id', 'name', 'price')->as('concatenated')
             ->colSplit('items')
+            ->dateAdd('dateField', '+1 day')->as('dateAdd')
+            ->dateSub('dateField', '+1 day')->as('dateSub')
+            ->year('dateField')->as('year')
+            ->month('dateField')->as('month')
+            ->day('dateField')->as('day')
             ->groupConcat('concatenated', '|')->as('groupConcatenated');
 
         $selectedFields = $this->query->getSelectedFields();
@@ -165,6 +170,11 @@ class SelectTest extends TestCase
         $this->assertEquals('CONCAT_WS(" ", name, price)', $selectedFields['concatenatedWS']['originField']);
         $this->assertEquals('CONCAT(id, name, price)', $selectedFields['concatenated']['originField']);
         $this->assertEquals('COL_SPLIT(items)', $selectedFields['COL_SPLIT(items)']['originField']);
+        $this->assertEquals('DATE_ADD(dateField, "+1 day")', $selectedFields['dateAdd']['originField']);
+        $this->assertEquals('DATE_SUB(dateField, "+1 day")', $selectedFields['dateSub']['originField']);
+        $this->assertEquals('YEAR(dateField)', $selectedFields['year']['originField']);
+        $this->assertEquals('MONTH(dateField)', $selectedFields['month']['originField']);
+        $this->assertEquals('DAY(dateField)', $selectedFields['day']['originField']);
         $this->assertEquals('GROUP_CONCAT(concatenated, "|")', $selectedFields['groupConcatenated']['originField']);
 
         $this->assertNull($selectedFields['name']['function']);
@@ -237,6 +247,21 @@ class SelectTest extends TestCase
 
         $this->assertNotNull($selectedFields['COL_SPLIT(items)']['function']);
         $this->assertInstanceOf(Functions\Utils\ColSplit::class, $selectedFields['COL_SPLIT(items)']['function']);
+
+        $this->assertNotNull($selectedFields['dateAdd']['function']);
+        $this->assertInstanceOf(Functions\Utils\DateAdd::class, $selectedFields['dateAdd']['function']);
+
+        $this->assertNotNull($selectedFields['dateSub']['function']);
+        $this->assertInstanceOf(Functions\Utils\DateSub::class, $selectedFields['dateSub']['function']);
+
+        $this->assertNotNull($selectedFields['year']['function']);
+        $this->assertInstanceOf(Functions\Utils\Year::class, $selectedFields['year']['function']);
+
+        $this->assertNotNull($selectedFields['month']['function']);
+        $this->assertInstanceOf(Functions\Utils\Month::class, $selectedFields['month']['function']);
+
+        $this->assertNotNull($selectedFields['day']['function']);
+        $this->assertInstanceOf(Functions\Utils\Day::class, $selectedFields['day']['function']);
 
         $this->assertNotNull($selectedFields['groupConcatenated']['function']);
         $this->assertInstanceOf(

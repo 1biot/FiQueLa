@@ -348,6 +348,31 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\DateDiff($dateField, $dateField2));
     }
 
+    public function dateAdd(string $dateField, string $interval): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\DateAdd($dateField, $interval));
+    }
+
+    public function dateSub(string $dateField, string $interval): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\DateSub($dateField, $interval));
+    }
+
+    public function year(string $dateField): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Year($dateField));
+    }
+
+    public function month(string $dateField): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Month($dateField));
+    }
+
+    public function day(string $dateField): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Day($dateField));
+    }
+
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Interface\Query
     {
         return $this->addFieldFunction(

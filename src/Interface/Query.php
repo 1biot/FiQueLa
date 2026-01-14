@@ -475,6 +475,11 @@ interface Query extends \Stringable
     public function currentTimestamp(): Query;
     public function now(bool $numeric = false): Query;
     public function dateDiff(string $date, string $secondDate): Query;
+    public function dateAdd(string $date, string $interval): Query;
+    public function dateSub(string $date, string $interval): Query;
+    public function year(string $dateField): Query;
+    public function month(string $dateField): Query;
+    public function day(string $dateField): Query;
 
     public function if(string $conditionString, string $trueStatement, string $falseStatement): Query;
     public function ifNull(string $field, string $trueStatement): Query;

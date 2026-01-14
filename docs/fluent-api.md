@@ -132,6 +132,11 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
 | `dateDiff`         | Calculate difference between two dates                                 |
+| `dateAdd`          | Add interval to date                                                   |
+| `dateSub`          | Subtract interval from date                                            |
+| `year`             | Get year from date                                                     |
+| `month`            | Get month from date                                                    |
+| `day`              | Get day of month from date                                             |
 | `now`              | Get current date and time                                              |
 | `currentTimestamp` | Get current unix timestamp                                             |
 | `currentDate`      | Get current date                                                       |
@@ -167,6 +172,11 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->ifNull('field', 'yes')->as('IFNULL')
     ->isNull('`whatever field`')->as('ISNULL')
     ->dateDiff('dateField1', 'dateField2')->as('DATE_DIFF')
+    ->dateAdd('dateField', '+1 day')->as('DATE_ADD')
+    ->dateSub('dateField', '+1 day')->as('DATE_SUB')
+    ->year('dateField')->as('YEAR')
+    ->month('dateField')->as('MONTH')
+    ->day('dateField')->as('DAY')
     ->now()->as('NOW')
     ->currentTimestamp()->as('CURRENT_TIMESTAMP')
     ->currentDate()->as('CURDATE')

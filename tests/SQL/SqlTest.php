@@ -39,10 +39,15 @@ use FQL\Functions\Utils\CoalesceNotEmpty;
 use FQL\Functions\Utils\CurrentDate;
 use FQL\Functions\Utils\CurrentTime;
 use FQL\Functions\Utils\CurrentTimestamp;
+use FQL\Functions\Utils\DateAdd;
 use FQL\Functions\Utils\DateDiff;
 use FQL\Functions\Utils\DateFormat;
+use FQL\Functions\Utils\DateSub;
+use FQL\Functions\Utils\Day;
 use FQL\Functions\Utils\Length;
+use FQL\Functions\Utils\Month;
 use FQL\Functions\Utils\Now;
+use FQL\Functions\Utils\Year;
 use FQL\Functions\Utils\RandomBytes;
 use FQL\Functions\Utils\SelectIf;
 use FQL\Functions\Utils\SelectIfNull;
@@ -112,6 +117,11 @@ class SqlTest extends TestCase
             'now' => ['SELECT NOW(true)', 'NOW(true)', Now::class],
             'date format' => ['SELECT DATE_FORMAT(dateField, "Y-m-d")', 'DATE_FORMAT(dateField, "Y-m-d")', DateFormat::class],
             'date diff' => ['SELECT DATE_DIFF(startDate, endDate)', 'DATE_DIFF(startDate, endDate)', DateDiff::class],
+            'date add' => ['SELECT DATE_ADD(startDate, "+1 day")', 'DATE_ADD(startDate, "+1 day")', DateAdd::class],
+            'date sub' => ['SELECT DATE_SUB(startDate, "+1 day")', 'DATE_SUB(startDate, "+1 day")', DateSub::class],
+            'year' => ['SELECT YEAR(startDate)', 'YEAR(startDate)', Year::class],
+            'month' => ['SELECT MONTH(startDate)', 'MONTH(startDate)', Month::class],
+            'day' => ['SELECT DAY(startDate)', 'DAY(startDate)', Day::class],
             'match against' => [
                 'SELECT MATCH(name) AGAINST("term" IN NATURAL MODE)',
                 'MATCH(name) AGAINST("term" IN NATURAL MODE)',
