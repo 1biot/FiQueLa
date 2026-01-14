@@ -6,6 +6,8 @@
 
 - Added support for **XLS** and **XLSX** files.
 - Added `REPLACE` function for replacing occurrences of a substring within a string.
+- Added new function `COL_SPLIT` for splitting a column into multiple columns based on a delimiter.
+- Added big amount of missing tests
 
 ## [2.1.4]
 

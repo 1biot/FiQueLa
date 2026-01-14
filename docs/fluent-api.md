@@ -127,6 +127,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `arrayCombine`     | Combine two array with keys and array with values into a single array  |
 | `arrayFiler`       | Filter array from empty values                                         |
 | `arrayMerge`       | Merge two arrays into a single array                                   |
+| `colSplit`         | Split array field into columns with optional format and key field       |
 | `coalesce`         | Coalesce values (first non-null value)                                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
@@ -148,6 +149,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_COMBINE')
     ->arrayFilter('fieldWithArray1')->as('ARRAY_FILTER')
     ->arrayMerge('fieldWithArray1', 'fieldWithArray2')->as('ARRAY_MERGE')
+    ->colSplit('items', 'item_%index', 'id')
     ->case()
         ->whenCase('stock > 100', 'more than 100')
         ->whenCase('stock > 50', 'more than 50')

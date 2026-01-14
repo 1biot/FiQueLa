@@ -8,6 +8,7 @@ use FQL\Enum;
 use FQL\Exception;
 use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
+use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
 use FQL\Interface\Query;
 use FQL\Stream\Csv;
@@ -296,6 +297,9 @@ class Stream extends ResultsProvider
                 : $finalField;
             if ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
+                continue;
+            } elseif ($fieldData['function'] instanceof BaseFunctionByReference) {
+                $fieldData['function']($item, $result);
                 continue;
             } elseif ($fieldData['function'] instanceof NoFieldFunction) {
                 $result[$fieldName] = $fieldData['function']();

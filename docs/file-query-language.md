@@ -213,6 +213,7 @@ ORDER BY _score DESC
 | `ARRAY_COMBINE`     | Combine two array with keys and array with values into a single array  |
 | `ARRAY_FILTER`      | Filter array from empty values                                         |
 | `ARRAY_MERGE`       | Merge two arrays into a single array                                   |
+| `COL_SPLIT`         | Split array field into columns (optional format + key field)           |
 | `COALESCE`          | Coalesce values (first non-null value)                                 |
 | `COALESCE_NE`       | Coalesce values when not empty (first non-empty value)                 |
 | `FORMAT_DATE`       | Format date field to string                                            |
@@ -234,6 +235,7 @@ ORDER BY _score DESC
 SELECT
     ARRAY_COMBINE(filedWitArrayKeys, fieldWithArrayValues) AS arrayCombine,
     ARRAY_MERGE(fieldWithArray1, fieldWithArray2) AS arrayMerge,
+    COL_SPLIT(items, "item_%index", "id") AS itemColumns,
     COALESCE(NULL, 'Hello World') AS coalesce,
     COALESCE_NE(0, 'Hello World') AS coalesceNe,
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,

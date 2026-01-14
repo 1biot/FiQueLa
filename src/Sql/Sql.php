@@ -228,8 +228,8 @@ class Sql extends SqlLexer implements Interface\Parser
             'ROUND' => $query->round((string) ($arguments[0] ?? ''), (int) ($arguments[1] ?? 0)),
 
             // string
-            'BASE64_DECODE' => $query->toBase64((string) ($arguments[0] ?? '')),
-            'BASE64_ENCODE' => $query->fromBase64((string) ($arguments[0] ?? '')),
+            'BASE64_DECODE' => $query->fromBase64((string) ($arguments[0] ?? '')),
+            'BASE64_ENCODE' => $query->toBase64((string) ($arguments[0] ?? '')),
             'CONCAT' => $query->concat(
                 ...array_map(
                     fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
@@ -283,6 +283,11 @@ class Sql extends SqlLexer implements Interface\Parser
             'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),
+            'COL_SPLIT' => $query->colSplit(
+                (string) ($arguments[0] ?? ''),
+                $arguments[1] ?? null,
+                $arguments[2] ?? null
+            ),
             'CURDATE' => $query->currentDate((bool) ($arguments[0] ?? 0)),
             'CURTIME' => $query->currentTime((bool) ($arguments[0] ?? 0)),
             'CURRENT_TIMESTAMP' => $query->currentTimestamp(),

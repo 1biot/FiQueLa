@@ -137,6 +137,7 @@ class SelectTest extends TestCase
             ->coalesceNotEmpty('id', 'name', 'price')->as('coalescedNE')
             ->concatWithSeparator(' ', 'name', 'price')->as('concatenatedWS')
             ->concat('id', 'name', 'price')->as('concatenated')
+            ->colSplit('items')
             ->groupConcat('concatenated', '|')->as('groupConcatenated');
 
         $selectedFields = $this->query->getSelectedFields();
@@ -163,6 +164,7 @@ class SelectTest extends TestCase
         $this->assertEquals('COALESCE_NE(id, name, price)', $selectedFields['coalescedNE']['originField']);
         $this->assertEquals('CONCAT_WS(" ", name, price)', $selectedFields['concatenatedWS']['originField']);
         $this->assertEquals('CONCAT(id, name, price)', $selectedFields['concatenated']['originField']);
+        $this->assertEquals('COL_SPLIT(items)', $selectedFields['COL_SPLIT(items)']['originField']);
         $this->assertEquals('GROUP_CONCAT(concatenated, "|")', $selectedFields['groupConcatenated']['originField']);
 
         $this->assertNull($selectedFields['name']['function']);
@@ -232,6 +234,9 @@ class SelectTest extends TestCase
 
         $this->assertNotNull($selectedFields['concatenated']['function']);
         $this->assertInstanceOf(Functions\String\Concat::class, $selectedFields['concatenated']['function']);
+
+        $this->assertNotNull($selectedFields['COL_SPLIT(items)']['function']);
+        $this->assertInstanceOf(Functions\Utils\ColSplit::class, $selectedFields['COL_SPLIT(items)']['function']);
 
         $this->assertNotNull($selectedFields['groupConcatenated']['function']);
         $this->assertInstanceOf(

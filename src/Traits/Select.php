@@ -15,7 +15,7 @@ use FQL\Sql;
  * @phpstan-type SelectedField array{
  *     originField: string,
  *     alias: bool,
- *     function: null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction
+ *     function: null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction|Core\BaseFunctionByReference
  * }
  * @codingStandardsIgnoreEnd
  * @phpstan-type SelectedFields array<string, SelectedField>
@@ -308,6 +308,11 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\ArrayMerge($arrayField, $arrayField2));
     }
 
+    public function colSplit(string $field, ?string $format = null, ?string $keyField = null): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\ColSplit($field, $format, $keyField));
+    }
+
     public function arrayFilter(string $field): Query
     {
         return $this->addFieldFunction(new Functions\Utils\ArrayFilter($field));
@@ -416,7 +421,7 @@ trait Select
     }
 
     private function addFieldFunction(
-        Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function
+        Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction|Core\BaseFunctionByReference $function
     ): Interface\Query {
         $this->addField(
             (string) $function,
@@ -429,7 +434,7 @@ trait Select
     private function addField(
         string $field,
         ?string $alias = null,
-        null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction $function = null
+        null|Core\BaseFunction|Core\AggregateFunction|Core\NoFieldFunction|Core\BaseFunctionByReference $function = null
     ): Interface\Query {
         $this->selectedFields[$alias ?? $field] = [
             'originField' => $field,
