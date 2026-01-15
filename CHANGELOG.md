@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.1] Unreleased
+
+### Added
+
+- Added new functions
+  - `CAST` for type casting
+  - `STR_TO_DATE` to parse a string into a date based on a specified format.
+
 ## [2.2.0]
 
 ### Added

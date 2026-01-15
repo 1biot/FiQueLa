@@ -214,9 +214,11 @@ ORDER BY _score DESC
 | `ARRAY_FILTER`      | Filter array from empty values                                         |
 | `ARRAY_MERGE`       | Merge two arrays into a single array                                   |
 | `COL_SPLIT`         | Split array field into columns (optional format + key field)           |
+| `CAST`              | Cast value to the requested type                                       |
 | `COALESCE`          | Coalesce values (first non-null value)                                 |
 | `COALESCE_NE`       | Coalesce values when not empty (first non-empty value)                 |
 | `FORMAT_DATE`       | Format date field to string                                            |
+| `STR_TO_DATE`       | Parse string to date or time                                           |
 | `DATE_DIFF`         | Calculate difference between two dates                                 |
 | `DATE_ADD`          | Add interval to date                                                   |
 | `DATE_SUB`          | Subtract interval from date                                            |
@@ -241,9 +243,11 @@ SELECT
     ARRAY_COMBINE(filedWitArrayKeys, fieldWithArrayValues) AS arrayCombine,
     ARRAY_MERGE(fieldWithArray1, fieldWithArray2) AS arrayMerge,
     COL_SPLIT(items, "item_%index", "id") AS itemColumns,
+    CAST(price AS DOUBLE) AS castPrice,
     COALESCE(NULL, 'Hello World') AS coalesce,
     COALESCE_NE(0, 'Hello World') AS coalesceNe,
     FORMAT_DATE(dateField, 'Y-m-d') AS dateFormat,
+    STR_TO_DATE(dateString, '%Y-%m-%d') AS strToDate,
     DATE_DIFF(dateField1, dateField2) AS dateDiff,
     DATE_ADD(dateField, '+1 day') AS dateAdd,
     DATE_SUB(dateField, '+1 day') AS dateSub,

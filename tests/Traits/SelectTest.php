@@ -2,6 +2,7 @@
 
 namespace Traits;
 
+use FQL\Enum;
 use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface\Query;
@@ -140,6 +141,8 @@ class SelectTest extends TestCase
             ->colSplit('items')
             ->dateAdd('dateField', '+1 day')->as('dateAdd')
             ->dateSub('dateField', '+1 day')->as('dateSub')
+            ->cast('price', Enum\Type::FLOAT)->as('castPrice')
+            ->strToDate('dateField', '%Y-%m-%d')->as('strToDate')
             ->year('dateField')->as('year')
             ->month('dateField')->as('month')
             ->day('dateField')->as('day')
@@ -172,6 +175,8 @@ class SelectTest extends TestCase
         $this->assertEquals('COL_SPLIT(items)', $selectedFields['COL_SPLIT(items)']['originField']);
         $this->assertEquals('DATE_ADD(dateField, "+1 day")', $selectedFields['dateAdd']['originField']);
         $this->assertEquals('DATE_SUB(dateField, "+1 day")', $selectedFields['dateSub']['originField']);
+        $this->assertEquals('CAST(price AS DOUBLE)', $selectedFields['castPrice']['originField']);
+        $this->assertEquals('STR_TO_DATE(dateField, "%Y-%m-%d")', $selectedFields['strToDate']['originField']);
         $this->assertEquals('YEAR(dateField)', $selectedFields['year']['originField']);
         $this->assertEquals('MONTH(dateField)', $selectedFields['month']['originField']);
         $this->assertEquals('DAY(dateField)', $selectedFields['day']['originField']);
@@ -253,6 +258,12 @@ class SelectTest extends TestCase
 
         $this->assertNotNull($selectedFields['dateSub']['function']);
         $this->assertInstanceOf(Functions\Utils\DateSub::class, $selectedFields['dateSub']['function']);
+
+        $this->assertNotNull($selectedFields['castPrice']['function']);
+        $this->assertInstanceOf(Functions\Utils\Cast::class, $selectedFields['castPrice']['function']);
+
+        $this->assertNotNull($selectedFields['strToDate']['function']);
+        $this->assertInstanceOf(Functions\Utils\StrToDate::class, $selectedFields['strToDate']['function']);
 
         $this->assertNotNull($selectedFields['year']['function']);
         $this->assertInstanceOf(Functions\Utils\Year::class, $selectedFields['year']['function']);

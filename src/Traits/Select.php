@@ -318,6 +318,16 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\ArrayFilter($field));
     }
 
+    public function cast(string $field, Enum\Type $as): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Cast($field, $as));
+    }
+
+    public function strToDate(string $valueField, string $format): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\StrToDate($valueField, $format));
+    }
+
     public function formatDate(string $dateField, string $format = 'c'): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));

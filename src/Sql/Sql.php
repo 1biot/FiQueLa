@@ -257,6 +257,7 @@ class Sql extends SqlLexer implements Interface\Parser
             'UPPER' => $query->upper((string) ($arguments[0] ?? '')),
 
             // utils
+            'CAST' => $this->processCastFunction($query, $arguments),
             'COALESCE' => $query->coalesce(
                 ...array_map(
                     fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
@@ -293,6 +294,7 @@ class Sql extends SqlLexer implements Interface\Parser
             'CURRENT_TIMESTAMP' => $query->currentTimestamp(),
             'NOW' => $query->now((bool) ($arguments[0] ?? 0)),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
+            'STR_TO_DATE' => $query->strToDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_DIFF' => $query->dateDiff((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_ADD' => $query->dateAdd((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_SUB' => $query->dateSub((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
@@ -436,6 +438,44 @@ class Sql extends SqlLexer implements Interface\Parser
             $fulltextArguments[1]
         );
         $this->nextToken();
+    }
+
+    /**
+     * @param array<scalar|null> $arguments
+     */
+    private function processCastFunction(Interface\Query $query, array $arguments): void
+    {
+        $expression = (string) ($arguments[0] ?? '');
+        if (!preg_match('/^(.+)\s+AS\s+(.+)$/i', trim($expression), $matches)) {
+            throw new Exception\QueryLogicException('Invalid CAST syntax');
+        }
+
+        $field = trim($matches[1]);
+        $typeString = trim($matches[2]);
+        $query->cast($field, $this->parseCastType($typeString));
+    }
+
+    private function parseCastType(string $typeString): Enum\Type
+    {
+        $normalized = strtoupper(trim($typeString));
+        return match ($normalized) {
+            'DOUBLE', 'FLOAT', 'REAL' => Enum\Type::FLOAT,
+            'INT', 'INTEGER', 'SIGNED', 'UNSIGNED' => Enum\Type::INTEGER,
+            'DECIMAL', 'NUMERIC', 'NUMBER' => Enum\Type::NUMBER,
+            'BOOLEAN', 'BOOL', 'TRUE', 'FALSE' => Enum\Type::BOOLEAN,
+            'CHAR', 'VARCHAR', 'STRING', 'TEXT' => Enum\Type::STRING,
+            'NULL' => Enum\Type::NULL,
+            default => $this->castEnumType($typeString),
+        };
+    }
+
+    private function castEnumType(string $typeString): Enum\Type
+    {
+        try {
+            return Enum\Type::from(strtolower($typeString));
+        } catch (\ValueError) {
+            throw new Exception\QueryLogicException(sprintf('Unsupported CAST type: %s', $typeString));
+        }
     }
 
     public function getBasePath(): ?string

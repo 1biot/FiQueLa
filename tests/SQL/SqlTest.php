@@ -33,6 +33,7 @@ use FQL\Functions\String\Upper;
 use FQL\Functions\Utils\ArrayCombine;
 use FQL\Functions\Utils\ArrayFilter;
 use FQL\Functions\Utils\ArrayMerge;
+use FQL\Functions\Utils\Cast;
 use FQL\Functions\Utils\ColSplit;
 use FQL\Functions\Utils\Coalesce;
 use FQL\Functions\Utils\CoalesceNotEmpty;
@@ -44,6 +45,7 @@ use FQL\Functions\Utils\DateDiff;
 use FQL\Functions\Utils\DateFormat;
 use FQL\Functions\Utils\DateSub;
 use FQL\Functions\Utils\Day;
+use FQL\Functions\Utils\StrToDate;
 use FQL\Functions\Utils\Length;
 use FQL\Functions\Utils\Month;
 use FQL\Functions\Utils\Now;
@@ -110,12 +112,14 @@ class SqlTest extends TestCase
             'array combine' => ['SELECT ARRAY_COMBINE(keys, values)', 'ARRAY_COMBINE(keys, values)', ArrayCombine::class],
             'array merge' => ['SELECT ARRAY_MERGE(first, second)', 'ARRAY_MERGE(first, second)', ArrayMerge::class],
             'array filter' => ['SELECT ARRAY_FILTER(items)', 'ARRAY_FILTER(items)', ArrayFilter::class],
+            'cast' => ['SELECT CAST(price AS DOUBLE)', 'CAST(price AS DOUBLE)', Cast::class],
             'col split' => ['SELECT COL_SPLIT(items, "item_%index", "id")', 'COL_SPLIT(items, "item_%index", "id")', ColSplit::class],
             'current date' => ['SELECT CURDATE(true)', 'CURDATE(true)', CurrentDate::class],
             'current time' => ['SELECT CURTIME(true)', 'CURTIME(true)', CurrentTime::class],
             'current timestamp' => ['SELECT CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP()', CurrentTimestamp::class],
             'now' => ['SELECT NOW(true)', 'NOW(true)', Now::class],
             'date format' => ['SELECT DATE_FORMAT(dateField, "Y-m-d")', 'DATE_FORMAT(dateField, "Y-m-d")', DateFormat::class],
+            'str to date' => ['SELECT STR_TO_DATE(dateField, "%Y-%m-%d")', 'STR_TO_DATE(dateField, "%Y-%m-%d")', StrToDate::class],
             'date diff' => ['SELECT DATE_DIFF(startDate, endDate)', 'DATE_DIFF(startDate, endDate)', DateDiff::class],
             'date add' => ['SELECT DATE_ADD(startDate, "+1 day")', 'DATE_ADD(startDate, "+1 day")', DateAdd::class],
             'date sub' => ['SELECT DATE_SUB(startDate, "+1 day")', 'DATE_SUB(startDate, "+1 day")', DateSub::class],

@@ -128,9 +128,11 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `arrayFiler`       | Filter array from empty values                                         |
 | `arrayMerge`       | Merge two arrays into a single array                                   |
 | `colSplit`         | Split array field into columns with optional format and key field       |
+| `cast`             | Cast value to the requested type                                       |
 | `coalesce`         | Coalesce values (first non-null value)                                 |
 | `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
 | `formatDate`       | Format date field to string                                            |
+| `strToDate`        | Parse string to date or time                                           |
 | `dateDiff`         | Calculate difference between two dates                                 |
 | `dateAdd`          | Add interval to date                                                   |
 | `dateSub`          | Subtract interval from date                                            |
@@ -164,6 +166,8 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->endCase()->as('CASE_WHEN')
     ->coalesce('whatever', 'ArticleNr')->as('COALESCE')
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
+    ->cast('price', \FQL\Enum\Type::FLOAT)->as('CAST')
+    ->strToDate('dateString', '%Y-%m-%d')->as('STR_TO_DATE')
     ->formatDate('dateField', 'Y-m-d')->as('FORMAT_DATE')
     ->length('fieldWithArrayKeys')->as('keysCount')
     ->length('Hello world')->as('stringLength')
