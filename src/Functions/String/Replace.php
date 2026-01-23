@@ -24,7 +24,7 @@ class Replace extends SingleFieldFunction
             return null;
         }
 
-        return str_replace($this->fromString, $this->newString, $value);
+        return str_replace($this->fromString, $this->newString, (string) $value);
     }
 
     public function __toString(): string

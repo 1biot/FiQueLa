@@ -42,7 +42,7 @@ class ColSplit extends SingleFieldFunctionByReference
 
         foreach (array_values($value) as $i => $entry) {
             $suffix = $this->getSuffixFromEntry($entry, $i);
-            $colName = str_replace('%index', $suffix, $format);
+            $colName = str_replace('%index', (string) $suffix, $format);
             $resultItem[$colName] = $entry;
         }
 

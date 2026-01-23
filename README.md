@@ -7,10 +7,9 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_345-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_1090-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_390-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_1169-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
 like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** and **XLS**. Designed for simplicity and modularity,
@@ -331,10 +330,10 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
 - [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
-- [ ] **Custom cast type**: Add support for custom cast type for `SELECT` clause.
+- [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
-- [ ] **PHPStan 8**: Fix all PHPStan 8 errors.
+- [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
 - [ ] **Tests**: Increase test coverage.
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.

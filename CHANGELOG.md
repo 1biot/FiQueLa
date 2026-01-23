@@ -4,12 +4,14 @@
 
 ### Improved
 - Improved applying `GROUP BY` clause to incrementally grouped data sets which are more memory efficient
+- Upgraded PHPStan level to 8
 
 ### Added
 
 - Added new functions
   - `CAST` for type casting
   - `STR_TO_DATE` to parse a string into a date based on a specified format.
+- Added more tests and asserts for existing functions and features
 
 ## [2.2.0]
 

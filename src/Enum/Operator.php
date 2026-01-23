@@ -175,9 +175,9 @@ enum Operator: string
         // If all values are date-like, compare as dates
         if ($this->isDateLike($left)) {
             if ($this->isDateLike($min) && $this->isDateLike($max)) {
-                $leftTime = strtotime($left);
-                $minTime = strtotime($min);
-                $maxTime = strtotime($max);
+                $leftTime = strtotime((string) $left);
+                $minTime = strtotime((string) $min);
+                $maxTime = strtotime((string) $max);
 
                 return $leftTime >= $minTime && $leftTime <= $maxTime;
             }

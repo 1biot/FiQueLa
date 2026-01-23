@@ -48,7 +48,7 @@ abstract class ArrayStreamProvider extends AbstractStream
     }
 
     /**
-     * @param \ArrayIterator<int|string, mixed> $stream
+     * @param StreamProviderArrayIterator $stream
      * @param string $key
      * @param bool $isLast
      * @return StreamProviderArrayIterator
@@ -59,17 +59,27 @@ abstract class ArrayStreamProvider extends AbstractStream
         foreach ($stream as $k => $v) {
             if ($k === $key) {
                 if ($isLast) {
-                    // Final iteration: check if it's a list
-                    if (is_array($v) && array_is_list($v)) {
-                        return new \ArrayIterator($v);
+                    if (array_is_list($v)) {
+                        /** @var StreamProviderArrayIteratorValue[] $items */
+                        $items = [];
+                        foreach ($v as $entry) {
+                            /** @var StreamProviderArrayIteratorValue $item */
+                            $item = is_array($entry) ? $entry : [$key => $entry];
+                            $items[] = $item;
+                        }
+
+                        return new \ArrayIterator($items);
                     }
 
-                    // Last iteration: check if it's a list
-                    return is_array($v) ? new \ArrayIterator([$v]) : new \ArrayIterator([$key => $v]);
+                    /** @var StreamProviderArrayIteratorValue $item */
+                    $item = $v;
+                    return new \ArrayIterator([$item]);
                 }
 
                 // Other iterations: always return an iterator
-                return new \ArrayIterator($v);
+                /** @var StreamProviderArrayIteratorValue[] $items */
+                $items = $v;
+                return new \ArrayIterator($items);
             }
         }
         throw new Exception\InvalidArgumentException("Key '$key' not found.");

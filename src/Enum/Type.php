@@ -113,7 +113,7 @@ enum Type: string
     private static function isNumeric(string $value): bool
     {
         $value = trim($value); // Trim whitespace from both ends
-        $value = preg_replace('/[ ]/', '', $value); // Remove spaces (used as thousand separators)
+        $value = preg_replace('/[ ]/', '', $value) ?? ''; // Remove spaces (used as thousand separators)
         $value = str_replace(',', '.', $value); // Normalize decimal separator to dot
         if (substr_count($value, '.') > 1) {
             return false; // More than one decimal point — invalid numeric format

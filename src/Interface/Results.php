@@ -10,28 +10,25 @@ use FQL\Results\Stream;
 interface Results extends \Countable
 {
     /**
-     * @template T of mixed
-     * @param ?class-string $dto
-     * @return ($dto is class-string<T> ? \Generator<T> : \Generator<StreamProviderArrayIteratorValue>)
+     * @param class-string|null $dto
+     * @return \Generator<StreamProviderArrayIteratorValue|object>
      */
     public function fetchAll(?string $dto = null): \Generator;
 
     /**
-     * @template T of mixed
-     * @param ?class-string $dto
-     * @return ($dto is class-string<T> ? T : StreamProviderArrayIteratorValue)
+     * @param class-string|null $dto
+     * @return StreamProviderArrayIteratorValue|object|null
      */
     public function fetch(?string $dto = null): mixed;
 
     /**
-     * @return StreamProviderArrayIteratorValue
+     * @return StreamProviderArrayIteratorValue|null
      */
     public function fetchSingle(string $key): mixed;
 
     /**
-     * @template T of mixed
-     * @param ?class-string $dto
-     * @return ($dto is class-string<T> ? \Generator<T> : \Generator<StreamProviderArrayIteratorValue>)
+     * @param class-string|null $dto
+     * @return \Generator<StreamProviderArrayIteratorValue|object>
      */
     public function fetchNth(int|string $n, ?string $dto = null): \Generator;
 

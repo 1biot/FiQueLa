@@ -15,6 +15,10 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 {
     use EnhancedNestedArrayAccessor;
 
+    /**
+     * @param class-string|null $dto
+     * @return \Generator<StreamProviderArrayIteratorValue|object>
+     */
     public function fetchAll(?string $dto = null): \Generator
     {
         foreach ($this->getIterator() as $resultItem) {
@@ -23,6 +27,11 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     }
 
     /**
+     * @throws InvalidArgumentException
+     */
+    /**
+     * @param class-string|null $dto
+     * @return \Generator<StreamProviderArrayIteratorValue|object>
      * @throws InvalidArgumentException
      */
     public function fetchNth(int|string $n, ?string $dto = null): \Generator
@@ -53,6 +62,10 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         }
     }
 
+    /**
+     * @param class-string|null $dto
+     * @return StreamProviderArrayIteratorValue|object|null
+     */
     public function fetch(?string $dto = null): mixed
     {
         foreach ($this->getIterator() as $item) {
@@ -71,7 +84,12 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
      */
     public function fetchSingle(string $key): mixed
     {
-        return $this->accessNestedValue($this->fetch(), $key, false);
+        $item = $this->fetch();
+        if (!is_array($item)) {
+            return null;
+        }
+
+        return $this->accessNestedValue($item, $key, false);
     }
 
     public function count(): int
@@ -118,10 +136,9 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
     }
 
     /**
-     * @template T of mixed
      * @param StreamProviderArrayIteratorValue $data
-     * @param ?class-string $className
-     * @return ($className is class-string<T> ? T : StreamProviderArrayIteratorValue)
+     * @param class-string|null $className
+     * @return StreamProviderArrayIteratorValue|object
      */
     private function mapArrayToObject(array $data, ?string $className = null): mixed
     {
@@ -141,12 +158,10 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
                     $constructorArgs[] = $data[$paramName] ?? $param->getDefaultValue();
                 }
 
-                /** @var T $instance */
                 $instance = $reflectionClass->newInstanceArgs($constructorArgs);
                 return $instance;
             }
 
-            /** @var T $instance */
             $instance = $reflectionClass->newInstance();
             foreach ($data as $key => $value) {
                 if (!is_string($key)) {

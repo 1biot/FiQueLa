@@ -440,8 +440,13 @@ trait Select
 
     public function endCase(): Query
     {
-        $this->addFieldFunction($this->case);
+        if ($this->case === null) {
+            throw new Exception\CaseException('First create a CASE statement for using END CASE.');
+        }
+
+        $case = $this->case;
         $this->case = null;
+        $this->addFieldFunction($case);
         return $this;
     }
 

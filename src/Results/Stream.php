@@ -181,7 +181,7 @@ class Stream extends ResultsProvider
         $hashmap = [];
         foreach ($rightData as $row) {
             $key = $row[$rightKey] ?? null;
-            if ($key !== null) {
+            if (is_int($key) || is_string($key)) {
                 $hashmap[$key][] = $row;
             }
         }
@@ -192,7 +192,7 @@ class Stream extends ResultsProvider
 
         foreach ($leftData as $leftRow) {
             $leftKeyValue = $leftRow[$leftKey] ?? null;
-            if ($leftKeyValue !== null && isset($hashmap[$leftKeyValue])) {
+            if ((is_int($leftKeyValue) || is_string($leftKeyValue)) && isset($hashmap[$leftKeyValue])) {
                 // Handle matches (n * n)
                 foreach ($hashmap[$leftKeyValue] as $rightRow) {
                     /** @var StreamProviderArrayIteratorValue $joinedRow */
@@ -280,8 +280,8 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @param array<string, mixed> $item
-     * @return array<string, mixed>
+     * @param StreamProviderArrayIteratorValue $item
+     * @return array<int|string, mixed>
      * @throws Exception\InvalidArgumentException
      */
     private function applySelect(array $item): array
@@ -456,9 +456,9 @@ class Stream extends ResultsProvider
     /**
      * Aggregates grouped items.
      *
-     * @param array{firstItem: array<string, mixed>, accumulators: array<string, mixed>} $groupState
+     * @param array{firstItem: array<int|string, mixed>, accumulators: array<string, mixed>} $groupState
      * @param array<string, AggregateFunction> $aggregateFunctions
-     * @return array<string, mixed> Aggregated result
+     * @return array<int|string, mixed> Aggregated result
      */
     private function applyAggregations(array $groupState, array $aggregateFunctions): array
     {
@@ -487,9 +487,9 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @param array<string, mixed> $item
+     * @param StreamProviderArrayIteratorValue $item
      * @param array<string, AggregateFunction> $incrementalAggregates
-     * @return array{firstItem: array<string, mixed>, accumulators: array<string, mixed>}
+     * @return array{firstItem: array<int|string, mixed>, accumulators: array<string, mixed>}
      */
     private function createGroupState(
         array $item,
@@ -509,11 +509,11 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @param \Generator<StreamProviderArrayIteratorValue> $iterator
-     * @return \Generator<StreamProviderArrayIteratorValue>
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      * @throws Exception\SortException
      */
-    private function applySorting(\Generator $iterator): \Generator
+    private function applySorting(\Traversable $iterator): \Traversable
     {
         if ($this->orderings === []) {
             return $iterator;
@@ -544,7 +544,11 @@ class Stream extends ResultsProvider
     }
 
 
-    private function applyLimit(\Generator $data): \Generator
+    /**
+     * @param \Traversable<StreamProviderArrayIteratorValue> $data
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function applyLimit(\Traversable $data): \Generator
     {
         $count = 0;
         $currentOffset = 0; // Number of already skipped records
@@ -565,7 +569,7 @@ class Stream extends ResultsProvider
 
     /**
      * Creates a group key based on GROUP BY fields.
-     * @param array<string, mixed> $item
+     * @param StreamProviderArrayIteratorValue $item
      * @return string
      */
     private function createGroupKey(array $item): string

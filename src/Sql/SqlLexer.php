@@ -99,7 +99,7 @@ class SqlLexer implements \Iterator
     private function removeComments(string $sql): string
     {
         // Remove multi-line comments (/* ... */)
-        $sql = preg_replace('#/\*.*?\*/#s', '', $sql);
+        $sql = preg_replace('#/\*.*?\*/#s', '', $sql) ?? '';
 
         // Remove single-line comments (-- and #), but not inside quotes
         $lines = explode("\n", $sql);

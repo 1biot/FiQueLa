@@ -286,8 +286,8 @@ class Sql extends SqlLexer implements Interface\Parser
             'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),
             'COL_SPLIT' => $query->colSplit(
                 (string) ($arguments[0] ?? ''),
-                $arguments[1] ?? null,
-                $arguments[2] ?? null
+                array_key_exists(1, $arguments) ? (string) $arguments[1] : null,
+                array_key_exists(2, $arguments) ? (string) $arguments[2] : null
             ),
             'CURDATE' => $query->currentDate((bool) ($arguments[0] ?? 0)),
             'CURTIME' => $query->currentTime((bool) ($arguments[0] ?? 0)),
