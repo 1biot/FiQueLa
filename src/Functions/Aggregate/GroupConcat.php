@@ -31,6 +31,44 @@ class GroupConcat extends SingleFieldAggregateFunction
         );
     }
 
+    public function initAccumulator(): mixed
+    {
+        return [
+            'value' => '',
+            'hasValue' => false,
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function accumulate(mixed $accumulator, array $item): mixed
+    {
+        $value = $this->getFieldValue($this->field, $item, false);
+        if (is_string($value)) {
+            $value = Type::matchByString($value);
+        }
+
+        if ($value === null) {
+            return $accumulator;
+        }
+
+        $stringValue = (string) $value;
+        if ($accumulator['hasValue']) {
+            $accumulator['value'] .= $this->separator . $stringValue;
+            return $accumulator;
+        }
+
+        $accumulator['value'] = $stringValue;
+        $accumulator['hasValue'] = true;
+        return $accumulator;
+    }
+
+    public function finalize(mixed $accumulator): mixed
+    {
+        return $accumulator['value'];
+    }
+
     /**
      * @throws UnexpectedValueException
      */

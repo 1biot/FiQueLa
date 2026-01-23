@@ -98,4 +98,23 @@ class AvgTest extends TestCase
             ['price' => 2.0],
         ]));
     }
+
+    public function testAvgIncrementalMatchesInvoke(): void
+    {
+        $avg = new Avg('price');
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 400],
+            ['price' => 500],
+        ];
+
+        $accumulator = $avg->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $avg->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($avg($items), $avg->finalize($accumulator));
+    }
 }

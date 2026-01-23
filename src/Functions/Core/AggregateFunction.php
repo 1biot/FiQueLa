@@ -3,6 +3,7 @@
 namespace FQL\Functions\Core;
 
 use FQL\Exception\UnexpectedValueException;
+use FQL\Interface\IncrementalAggregate;
 use FQL\Interface\InvokableAggregate;
 use FQL\Stream\ArrayStreamProvider;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
@@ -11,7 +12,7 @@ use FQL\Traits\Helpers\StringOperations;
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
-abstract class AggregateFunction implements InvokableAggregate, \Stringable
+abstract class AggregateFunction implements InvokableAggregate, IncrementalAggregate, \Stringable
 {
     use StringOperations;
     use EnhancedNestedArrayAccessor;

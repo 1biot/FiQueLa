@@ -28,4 +28,31 @@ class Count extends SingleFieldAggregateFunction
             )
         );
     }
+
+    public function initAccumulator(): mixed
+    {
+        return 0;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function accumulate(mixed $accumulator, array $item): mixed
+    {
+        if ($this->field === Query::SELECT_ALL) {
+            return $accumulator + 1;
+        }
+
+        $value = $this->getFieldValue($this->field, $item, false);
+        if ($value !== null) {
+            return $accumulator + 1;
+        }
+
+        return $accumulator;
+    }
+
+    public function finalize(mixed $accumulator): mixed
+    {
+        return $accumulator;
+    }
 }

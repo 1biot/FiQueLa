@@ -76,7 +76,7 @@ class Query implements Interface\Query
         return match ($resultClass) {
             Results\InMemory::class => new Results\InMemory(iterator_to_array($streamResult->getIterator())),
             Results\Stream::class => $streamResult,
-            default => $streamResult->hasJoin() || $streamResult->isSortable() || $streamResult->isGroupable()
+            default => $streamResult->hasJoin() || $streamResult->isSortable()
                 ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
                 : $streamResult
         };

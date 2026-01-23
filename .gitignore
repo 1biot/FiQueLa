@@ -5,6 +5,7 @@ vendor
 .phpunit.result.cache
 .DS_Store
 **/.DS_Store
+AGENTS.md
 examples/test.php
 examples/data/ciselnik.csv
 examples/data/produkty.csv

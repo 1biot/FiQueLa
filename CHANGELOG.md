@@ -1,6 +1,9 @@
 # Changelog
 
-## [2.2.1] Unreleased
+## [2.3.0] Unreleased
+
+### Improved
+- Improved applying `GROUP BY` clause to incrementally grouped data sets which are more memory efficient
 
 ### Added
 

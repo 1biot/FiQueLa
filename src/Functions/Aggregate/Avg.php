@@ -39,4 +39,46 @@ class Avg extends SingleFieldAggregateFunction
             return $value;
         }, $items)) / count($items);
     }
+
+    public function initAccumulator(): mixed
+    {
+        return [
+            'sum' => 0,
+            'count' => 0,
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function accumulate(mixed $accumulator, array $item): mixed
+    {
+        $value = $this->getFieldValue($this->field, $item);
+        if (is_string($value)) {
+            $value = Type::matchByString($value);
+        }
+
+        if (!is_numeric($value)) {
+            throw new UnexpectedValueException(
+                sprintf(
+                    'Field "%s" value is not numeric: %s',
+                    $this->field,
+                    $value
+                )
+            );
+        }
+
+        $accumulator['sum'] += $value;
+        $accumulator['count']++;
+        return $accumulator;
+    }
+
+    public function finalize(mixed $accumulator): mixed
+    {
+        if ($accumulator['count'] === 0) {
+            return 0;
+        }
+
+        return $accumulator['sum'] / $accumulator['count'];
+    }
 }

@@ -72,4 +72,22 @@ class MinTest extends TestCase
             ])
         );
     }
+
+    public function testMinIncrementalMatchesInvoke(): void
+    {
+        $min = new Min('price');
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 400],
+        ];
+
+        $accumulator = $min->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $min->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($min($items), $min->finalize($accumulator));
+    }
 }

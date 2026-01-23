@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_339-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_1084-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_345-lightgreen)
+![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_1090-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_6-OK-lightgreen)
 ![Static Badge](https://img.shields.io/badge/PHPStan_7|8-15_errors-orange)
 
@@ -323,7 +323,7 @@ array (7)
 
 ## 7. Knowing issues
 
-- ⚠️ Functions `JOIN`, `ORDER BY` and `GROUP BY` are not memory efficient, because joining data or sorting data requires 
+- ⚠️ Functions `JOIN`, and `ORDER BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 
 ## 8. Planning Features
@@ -336,7 +336,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
 - [ ] **PHPStan 8**: Fix all PHPStan 8 errors.
 - [ ] **Tests**: Increase test coverage.
-- [ ] **Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.
+- [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.

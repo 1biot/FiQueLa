@@ -78,4 +78,22 @@ class CountTest extends TestCase
             $count([])
         );
     }
+
+    public function testCountIncrementalMatchesInvoke(): void
+    {
+        $count = new Count();
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 400],
+        ];
+
+        $accumulator = $count->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $count->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($count($items), $count->finalize($accumulator));
+    }
 }

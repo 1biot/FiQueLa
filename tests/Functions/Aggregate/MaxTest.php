@@ -75,4 +75,22 @@ class MaxTest extends TestCase
             ])
         );
     }
+
+    public function testMaxIncrementalMatchesInvoke(): void
+    {
+        $max = new Max('price');
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 400],
+        ];
+
+        $accumulator = $max->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $max->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($max($items), $max->finalize($accumulator));
+    }
 }

@@ -38,4 +38,41 @@ class Sum extends SingleFieldAggregateFunction
             return $value;
         }, $items));
     }
+
+    public function initAccumulator(): mixed
+    {
+        return 0;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function accumulate(mixed $accumulator, array $item): mixed
+    {
+        $value = $this->getFieldValue($this->field, $item);
+        if (is_string($value)) {
+            $value = Type::matchByString($value);
+        }
+
+        if ($value === '') {
+            $value = 0;
+        }
+
+        if (!is_numeric($value)) {
+            throw new UnexpectedValueException(
+                sprintf(
+                    'Field "%s" value is not numeric: %s',
+                    $this->field,
+                    $value
+                )
+            );
+        }
+
+        return $accumulator + $value;
+    }
+
+    public function finalize(mixed $accumulator): mixed
+    {
+        return $accumulator;
+    }
 }

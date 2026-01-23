@@ -60,4 +60,23 @@ class SumTest extends TestCase
         $sum = new Sum('price');
         $this->assertEquals(0, $sum([]));
     }
+
+    public function testSumIncrementalMatchesInvoke(): void
+    {
+        $sum = new Sum('price');
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 400],
+            ['price' => 500],
+        ];
+
+        $accumulator = $sum->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $sum->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($sum($items), $sum->finalize($accumulator));
+    }
 }

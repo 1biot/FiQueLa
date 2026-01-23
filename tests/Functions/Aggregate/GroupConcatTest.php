@@ -61,4 +61,22 @@ class GroupConcatTest extends TestCase
             ])
         );
     }
+
+    public function testGroupConcatIncrementalMatchesInvoke(): void
+    {
+        $groupConcat = new GroupConcat('name');
+        $items = [
+            ['name' => 'Product A'],
+            ['name' => null],
+            ['name' => 'Product B'],
+            ['name' => 'Product C'],
+        ];
+
+        $accumulator = $groupConcat->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $groupConcat->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($groupConcat($items), $groupConcat->finalize($accumulator));
+    }
 }

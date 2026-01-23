@@ -391,6 +391,8 @@ class Stream extends ResultsProvider
     {
         $groupedData = [];
         $groupKey = Query::SELECT_ALL;
+        $aggregateFunctions = $this->getAggregateFunctions();
+        $incrementalAggregates = $aggregateFunctions;
         foreach ($stream as $item) {
             if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;
@@ -398,7 +400,20 @@ class Stream extends ResultsProvider
                 $groupKey = $this->createGroupKey($item);
             }
 
-            $groupedData[$groupKey][] = $item;
+            if (!isset($groupedData[$groupKey])) {
+                $groupedData[$groupKey] = $this->createGroupState(
+                    $item,
+                    $incrementalAggregates
+                );
+                continue;
+            }
+
+            foreach ($incrementalAggregates as $finalField => $function) {
+                $groupedData[$groupKey]['accumulators'][$finalField] = $function->accumulate(
+                    $groupedData[$groupKey]['accumulators'][$finalField],
+                    $item
+                );
+            }
         }
 
         if ($groupKey === Query::SELECT_ALL) {
@@ -407,7 +422,7 @@ class Stream extends ResultsProvider
             }
 
             // Aggregate grouped items
-            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL]);
+            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateFunctions);
             if ($this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
                 return yield $this->applyExcludeFromSelect($aggregatedItem); // Return result
             }
@@ -416,9 +431,9 @@ class Stream extends ResultsProvider
         $count = 0;
         $currentOffset = 0; // Number of already skipped records
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
-        foreach ($groupedData as $groupItems) {
+        foreach ($groupedData as $groupState) {
             // Aggregate grouped items
-            $aggregatedItem = $this->applyAggregations($groupItems);
+            $aggregatedItem = $this->applyAggregations($groupState, $aggregateFunctions);
             if (!$this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
                 continue; // Skip groups that do not satisfy HAVING
             }
@@ -441,19 +456,56 @@ class Stream extends ResultsProvider
     /**
      * Aggregates grouped items.
      *
-     * @param array<int, array<string, mixed>> $groupItems Grouped items for a single group
+     * @param array{firstItem: array<string, mixed>, accumulators: array<string, mixed>} $groupState
+     * @param array<string, AggregateFunction> $aggregateFunctions
      * @return array<string, mixed> Aggregated result
      */
-    private function applyAggregations(array $groupItems): array
+    private function applyAggregations(array $groupState, array $aggregateFunctions): array
     {
-        $aggregatedItem = $groupItems[0];
-        foreach ($this->selectedFields as $finalField => $fieldData) {
-            if ($fieldData['function'] instanceof AggregateFunction) {
-                $aggregatedItem[$finalField] = $fieldData['function']($groupItems);
-            }
+        $aggregatedItem = $groupState['firstItem'];
+        foreach ($aggregateFunctions as $finalField => $function) {
+            $accumulator = $groupState['accumulators'][$finalField] ?? $function->initAccumulator();
+            $aggregatedItem[$finalField] = $function->finalize($accumulator);
         }
 
         return $this->applySelect($aggregatedItem);
+    }
+
+    /**
+     * @return array<string, AggregateFunction>
+     */
+    private function getAggregateFunctions(): array
+    {
+        $aggregateFunctions = [];
+        foreach ($this->selectedFields as $finalField => $fieldData) {
+            if ($fieldData['function'] instanceof AggregateFunction) {
+                $aggregateFunctions[$finalField] = $fieldData['function'];
+            }
+        }
+
+        return $aggregateFunctions;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, AggregateFunction> $incrementalAggregates
+     * @return array{firstItem: array<string, mixed>, accumulators: array<string, mixed>}
+     */
+    private function createGroupState(
+        array $item,
+        array $incrementalAggregates
+    ): array {
+        $state = [
+            'firstItem' => $item,
+            'accumulators' => [],
+        ];
+
+        foreach ($incrementalAggregates as $finalField => $function) {
+            $accumulator = $function->initAccumulator();
+            $state['accumulators'][$finalField] = $function->accumulate($accumulator, $item);
+        }
+
+        return $state;
     }
 
     /**
