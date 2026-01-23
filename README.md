@@ -210,12 +210,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.196 (emalloc)
-> Memory peak usage (MB): 1.5637 (emalloc)
+> Memory usage (MB): 1.2136 (emalloc)
+> Memory peak usage (MB): 1.6395 (emalloc)
 ------------------------------
-> Execution time (s): 5.9E-5
-> Execution time (ms): 0.059
-> Execution time (µs): 59
+> Execution time (s): 0.000105
+> Execution time (ms): 0.105
+> Execution time (µs): 105
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -256,13 +256,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.5525 (emalloc)
-> Memory peak usage (MB): 2.6933 (emalloc)
+> Memory usage (MB): 2.7129 (emalloc)
+> Memory peak usage (MB): 2.8575 (emalloc)
 ------------------------------
-> Execution time (s): 0.035236
-> Execution time (ms): 35.236
-> Execution time (µs): 35236
-> Execution memory peak usage (MB): 1.1296
+> Execution time (s): 0.048545
+> Execution time (ms): 48.545
+> Execution time (µs): 48545
+> Execution memory peak usage (MB): 1.218
 ========================
 ### Benchmark Query: ###
 ========================
@@ -288,13 +288,13 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.5419 (emalloc)
-> Memory peak usage (MB): 2.7163 (emalloc)
+> Memory usage (MB): 2.7024 (emalloc)
+> Memory peak usage (MB): 2.8575 (emalloc)
 ------------------------------
-> Execution time (s): 15.815553
-> Execution time (ms): 15815.553
-> Execution time (µs): 15815553
-> Execution memory peak usage (MB): 0.023
+> Execution time (s): 9.610945
+> Execution time (ms): 9610.945
+> Execution time (µs): 9610945
+> Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
 ============================
@@ -302,22 +302,22 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.5525 (emalloc)
-> Memory peak usage (MB): 2.7163 (emalloc)
+> Memory usage (MB): 2.7129 (emalloc)
+> Memory peak usage (MB): 2.8575 (emalloc)
 ------------------------------
-> Execution time (s): 0.009213
-> Execution time (ms): 9.213
-> Execution time (µs): 9213
+> Execution time (s): 0.005123
+> Execution time (ms): 5.123
+> Execution time (µs): 5123
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 2.5416 (emalloc)
-> Memory peak usage (MB): 2.7163 (emalloc)
+> Memory usage (MB): 2.7021 (emalloc)
+> Memory peak usage (MB): 2.8575 (emalloc)
 ------------------------------
-> Final execution time (s): 15.860123
-> Final execution time (ms): 15860.123
-> Final execution time (µs): 15860123
+> Final execution time (s): 9.66474
+> Final execution time (ms): 9664.74
+> Final execution time (µs): 9664740
 ```
 
 ## 7. Knowing issues
