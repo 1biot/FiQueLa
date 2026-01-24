@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.3.1] Unreleased
+## [2.3.1]
 
 ### Added
 - Added `DISTINCT` support for `COUNT`, `SUM`, `MIN`, `MAX`, and `GROUP_CONCAT` aggregate functions.
