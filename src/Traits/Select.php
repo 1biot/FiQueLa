@@ -24,6 +24,8 @@ trait Select
 {
     private bool $distinct = false;
 
+    private bool $selectAll = false;
+
     /** @var SelectedFields $selectedFields */
     private array $selectedFields = [];
 
@@ -34,6 +36,7 @@ trait Select
 
     public function selectAll(): Interface\Query
     {
+        $this->selectAll = true;
         $this->select(Interface\Query::SELECT_ALL);
         return $this;
     }
@@ -60,7 +63,7 @@ trait Select
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         foreach ($fields as $field) {
             if ($field === Interface\Query::SELECT_ALL) {
-                $this->selectedFields = [];
+                $this->selectAll = true;
                 continue;
             }
 
@@ -217,24 +220,24 @@ trait Select
         }
     }
 
-    public function count(?string $field = null): Interface\Query
+    public function count(?string $field = null, bool $distinct = false): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Aggregate\Count($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Count($field, $distinct));
     }
 
-    public function sum(string $field): Interface\Query
+    public function sum(string $field, bool $distinct = false): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Aggregate\Sum($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Sum($field, $distinct));
     }
 
-    public function groupConcat(string $field, string $separator = ','): Interface\Query
+    public function groupConcat(string $field, string $separator = ',', bool $distinct = false): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Aggregate\GroupConcat($field, $separator));
+        return $this->addFieldFunction(new Functions\Aggregate\GroupConcat($field, $separator, $distinct));
     }
 
-    public function min(string $field): Interface\Query
+    public function min(string $field, bool $distinct = false): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Aggregate\Min($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Min($field, $distinct));
     }
 
     public function avg(string $field): Interface\Query
@@ -242,9 +245,9 @@ trait Select
         return $this->addFieldFunction(new Functions\Aggregate\Avg($field));
     }
 
-    public function max(string $field): Interface\Query
+    public function max(string $field, bool $distinct = false): Interface\Query
     {
-        return $this->addFieldFunction(new Functions\Aggregate\Max($field));
+        return $this->addFieldFunction(new Functions\Aggregate\Max($field, $distinct));
     }
 
     public function randomString(int $length = 10): Interface\Query
@@ -492,18 +495,24 @@ trait Select
             $return .= ' ' . Interface\Query::DISTINCT;
         }
 
-        if ($this->selectedFields === []) {
-            $return .= ' ' . Interface\Query::SELECT_ALL;
+        $fields = [];
+        if ($this->selectAll || $this->selectedFields === []) {
+            $fields[] = Interface\Query::SELECT_ALL;
         }
 
-        $count = count($this->selectedFields) - 1;
-        $counter = 0;
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $return .= PHP_EOL . "\t" . $fieldData['originField'];
+            $field = $fieldData['originField'];
             if ($fieldData['alias']) {
-                $return .= ' ' . Interface\Query::AS . ' ' . $finalField;
+                $field .= ' ' . Interface\Query::AS . ' ' . $finalField;
             }
 
+            $fields[] = $field;
+        }
+
+        $count = count($fields) - 1;
+        $counter = 0;
+        foreach ($fields as $field) {
+            $return .= PHP_EOL . "\t" . $field;
             if ($counter++ < $count) {
                 $return .= ',';
             }

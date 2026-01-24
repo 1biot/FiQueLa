@@ -82,10 +82,18 @@ class SqlTest extends TestCase
         return [
             'avg' => ['SELECT AVG(price)', 'AVG(price)', Avg::class],
             'count' => ['SELECT COUNT(id)', 'COUNT(id)', Count::class],
+            'count distinct' => ['SELECT COUNT(DISTINCT id)', 'COUNT(DISTINCT id)', Count::class],
             'group concat' => ['SELECT GROUP_CONCAT(name, "|")', 'GROUP_CONCAT(name, "|")', GroupConcat::class],
+            'group concat distinct' => [
+                'SELECT GROUP_CONCAT(DISTINCT name, "|")',
+                'GROUP_CONCAT(DISTINCT name, "|")',
+                GroupConcat::class,
+            ],
             'max' => ['SELECT MAX(price)', 'MAX(price)', Max::class],
+            'max distinct' => ['SELECT MAX(DISTINCT price)', 'MAX(DISTINCT price)', Max::class],
             'min' => ['SELECT MIN(price)', 'MIN(price)', Min::class],
             'sum' => ['SELECT SUM(price)', 'SUM(price)', Sum::class],
+            'sum distinct' => ['SELECT SUM(DISTINCT price)', 'SUM(DISTINCT price)', Sum::class],
             'md5' => ['SELECT MD5(name)', 'MD5(name)', Md5::class],
             'sha1' => ['SELECT SHA1(name)', 'SHA1(name)', Sha1::class],
             'ceil' => ['SELECT CEIL(price)', 'CEIL(price)', Ceil::class],

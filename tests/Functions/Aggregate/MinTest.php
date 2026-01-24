@@ -73,6 +73,20 @@ class MinTest extends TestCase
         );
     }
 
+    public function testMinDistinct(): void
+    {
+        $min = new Min('price', true);
+        $this->assertEquals(
+            100,
+            $min([
+                ['price' => 100],
+                ['price' => 200],
+                ['price' => 100],
+                ['price' => 300]
+            ])
+        );
+    }
+
     public function testMinIncrementalMatchesInvoke(): void
     {
         $min = new Min('price');

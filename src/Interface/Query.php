@@ -553,12 +553,12 @@ interface Query extends \Stringable
      * @param string ...$fields The fields to group by.
      */
     public function groupBy(string ...$fields): Query;
-    public function count(?string $field = null): Query;
-    public function sum(string $field): Query;
+    public function count(?string $field = null, bool $distinct = false): Query;
+    public function sum(string $field, bool $distinct = false): Query;
     public function avg(string $field): Query;
-    public function min(string $field): Query;
-    public function max(string $field): Query;
-    public function groupConcat(string $field, string $separator = ','): Query;
+    public function min(string $field, bool $distinct = false): Query;
+    public function max(string $field, bool $distinct = false): Query;
+    public function groupConcat(string $field, string $separator = ',', bool $distinct = false): Query;
 
     public function orderBy(string $field, Sort $direction = Sort::ASC): Query;
     public function sortBy(string $field, Sort $direction = Sort::ASC): Query;

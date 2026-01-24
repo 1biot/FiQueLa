@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.1] Unreleased
+
+### Added
+- Added `DISTINCT` support for `COUNT`, `SUM`, `MIN`, `MAX`, and `GROUP_CONCAT` aggregate functions.
+
+### Changed
+- `selectAll()`/`SELECT *` can be combined with explicit field selections, matching MySQL behavior.
+
 ## [2.3.0]
 
 ### Improved

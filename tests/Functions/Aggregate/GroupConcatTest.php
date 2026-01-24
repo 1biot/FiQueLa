@@ -46,6 +46,20 @@ class GroupConcatTest extends TestCase
         );
     }
 
+    public function testGroupConcatDistinct(): void
+    {
+        $groupConcat = new GroupConcat('name', ',', true);
+        $this->assertEquals(
+            'Product A,Product B',
+            $groupConcat([
+                ['name' => 'Product A'],
+                ['name' => 'Product A'],
+                ['name' => 'Product B'],
+                ['name' => 'Product B']
+            ])
+        );
+    }
+
     public function testGroupConcatWithUndefinedField(): void
     {
         $groupConcat = new GroupConcat('fieldNotExists');
@@ -70,6 +84,24 @@ class GroupConcatTest extends TestCase
             ['name' => null],
             ['name' => 'Product B'],
             ['name' => 'Product C'],
+        ];
+
+        $accumulator = $groupConcat->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $groupConcat->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($groupConcat($items), $groupConcat->finalize($accumulator));
+    }
+
+    public function testGroupConcatDistinctIncrementalMatchesInvoke(): void
+    {
+        $groupConcat = new GroupConcat('name', ',', true);
+        $items = [
+            ['name' => 'Product A'],
+            ['name' => 'Product A'],
+            ['name' => 'Product B'],
+            ['name' => 'Product B'],
         ];
 
         $accumulator = $groupConcat->initAccumulator();

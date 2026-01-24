@@ -49,6 +49,13 @@ Using `DISTINCT` will remove duplicate values from the selected fields.
 $query->select('id', 'name')->distinct();
 ```
 
+`selectAll()` can be combined with additional fields, matching MySQL behavior.
+
+```php
+$query->selectAll()
+    ->select('totalPrice');
+```
+
 Using `EXCLUDE` will remove the selected fields from the query results. It's useful when you're applying functions
 in the SELECT clause and don't want those fields included in the output. Dot notation is supported for nested fields.
 
@@ -376,6 +383,7 @@ AND (
 
 Use the `groupBy()` method to group the data in your query results. You can use the `having()` method to filter the grouped data.
 Also, you can use these aggregations functions `count()`, `sum()`, `avg()`, `min()`, `max()` and `groupConcat()` methods to aggregate the data.
+`count()`, `sum()`, `min()`, `max()` and `groupConcat()` accept a `bool $distinct` parameter.
 
 `groupBy()` is last method that using dot notation for nested fields.
 
@@ -408,6 +416,14 @@ $query->count('category.id')->as('COUNT')
     ->groupBy('category.id')
     ->having('COUNT', Operator::GREATER_THAN, 10)
     ->or('SUM', Operator::GREATER_THAN, 1000);
+```
+
+```php
+$query->count('category.id', true)->as('COUNT_DISTINCT')
+    ->sum('price', true)->as('SUM_DISTINCT')
+    ->min('price', true)->as('MIN_DISTINCT')
+    ->max('price', true)->as('MAX_DISTINCT')
+    ->groupConcat('name', ',', true)->as('GROUP_CONCAT_DISTINCT');
 ```
 
 ## 6. Sorting

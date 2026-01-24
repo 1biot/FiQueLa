@@ -35,6 +35,11 @@ class TestProvider implements Query
     {
         return $this->selectedFields;
     }
+
+    public function getSelectAll(): bool
+    {
+        return $this->selectAll;
+    }
     /**
      * @return string[]
      */

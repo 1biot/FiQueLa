@@ -15,7 +15,10 @@ class Sum extends SingleFieldAggregateFunction
      */
     public function __invoke(array $items): mixed
     {
-        return array_sum(array_map(function ($item) {
+        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
+        $values = [];
+
+        foreach ($items as $item) {
             $value = $this->getFieldValue($this->field, $item);
             if (is_string($value)) {
                 $value = Type::matchByString($value);
@@ -35,13 +38,26 @@ class Sum extends SingleFieldAggregateFunction
                 );
             }
 
-            return $value;
-        }, $items));
+            if (!$this->isDistinctValue($value, $seen)) {
+                continue;
+            }
+
+            $values[] = $value;
+        }
+
+        return array_sum($values);
     }
 
     public function initAccumulator(): mixed
     {
-        return 0;
+        if (!$this->distinct) {
+            return 0;
+        }
+
+        return [
+            'value' => 0,
+            'seen' => [],
+        ];
     }
 
     /**
@@ -68,11 +84,24 @@ class Sum extends SingleFieldAggregateFunction
             );
         }
 
+        if ($this->distinct) {
+            if (!$this->isDistinctValue($value, $accumulator['seen'])) {
+                return $accumulator;
+            }
+
+            $accumulator['value'] += $value;
+            return $accumulator;
+        }
+
         return $accumulator + $value;
     }
 
     public function finalize(mixed $accumulator): mixed
     {
+        if ($this->distinct) {
+            return $accumulator['value'];
+        }
+
         return $accumulator;
     }
 }

@@ -14,31 +14,45 @@ class Max extends SingleFieldAggregateFunction
      */
     public function __invoke(array $items): mixed
     {
-        return max(
-            array_map(function ($item) {
-                $value = $this->getFieldValue($this->field, $item);
-                if (is_string($value)) {
-                    $value = Type::matchByString($value);
-                }
+        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
+        $values = [];
 
-                if (!is_numeric($value)) {
-                    throw new UnexpectedValueException(
-                        sprintf(
-                            'Field "%s" value is not numeric: %s',
-                            $this->field,
-                            $value
-                        )
-                    );
-                }
+        foreach ($items as $item) {
+            $value = $this->getFieldValue($this->field, $item);
+            if (is_string($value)) {
+                $value = Type::matchByString($value);
+            }
 
-                return $value;
-            }, $items)
-        );
+            if (!is_numeric($value)) {
+                throw new UnexpectedValueException(
+                    sprintf(
+                        'Field "%s" value is not numeric: %s',
+                        $this->field,
+                        $value
+                    )
+                );
+            }
+
+            if (!$this->isDistinctValue($value, $seen)) {
+                continue;
+            }
+
+            $values[] = $value;
+        }
+
+        return max($values);
     }
 
     public function initAccumulator(): mixed
     {
-        return null;
+        if (!$this->distinct) {
+            return null;
+        }
+
+        return [
+            'value' => null,
+            'seen' => [],
+        ];
     }
 
     /**
@@ -61,6 +75,20 @@ class Max extends SingleFieldAggregateFunction
             );
         }
 
+        if ($this->distinct) {
+            if (!$this->isDistinctValue($value, $accumulator['seen'])) {
+                return $accumulator;
+            }
+
+            if ($accumulator['value'] === null) {
+                $accumulator['value'] = $value;
+                return $accumulator;
+            }
+
+            $accumulator['value'] = max($accumulator['value'], $value);
+            return $accumulator;
+        }
+
         if ($accumulator === null) {
             return $value;
         }
@@ -70,6 +98,10 @@ class Max extends SingleFieldAggregateFunction
 
     public function finalize(mixed $accumulator): mixed
     {
+        if ($this->distinct) {
+            return $accumulator['value'];
+        }
+
         return $accumulator;
     }
 }

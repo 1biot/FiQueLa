@@ -82,18 +82,23 @@ class SelectTest extends TestCase
 
         $selectedFields = $this->query->getSelectedFields();
         $this->assertCount(0, $selectedFields);
+        $this->assertTrue($this->query->getSelectAll());
 
+        $this->query = new TestProvider();
         $this->query->select('id, name, price')
             ->select('*');
 
         $selectedFields = $this->query->getSelectedFields();
-        $this->assertCount(0, $selectedFields);
+        $this->assertCount(3, $selectedFields);
+        $this->assertTrue($this->query->getSelectAll());
 
+        $this->query = new TestProvider();
         $this->query->select('id, name, price')
             ->select(Query::SELECT_ALL);
 
         $selectedFields = $this->query->getSelectedFields();
-        $this->assertCount(0, $selectedFields);
+        $this->assertCount(3, $selectedFields);
+        $this->assertTrue($this->query->getSelectAll());
     }
 
     public function testSelectionSpecialFields(): void

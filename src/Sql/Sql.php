@@ -207,15 +207,27 @@ class Sql extends SqlLexer implements Interface\Parser
     {
         $functionName = $this->getFunction($field);
         $arguments = $this->getFunctionArguments($field);
+        $distinct = false;
+
+        if (isset($arguments[0]) && is_string($arguments[0])) {
+            if (preg_match('/^DISTINCT\s+(.+)$/i', $arguments[0], $matches) === 1) {
+                $distinct = true;
+                $arguments[0] = $matches[1];
+            }
+        }
 
         match (strtoupper($functionName)) {
             // aggregate
             'AVG' => $query->avg((string) ($arguments[0] ?? '')),
-            'COUNT' => $query->count((string) ($arguments[0] ?? '')),
-            'GROUP_CONCAT' => $query->groupConcat((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? ',')),
-            'MAX' => $query->max((string) ($arguments[0] ?? '')),
-            'MIN' => $query->min((string) ($arguments[0] ?? '')),
-            'SUM' => $query->sum((string) ($arguments[0] ?? '')),
+            'COUNT' => $query->count((string) ($arguments[0] ?? ''), $distinct),
+            'GROUP_CONCAT' => $query->groupConcat(
+                (string) ($arguments[0] ?? ''),
+                (string) ($arguments[1] ?? ','),
+                $distinct
+            ),
+            'MAX' => $query->max((string) ($arguments[0] ?? ''), $distinct),
+            'MIN' => $query->min((string) ($arguments[0] ?? ''), $distinct),
+            'SUM' => $query->sum((string) ($arguments[0] ?? ''), $distinct),
 
             // hashing
             'MD5' => $query->md5((string) ($arguments[0] ?? '')),

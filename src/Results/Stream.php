@@ -59,6 +59,7 @@ class Stream extends ResultsProvider
     public function __construct(
         private readonly \FQL\Interface\Stream $stream,
         private readonly bool $distinct,
+        private readonly bool $selectAll,
         private readonly array $selectedFields,
         private readonly array $excludedFields,
         private readonly string $from,
@@ -287,7 +288,7 @@ class Stream extends ResultsProvider
     private function applySelect(array $item): array
     {
         $result = [];
-        if ($this->selectedFields === []) {
+        if ($this->selectAll || $this->selectedFields === []) {
             $result = $item;
         }
 

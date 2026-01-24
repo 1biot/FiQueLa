@@ -76,6 +76,20 @@ class MaxTest extends TestCase
         );
     }
 
+    public function testMaxDistinct(): void
+    {
+        $max = new Max('price', true);
+        $this->assertEquals(
+            300,
+            $max([
+                ['price' => 100],
+                ['price' => 300],
+                ['price' => 300],
+                ['price' => 200]
+            ])
+        );
+    }
+
     public function testMaxIncrementalMatchesInvoke(): void
     {
         $max = new Max('price');

@@ -61,6 +61,7 @@ class Query implements Interface\Query
         $streamResult = new Results\Stream(
             $this->stream,
             $this->distinct,
+            $this->selectAll,
             $this->selectedFields,
             $this->excludedFields,
             $this->getFrom(),

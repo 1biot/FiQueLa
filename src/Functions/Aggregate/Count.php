@@ -2,18 +2,23 @@
 
 namespace FQL\Functions\Aggregate;
 
+use FQL\Exception\InvalidArgumentException;
 use FQL\Functions\Core\SingleFieldAggregateFunction;
 use FQL\Interface\Query;
 
 class Count extends SingleFieldAggregateFunction
 {
-    public function __construct(?string $field = null)
+    public function __construct(?string $field = null, bool $distinct = false)
     {
         if ($field === null || $field === '') {
             $field = Query::SELECT_ALL;
         }
 
-        parent::__construct($field);
+        parent::__construct($field, $distinct);
+
+        if ($this->distinct && $this->field === Query::SELECT_ALL) {
+            throw new InvalidArgumentException('DISTINCT is not supported with COUNT(*)');
+        }
     }
     public function __invoke(array $items): mixed
     {
@@ -21,17 +26,34 @@ class Count extends SingleFieldAggregateFunction
             return count($items);
         }
 
-        return count(
-            array_filter(
-                array_map(fn(array $item) => $this->getFieldValue($this->field, $item, false) !== null, $items),
-                fn($value) => $value
-            )
-        );
+        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
+        $count = 0;
+        foreach ($items as $item) {
+            $value = $this->getFieldValue($this->field, $item, false);
+            if ($value === null) {
+                continue;
+            }
+
+            if (!$this->isDistinctValue($value, $seen)) {
+                continue;
+            }
+
+            $count++;
+        }
+
+        return $count;
     }
 
     public function initAccumulator(): mixed
     {
-        return 0;
+        if (!$this->distinct) {
+            return 0;
+        }
+
+        return [
+            'value' => 0,
+            'seen' => [],
+        ];
     }
 
     /**
@@ -45,6 +67,15 @@ class Count extends SingleFieldAggregateFunction
 
         $value = $this->getFieldValue($this->field, $item, false);
         if ($value !== null) {
+            if ($this->distinct) {
+                if (!$this->isDistinctValue($value, $accumulator['seen'])) {
+                    return $accumulator;
+                }
+
+                $accumulator['value']++;
+                return $accumulator;
+            }
+
             return $accumulator + 1;
         }
 
@@ -53,6 +84,10 @@ class Count extends SingleFieldAggregateFunction
 
     public function finalize(mixed $accumulator): mixed
     {
+        if ($this->distinct) {
+            return $accumulator['value'];
+        }
+
         return $accumulator;
     }
 }

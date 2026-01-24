@@ -61,6 +61,21 @@ class SumTest extends TestCase
         $this->assertEquals(0, $sum([]));
     }
 
+    public function testSumDistinct(): void
+    {
+        $sum = new Sum('price', true);
+        $this->assertEquals(
+            600,
+            $sum([
+                ['price' => 100],
+                ['price' => 200],
+                ['price' => 200],
+                ['price' => 300],
+                ['price' => 300]
+            ])
+        );
+    }
+
     public function testSumIncrementalMatchesInvoke(): void
     {
         $sum = new Sum('price');
@@ -70,6 +85,25 @@ class SumTest extends TestCase
             ['price' => 300],
             ['price' => 400],
             ['price' => 500],
+        ];
+
+        $accumulator = $sum->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $sum->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($sum($items), $sum->finalize($accumulator));
+    }
+
+    public function testSumDistinctIncrementalMatchesInvoke(): void
+    {
+        $sum = new Sum('price', true);
+        $items = [
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 300],
         ];
 
         $accumulator = $sum->initAccumulator();

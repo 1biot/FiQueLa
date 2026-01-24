@@ -101,7 +101,8 @@ SELECT
     [EXCLUDE excl_expr [, excl_expr] ...]
 ```
 
-- _**select_expr**_: is a column name, function or user string. Supports dot notation for nested fields.
+- _**select_expr**_: is a column name, function or user string. Supports dot notation for nested fields. `*` can be
+  combined with additional fields, for example `SELECT *, totalPrice`.
 - _**select_alias**_: is an alias for the _**select_expr**_.
 - _**excl_alias**_: is an aliased column name to exclude from the result set. Supports dot notation for nested fields.
 
@@ -429,17 +430,19 @@ WHERE
 | `MAX`           | Maximum value      |
 | `GROUP_CONCAT`  | Concatenate values |
 
+Aggregate functions support `DISTINCT` in the same way as SQL, for example `COUNT(DISTINCT id)`.
+
 **Example:**
 
 ```sql
 SELECT
     brand.code AS brandCode,
-    GROUP_CONCAT(id, "/") AS products,
-    SUM(price) AS totalPrice,
-    COUNT(productId) AS productCount,
+    GROUP_CONCAT(DISTINCT id, "/") AS products,
+    SUM(DISTINCT price) AS totalPrice,
+    COUNT(DISTINCT productId) AS productCount,
     AVG(price) AS avgPrice,
-    MIN(price) AS minPrice,
-    MAX(price) AS maxPrice
+    MIN(DISTINCT price) AS minPrice,
+    MAX(DISTINCT price) AS maxPrice
 FROM [jsonFile](./examples/data/products.tmp).data.products
 GROUP BY brand.code
 HAVING

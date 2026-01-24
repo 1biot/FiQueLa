@@ -4,6 +4,7 @@ namespace Functions\Aggregate;
 
 use PHPUnit\Framework\TestCase;
 use FQL\Functions\Aggregate\Count;
+use FQL\Exception\InvalidArgumentException;
 
 class CountTest extends TestCase
 {
@@ -79,6 +80,29 @@ class CountTest extends TestCase
         );
     }
 
+    public function testCountDistinct(): void
+    {
+        $count = new Count('name', true);
+        $this->assertEquals(
+            2,
+            $count([
+                ['name' => 'Product A'],
+                ['name' => 'Product A'],
+                ['name' => null],
+                ['name' => 'Product B'],
+                ['name' => 'Product B']
+            ])
+        );
+    }
+
+    public function testCountDistinctWithSelectAllThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('DISTINCT is not supported with COUNT(*)');
+
+        new Count(null, true);
+    }
+
     public function testCountIncrementalMatchesInvoke(): void
     {
         $count = new Count();
@@ -87,6 +111,25 @@ class CountTest extends TestCase
             ['price' => 200],
             ['price' => 300],
             ['price' => 400],
+        ];
+
+        $accumulator = $count->initAccumulator();
+        foreach ($items as $item) {
+            $accumulator = $count->accumulate($accumulator, $item);
+        }
+
+        $this->assertEquals($count($items), $count->finalize($accumulator));
+    }
+
+    public function testCountDistinctIncrementalMatchesInvoke(): void
+    {
+        $count = new Count('price', true);
+        $items = [
+            ['price' => 100],
+            ['price' => 100],
+            ['price' => 200],
+            ['price' => 300],
+            ['price' => 300],
         ];
 
         $accumulator = $count->initAccumulator();
