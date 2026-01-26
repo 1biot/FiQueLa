@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.0] Unreleased
+
+### Added
+- Added code coverage report
+
+### Changed
+- Remove support for php 8.1 and added support for php 8.5
+
 ## [2.3.1]
 
 ### Added

@@ -4,7 +4,7 @@
   "type": "library",
   "license": ["MIT"],
   "require": {
-    "php": ">=8.1",
+    "php": ">=8.2",
     "ext-fileinfo": "*",
     "ext-json": "*",
     "ext-mbstring": "*",
@@ -43,6 +43,12 @@
     "utils:phpunit": [
       "vendor/bin/phpunit"
     ],
+    "utils:phpunit:coverage": [
+      "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text"
+    ],
+    "utils:phpunit:coverage-summary": [
+      "@utils:phpunit:coverage --only-summary-for-coverage-text"
+    ],
     "test:phpcs": [
       "@utils:phpcs --standard=phpcs.xml -p -n"
     ],
@@ -61,10 +67,13 @@
     "test:phpunit": [
       "@utils:phpunit"
     ],
+    "test:phpunit:coverage": [
+      "@utils:phpunit:coverage-summary"
+    ],
     "test": [
       "@test:phpcs:summary",
       "@test:phpstan:memory-limit-256",
-      "@test:phpunit tests"
+      "@test:phpunit:coverage"
     ],
     "example:csv": [
       "php -f examples/csv.php"

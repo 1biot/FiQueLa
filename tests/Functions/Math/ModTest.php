@@ -67,4 +67,10 @@ class ModTest extends TestCase
             ], [])
         );
     }
+
+    public function testModWithZeroDivisor(): void
+    {
+        $this->expectException(UnexpectedValueException::class);
+        new Mod('price', 0);
+    }
 }

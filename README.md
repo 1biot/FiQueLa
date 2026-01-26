@@ -7,9 +7,10 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Static Badge](https://img.shields.io/badge/PHPUnit-tests%3A_403-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPUnit-asserts%3A_1194-lightgreen)
-![Static Badge](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-63.46%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_403-lightgreen)
+![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1194-lightgreen)
+![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
 like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** and **XLS**. Designed for simplicity and modularity,
@@ -334,7 +335,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
 - [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
-- [ ] **Tests**: Increase test coverage.
+- [ ] **Tests**: Increase test coverage (80%+).
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
