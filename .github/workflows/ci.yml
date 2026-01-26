@@ -26,9 +26,6 @@ jobs:
         run: composer test:phpstan
       - name: "PHPUnit"
         working-directory: "./"
-        run: composer test:phpunit
-      - name: "PHPUnit Coverage"
-        working-directory: "./"
         run: composer test:phpunit:coverage
       - name: "Examples"
         working-directory: "./"
