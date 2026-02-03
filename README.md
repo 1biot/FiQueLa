@@ -39,6 +39,7 @@ large datasets or integrating various sources, **F**i**Q**ue**L**a provides a se
   - [File Query Language](docs/file-query-language.md)
   - [Fetching Data](docs/fetching-data.md)
   - [Query Life Cycle](docs/query-life-cycle.md)
+  - [FiQueLa CLI](docs/fiquela-cli.md)
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [Examples](#6-examples)
 - [Knowing issues](#7-knowing-issues)

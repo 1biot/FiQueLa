@@ -171,6 +171,7 @@ _public_ **render(**_bool_`$spaces = false` **):**`string`
 - [File Query Language](file-query-language.md)
 - [Fetching data](fetching-data.md)
 - [Query Life Cycle](query-life-cycle.md)
+- [FiQueLa CLI](fiquela-cli.md)
 - [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
 - API Reference
 

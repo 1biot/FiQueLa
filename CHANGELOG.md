@@ -4,6 +4,7 @@
 
 ### Added
 - Added code coverage report
+- [FiQuela CLI](https://github.com/1biot/fiquela-cli) is part of the main repository now
 
 ### Changed
 - Remove support for php 8.1 and added support for php 8.5

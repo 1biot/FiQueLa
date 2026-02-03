@@ -81,6 +81,7 @@ More about [File Query Language](file-query-language.md).
 - [File Query Language](file-query-language.md)
 - [Fetching Data](fetching-data.md)
 - [Query Life Cycle](query-life-cycle.md)
+- [FiQueLa CLI](fiquela-cli.md)
 - [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
 
 or go back to [README.md](../README.md).
