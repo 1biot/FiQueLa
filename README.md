@@ -185,6 +185,7 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [File Query Language](docs/file-query-language.md)
 - [Fetching Data](docs/fetching-data.md)
 - [Query Life Cycle](docs/query-life-cycle.md)
+- [FiQueLa CLI](docs/fiquela-cli.md)
 - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 
 
