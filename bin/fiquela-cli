@@ -239,7 +239,7 @@ class QueryCommand extends Command
             }
 
             $section->writeln(sprintf("<info>File: %s</info>", $file));
-            $section->writeln(sprintf("<info>File size: %s</info>", $this->humanFilesize(filesize($file))));
+            $section->writeln(sprintf("<info>File size: %s</info>", $this->humanFilesize(filesize($file) ?: 0)));
             $section->writeln(sprintf("<info>File encoding: %s</info>", self::$input->getOption('file-encoding')));
             $section->writeln(sprintf("<info>File delimiter: %s</info>", self::$input->getOption('file-delimiter')));
         }
@@ -386,7 +386,7 @@ class QueryCommand extends Command
         usleep(50000);
     }
 
-    private function humanFilesize($bytes, int $decimals = 2): string
+    private function humanFilesize(int $bytes, int $decimals = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
         $factor = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
@@ -455,14 +455,21 @@ class QueryCommand extends Command
         $section->overwrite($content);
     }
 
+    /**
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     private function downloadFile(string $url, InputInterface $input, OutputInterface $output): ?string
     {
         $currentDir = getcwd();
-        if (!is_writable($currentDir)) {
+        if ($currentDir === false || !is_writable($currentDir)) {
             throw new RuntimeException("Error: Current directory is not writable.");
         }
 
-        $fileName = basename(parse_url($url, PHP_URL_PATH));
+        $parsedUrl = parse_url($url, PHP_URL_PATH);
+        if (!$parsedUrl) {
+            return null;
+        }
+        $fileName = basename($parsedUrl);
         $filePath = $currentDir . DIRECTORY_SEPARATOR . $fileName;
 
         if (file_exists($filePath)) {
@@ -478,6 +485,11 @@ class QueryCommand extends Command
 
             $client = new GuzzleHttp\Client();
             $resource = fopen($tempFile, 'w');
+            if ($resource === false) {
+                $output->writeln('<error>Error writing file: ' . $tempFile . '</error>');
+                return null;
+            }
+
             $response = $client->request('GET', $url, [
                 'sink' => $resource,
                 'progress' => function ($downloadSize, $downloaded, $uploadSize, $uploaded) use ($progressBar) {
@@ -511,7 +523,11 @@ class QueryCommand extends Command
         FQL\Interface\Query $query,
         string $file,
         Paginator $paginator
-    ) {
+    ): void {
+        if ($paginator->getItemCount() === null) {
+            return;
+        }
+
         file_put_contents(
             $file,
             json_encode(
@@ -521,12 +537,23 @@ class QueryCommand extends Command
         );
     }
 
+    /**
+     * @throws Exception
+     */
     private function exportToCsv(
         FQL\Interface\Query $query,
         string $file,
         Paginator $paginator
     ): void {
+        if ($paginator->getItemCount() === null) {
+            return;
+        }
+
         $csvFile = fopen($file, 'w');
+        if ($csvFile === false) {
+            throw new RuntimeException("Error writing file: " . $file);
+        }
+
         $results = $query->limit($paginator->getItemCount(), 0)->execute();
         $headers = array_keys($results->fetch());
         fputcsv($csvFile, $headers);

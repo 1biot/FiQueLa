@@ -78,7 +78,7 @@ composer require 1biot/fiquela
 Install packages for optional features:
 
 ```bash
-composer require league/csv halaxa/json-machine symfony/yaml nette/neon phpoffice/phpspreadsheet tracy/tracy
+composer require tracy/tracy
 ```
 
 - **`league/csv`**: Required for CSV file support.
