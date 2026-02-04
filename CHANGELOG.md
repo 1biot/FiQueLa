@@ -9,6 +9,9 @@
 ### Changed
 - Remove support for php 8.1 and added support for php 8.5
 
+### Fixed
+- Fixed issue with selecting all fields using `SELECT *` and preserving order of fields
+
 ## [2.3.1]
 
 ### Added

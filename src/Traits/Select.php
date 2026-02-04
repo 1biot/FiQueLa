@@ -24,8 +24,6 @@ trait Select
 {
     private bool $distinct = false;
 
-    private bool $selectAll = false;
-
     /** @var SelectedFields $selectedFields */
     private array $selectedFields = [];
 
@@ -36,7 +34,6 @@ trait Select
 
     public function selectAll(): Interface\Query
     {
-        $this->selectAll = true;
         $this->select(Interface\Query::SELECT_ALL);
         return $this;
     }
@@ -62,11 +59,6 @@ trait Select
         $fqlTokenizer = new Sql\SqlLexer();
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         foreach ($fields as $field) {
-            if ($field === Interface\Query::SELECT_ALL) {
-                $this->selectAll = true;
-                continue;
-            }
-
             if (isset($this->selectedFields[$field])) {
                 throw new Exception\SelectException(sprintf('Field "%s" already defined', $field));
             }
@@ -496,7 +488,7 @@ trait Select
         }
 
         $fields = [];
-        if ($this->selectAll || $this->selectedFields === []) {
+        if ($this->selectedFields === []) {
             $fields[] = Interface\Query::SELECT_ALL;
         }
 

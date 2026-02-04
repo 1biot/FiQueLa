@@ -59,7 +59,6 @@ class Stream extends ResultsProvider
     public function __construct(
         private readonly \FQL\Interface\Stream $stream,
         private readonly bool $distinct,
-        private readonly bool $selectAll,
         private readonly array $selectedFields,
         private readonly array $excludedFields,
         private readonly string $from,
@@ -288,7 +287,7 @@ class Stream extends ResultsProvider
     private function applySelect(array $item): array
     {
         $result = [];
-        if ($this->selectAll || $this->selectedFields === []) {
+        if ($this->selectedFields === []) {
             $result = $item;
         }
 
@@ -296,7 +295,10 @@ class Stream extends ResultsProvider
             $fieldName = ($this->isQuoted($finalField) || $this->isBacktick($finalField))
                 ? $this->removeQuotes($finalField)
                 : $finalField;
-            if ($fieldData['function'] instanceof BaseFunction) {
+            if ($fieldName === Query::SELECT_ALL) {
+                $result = array_merge($result, $item);
+                continue;
+            } elseif ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
                 continue;
             } elseif ($fieldData['function'] instanceof BaseFunctionByReference) {
