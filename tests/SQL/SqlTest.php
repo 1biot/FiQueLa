@@ -45,6 +45,7 @@ use FQL\Functions\Utils\DateDiff;
 use FQL\Functions\Utils\DateFormat;
 use FQL\Functions\Utils\DateSub;
 use FQL\Functions\Utils\Day;
+use FQL\Functions\Utils\FromUnixTime;
 use FQL\Functions\Utils\StrToDate;
 use FQL\Functions\Utils\Length;
 use FQL\Functions\Utils\Month;
@@ -127,6 +128,7 @@ class SqlTest extends TestCase
             'current timestamp' => ['SELECT CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP()', CurrentTimestamp::class],
             'now' => ['SELECT NOW(true)', 'NOW(true)', Now::class],
             'date format' => ['SELECT DATE_FORMAT(dateField, "Y-m-d")', 'DATE_FORMAT(dateField, "Y-m-d")', DateFormat::class],
+            'from unixtime' => ['SELECT FROM_UNIXTIME(dateField, "Y-m-d")', 'FROM_UNIXTIME(dateField, "Y-m-d")', FromUnixTime::class],
             'str to date' => ['SELECT STR_TO_DATE(dateField, "%Y-%m-%d")', 'STR_TO_DATE(dateField, "%Y-%m-%d")', StrToDate::class],
             'date diff' => ['SELECT DATE_DIFF(startDate, endDate)', 'DATE_DIFF(startDate, endDate)', DateDiff::class],
             'date add' => ['SELECT DATE_ADD(startDate, "+1 day")', 'DATE_ADD(startDate, "+1 day")', DateAdd::class],

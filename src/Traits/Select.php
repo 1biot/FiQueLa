@@ -328,6 +328,11 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\DateFormat($dateField, $format));
     }
 
+    public function fromUnixTime(string $dateField, string $format = 'c'): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\FromUnixTime($dateField, $format));
+    }
+
     public function currentDate(bool $numeric = false): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\CurrentDate($numeric));

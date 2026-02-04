@@ -306,6 +306,7 @@ class Sql extends SqlLexer implements Interface\Parser
             'CURRENT_TIMESTAMP' => $query->currentTimestamp(),
             'NOW' => $query->now((bool) ($arguments[0] ?? 0)),
             'DATE_FORMAT' => $query->formatDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
+            'FROM_UNIXTIME' => $query->fromUnixTime((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? 'c')),
             'STR_TO_DATE' => $query->strToDate((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_DIFF' => $query->dateDiff((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'DATE_ADD' => $query->dateAdd((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
