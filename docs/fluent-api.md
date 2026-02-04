@@ -129,33 +129,34 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 
 ### Utils functions
 
-| Function           | Description                                                            |
-|--------------------|------------------------------------------------------------------------|
-| `arrayCombine`     | Combine two array with keys and array with values into a single array  |
-| `arrayFiler`       | Filter array from empty values                                         |
-| `arrayMerge`       | Merge two arrays into a single array                                   |
+| Function           | Description                                                             |
+|--------------------|-------------------------------------------------------------------------|
+| `arrayCombine`     | Combine two array with keys and array with values into a single array   |
+| `arrayFiler`       | Filter array from empty values                                          |
+| `arrayMerge`       | Merge two arrays into a single array                                    |
 | `colSplit`         | Split array field into columns with optional format and key field       |
-| `cast`             | Cast value to the requested type                                       |
-| `coalesce`         | Coalesce values (first non-null value)                                 |
-| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
-| `formatDate`       | Format date field to string                                            |
-| `strToDate`        | Parse string to date or time                                           |
-| `dateDiff`         | Calculate difference between two dates                                 |
-| `dateAdd`          | Add interval to date                                                   |
-| `dateSub`          | Subtract interval from date                                            |
-| `year`             | Get year from date                                                     |
-| `month`            | Get month from date                                                    |
-| `day`              | Get day of month from date                                             |
-| `now`              | Get current date and time                                              |
-| `currentTimestamp` | Get current unix timestamp                                             |
-| `currentDate`      | Get current date                                                       |
-| `currentTime`      | Get current time                                                       |
-| `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
-| `randomBytes`      | Generates cryptographically secure random bytes.                       |
-| `if`               | If condition, if true return first value, else second value            |
-| `ifNull`           | If value is null return second value, else first value                 |
-| `isNull`           | Check if value is null                                                 |
-| `case`             | Case statement for multiple conditions                                 |
+| `cast`             | Cast value to the requested type                                        |
+| `coalesce`         | Coalesce values (first non-null value)                                  |
+| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                  |
+| `formatDate`       | Format date field to string                                             |
+| `fromUnixTime`     | Convert unix timestamp to date or time                                  |
+| `strToDate`        | Parse string to date or time                                            |
+| `dateDiff`         | Calculate difference between two dates                                  |
+| `dateAdd`          | Add interval to date                                                    |
+| `dateSub`          | Subtract interval from date                                             |
+| `year`             | Get year from date                                                      |
+| `month`            | Get month from date                                                     |
+| `day`              | Get day of month from date                                              |
+| `now`              | Get current date and time                                               |
+| `currentTimestamp` | Get current unix timestamp                                              |
+| `currentDate`      | Get current date                                                        |
+| `currentTime`      | Get current time                                                        |
+| `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings  |
+| `randomBytes`      | Generates cryptographically secure random bytes.                        |
+| `if`               | If condition, if true return first value, else second value             |
+| `ifNull`           | If value is null return second value, else first value                  |
+| `isNull`           | Check if value is null                                                  |
+| `case`             | Case statement for multiple conditions                                  |
 
 **Example:**
 
@@ -175,7 +176,8 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->coalesceNotEmpty('whatever', 'ArticleNr')->as('COALESCE_NE')
     ->cast('price', \FQL\Enum\Type::FLOAT)->as('CAST')
     ->strToDate('dateString', '%Y-%m-%d')->as('STR_TO_DATE')
-    ->formatDate('dateField', 'Y-m-d')->as('FORMAT_DATE')
+    ->formatDate('dateField', 'Y-m-d')->as('DATE_FORMAT')
+    ->fromUnixTime('dateField', 'Y-m-d')->as('FROM_UNIXTIME')
     ->length('fieldWithArrayKeys')->as('keysCount')
     ->length('Hello world')->as('stringLength')
     ->randomBytes(16)->as('RANDOM_BYTES')
