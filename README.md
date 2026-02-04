@@ -90,16 +90,16 @@ composer require tracy/tracy
 
 ## 3. Supported Formats
 
-| Format      | Name                    | Class                   | File Support | String Support | Dependencies                                    |
-|-------------|-------------------------|-------------------------|--------------|----------------|-------------------------------------------------|
-| `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              | `league/csv`                                    |
-| `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              | `ext-xmlreader`, `ext-simplexml`, `ext-libxml`  |
-| `xls`       | XLS/XLSX                | `FQL\Stream\Xls`        | ✅            | ❌              | `phpoffice/phpspreadsheet`                      |
-| `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              | `halaxa/json-machine`                           |
-| `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              | `ext-fileinfo`                                  |
-| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              | `ext-json`                                      |
-| `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              | `symfony/yaml`                                  |
-| `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              | `nette/neon`                                    |
+| Format      | Name                    | Class                   | File Support | String Support |
+|-------------|-------------------------|-------------------------|--------------|----------------|
+| `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              |
+| `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              |
+| `xls`       | XLS/XLSX                | `FQL\Stream\Xls`        | ✅            | ❌              |
+| `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              |
+| `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              |
+| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              |
+| `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              |
+| `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              |
 
 
 ### Directory provider
