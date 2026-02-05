@@ -25,7 +25,7 @@ final class FileQuery implements \Stringable
      */
     public function __construct(private readonly string $queryPath)
     {
-        if (!preg_match('/^' . self::getRegexp() . '$/', $this->queryPath, $matches)) {
+        if (!preg_match('/^' . self::getRegexp() . '$/u', $this->queryPath, $matches)) {
             throw new Exception\FileQueryException(sprintf('Invalid query path "%s"', $this->queryPath));
         }
 

@@ -127,7 +127,7 @@ abstract class XlsProvider extends AbstractStream
             $startColLetter = Coordinate::stringFromColumnIndex($startColumnIndex);
             $lastColLetter  = Coordinate::stringFromColumnIndex($lastHeaderColIndex);
 
-            // adaptive chunkSize according to number of columns (aiming for approximately ~600k cells/chunk)
+            // adaptive chunkSize according to number of columns (aiming for approximately ~10k cells/chunk)
             $colCount = max(1, $lastHeaderColIndex - $startColumnIndex + 1);
             $chunkSize = $this->computeAdaptiveChunkSize($colCount);
 
@@ -274,19 +274,19 @@ abstract class XlsProvider extends AbstractStream
 
     private function computeAdaptiveChunkSize(int $colCount): int
     {
-        // aiming for approximately ~600k cells per chunk (compromise RAM vs I/O)
-        $targetCells = 600_000;
+        // aiming for approximately ~10k cells per chunk (compromise RAM vs I/O)
+        $targetCells = 10_000;
 
         $chunk = intdiv($targetCells, max(1, $colCount));
 
         // reasonable limits:
         // - min 200 rows (to avoid huge overhead)
-        // - max 20k rows (to avoid too large chunk even for narrow tables)
+        // - max 1000k rows (to avoid too large chunk even for narrow tables)
         if ($chunk < 200) {
             return 200;
         }
-        if ($chunk > 20_000) {
-            return 20_000;
+        if ($chunk > 1_000) {
+            return 1_000;
         }
         return $chunk;
     }
