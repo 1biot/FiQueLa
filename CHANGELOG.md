@@ -13,6 +13,7 @@
 
 ### Fixed
 - Fixed issue with selecting all fields using `SELECT *` and preserving order of fields
+- Fixed memory efficiency of **XLS** and **XLSX** file parsing by using stream reading
 
 ## [2.3.1]
 

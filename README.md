@@ -7,13 +7,13 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-64.02%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-63.72%25-yellow)
 ![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_426-lightgreen)
 ![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1230-lightgreen)
 ![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
-like **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** and **XLS**. Designed for simplicity and modularity,
+like **XML**, **XLS**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity,
 it allows you to filter, join, and aggregate data with a familiar and efficient syntax. Whether you're working with
 large datasets or integrating various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
 
