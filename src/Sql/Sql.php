@@ -238,6 +238,30 @@ class Sql extends SqlLexer implements Interface\Parser
             'FLOOR' => $query->floor((string) ($arguments[0] ?? '')),
             'MOD' => $query->modulo((string) ($arguments[0] ?? ''), (int) ($arguments[1] ?? 0)),
             'ROUND' => $query->round((string) ($arguments[0] ?? ''), (int) ($arguments[1] ?? 0)),
+            'ADD' => $query->add(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
+            'SUB' => $query->subtract(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
+            'MULTIPLY' => $query->multiply(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
+            'DIVIDE' => $query->divide(
+                ...array_map(
+                    fn ($value) => Enum\Type::castValue($value, Enum\Type::STRING),
+                    $arguments
+                )
+            ),
 
             // string
             'BASE64_DECODE' => $query->fromBase64((string) ($arguments[0] ?? '')),

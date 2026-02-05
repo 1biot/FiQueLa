@@ -218,6 +218,10 @@ $query->md5('id')->as('MD5')
 | `floor`  | Round number down           |
 | `modulo` | Modulo operation            |
 | `round`  | Round number mathematically |
+| `add`    | Add numbers or fields (variadic) |
+| `subtract` | Subtract numbers or fields (variadic) |
+| `multiply` | Multiply numbers or fields (variadic) |
+| `divide` | Divide numbers or fields (variadic) |
 
 **Example:**
 
@@ -225,7 +229,11 @@ $query->md5('id')->as('MD5')
 $query->ceil('price')->as('CEIL')
     ->floor('price')->as('FLOOR')
     ->modulo('price', 2)->as('MOD')
-    ->round('price', 1)->as('ROUND');
+    ->round('price', 1)->as('ROUND')
+    ->add('price', 10, 'tax')->as('ADD')
+    ->subtract('price', 5, 'discount')->as('SUBTRACT')
+    ->multiply('price', 1.2, 'taxRate')->as('MULTIPLY')
+    ->divide('price', 1.2, 'taxRate')->as('DIVIDE');
 ```
 
 ### Custom functions

@@ -351,6 +351,11 @@ interface Query extends \Stringable
      */
     public function modulo(string $field, int $divisor): Query;
 
+    public function add(string|float|int ...$fields): Query;
+    public function subtract(string|float|int ...$fields): Query;
+    public function multiply(string|float|int ...$fields): Query;
+    public function divide(string|float|int ...$fields): Query;
+
     /**
      * Apply the LENGTH function to a field in the query.
      *

@@ -294,12 +294,16 @@ FROM [jsonFile](./examples/data/products.tmp).data.products
 
 ### Math functions
 
-| Function | Description                 |
-|----------|-----------------------------|
-| `CEIL`   | Round number up             |
-| `FLOOR`  | Round number down           |
-| `MOD`    | Modulo operation            |
-| `ROUND`  | Round number mathematically |
+| Function   | Description                            |
+|------------|----------------------------------------|
+| `CEIL`     | Round number up                        |
+| `FLOOR`    | Round number down                      |
+| `MOD`      | Modulo operation                       |
+| `ROUND`    | Round number mathematically            |
+| `ADD`      | Add numbers or fields (variadic)       |
+| `SUB`      | Subtract numbers or fields (variadic)  |
+| `MULTIPLY` | Multiply numbers or fields (variadic)  |
+| `DIVIDE`   | Divide numbers or fields (variadic)    |
 
 **Example:**
 
@@ -308,7 +312,11 @@ SELECT
   CEIL(3.14) AS ceil,
   FLOOR(3.14) AS floor,
   MOD(10, 3) AS mod,
-  ROUND(3.14) AS round
+  ROUND(3.14) AS round,
+  ADD(1, 2, 3, 4) AS add,
+  SUB(10, 2, 3) AS sub,
+  MULTIPLY(2, 3, 4) AS multiply,
+  DIVIDE(10, 2, 5) AS divide
 FROM [jsonFile](./examples/data/products.tmp).data.products
 ```
 

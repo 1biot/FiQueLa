@@ -212,6 +212,26 @@ trait Select
         }
     }
 
+    public function add(string|float|int ...$fields): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Math\Add(...$fields));
+    }
+
+    public function subtract(string|float|int ...$fields): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Math\Sub(...$fields));
+    }
+
+    public function multiply(string|float|int ...$fields): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Math\Multiply(...$fields));
+    }
+
+    public function divide(string|float|int ...$fields): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Math\Divide(...$fields));
+    }
+
     public function count(?string $field = null, bool $distinct = false): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Aggregate\Count($field, $distinct));
