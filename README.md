@@ -81,11 +81,15 @@ Install packages for optional features:
 composer require tracy/tracy
 ```
 
+### Dependencies
+
 - **`league/csv`**: Required for CSV file support.
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
 - **`phpoffice/phpspreadsheet`**: Required for XLS/XLSX file support.
+- **`symfony/console`**: Required for FiQueLa CLI
+- **`guzzlehttp/guzzle`**: FiQueLa CLI requires Guzzle for downloading files from URLs.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
