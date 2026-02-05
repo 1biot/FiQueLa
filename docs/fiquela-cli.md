@@ -5,24 +5,27 @@ XLS, CSV, JSON, XML, YAML, and NEON.
 
 **table of contents**:
 
-* _1_ - [Installation](#installation)
-* _2_ - [Usage](#usage)
-* _3_ - [Interactive Mode](#interactive-mode)
-* _4_ - [Output Format](#output-format)
-* _5_ - [Conclusion](#conclusion)
+* _1_ - [Usage](#usage)
+* _2_ - [Interactive Mode](#interactive-mode)
+* _3_ - [Output Format](#output-format)
+* _4_ - [Conclusion](#conclusion)
 
-## Installation
+## Usage
 
-If you want to make `fiquela-cli` globally accessible, create a symbolic link:
+### Running the Command
+
+```bash
+composer fiquela-cli [query] -- [options]
+```
+
+or if you want to make `fiquela-cli` globally accessible, create a symbolic link:
 
 ```bash
 ln -s $(pwd)/bin/fiquela-cli /usr/local/bin/fiquela-cli
 chmod +x /usr/local/bin/fiquela-cli
 ```
 
-## Usage
-
-### Running the Command
+and then run:
 
 ```bash
 fiquela-cli [options] [query]
