@@ -10,7 +10,7 @@ class AddTest extends TestCase
 {
     public function testAdd(): void
     {
-        $add = new Add('price', 2);
+        $add = new Add('price', "2");
         $this->assertEquals(102, $add(['price' => 100], []));
     }
 
@@ -28,6 +28,7 @@ class AddTest extends TestCase
 
     public function testAddWithNullValue(): void
     {
+        $this->expectException(UnexpectedValueException::class);
         $add = new Add('price', '"2"');
         $this->assertEquals(2, $add(['price' => null], []));
     }

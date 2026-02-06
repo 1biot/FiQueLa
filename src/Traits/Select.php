@@ -212,22 +212,22 @@ trait Select
         }
     }
 
-    public function add(string|float|int ...$fields): Interface\Query
+    public function add(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Add(...$fields));
     }
 
-    public function subtract(string|float|int ...$fields): Interface\Query
+    public function subtract(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Sub(...$fields));
     }
 
-    public function multiply(string|float|int ...$fields): Interface\Query
+    public function multiply(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Multiply(...$fields));
     }
 
-    public function divide(string|float|int ...$fields): Interface\Query
+    public function divide(string ...$fields): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Math\Divide(...$fields));
     }

@@ -48,8 +48,8 @@ class SqlLexerTest extends TestCase
 
     public function testParseSingleConditionIn(): void
     {
-        $lexer = new TestSqlLexer();
-        $lexer->setTokens(['name', 'IN', '("a", "b")']);
+        $lexer = new SqlLexer();
+        $lexer->tokenize('name IN ("a", "b")');
 
         [$field, $operator, $value] = $lexer->parseSingleCondition();
         $this->assertSame('name', $field);
@@ -88,17 +88,5 @@ class SqlLexerTest extends TestCase
         $this->expectExceptionMessage('For compare NULL or BOOLEAN value, use IS or IS NOT operator');
 
         $lexer->parseSingleCondition();
-    }
-}
-
-final class TestSqlLexer extends SqlLexer
-{
-    /**
-     * @param string[] $tokens
-     */
-    public function setTokens(array $tokens): void
-    {
-        $this->tokens = $tokens;
-        $this->position = 0;
     }
 }

@@ -9,7 +9,7 @@
 
 ![Coverage](https://img.shields.io/badge/coverage-63.72%25-yellow)
 ![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_426-lightgreen)
-![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1230-lightgreen)
+![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1233-lightgreen)
 ![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats

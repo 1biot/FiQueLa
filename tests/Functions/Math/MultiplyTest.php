@@ -10,7 +10,7 @@ class MultiplyTest extends TestCase
 {
     public function testMultiply(): void
     {
-        $mul = new Multiply('price', 2);
+        $mul = new Multiply('price', "2");
         $this->assertEquals(200, $mul(['price' => 100], []));
     }
 
@@ -28,6 +28,7 @@ class MultiplyTest extends TestCase
 
     public function testMultiplyWithNullValue(): void
     {
+        $this->expectException(UnexpectedValueException::class);
         $mul = new Multiply('price', '"2"');
         $this->assertEquals(0, $mul(['price' => null], []));
     }

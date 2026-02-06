@@ -4,6 +4,7 @@
 
 ### Fixed
 - Fixed issue with parsing values for `IN` and `NOT IN` operators when using FQL syntax
+- Fixed processing parameters for `ADD`, `SUB`, `MULTIPLY`, `DIVIDE` functions
 
 ## [2.4.0]
 
