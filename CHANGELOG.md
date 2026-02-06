@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.4.1] Unreleased
+
+### Fixed
+- Fixed issue with parsing values for `IN` and `NOT IN` operators when using FQL syntax
+
 ## [2.4.0]
 
 ### Added

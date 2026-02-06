@@ -225,7 +225,13 @@ class SqlLexer implements \Iterator
 
         $operator = Enum\Operator::fromOrFail($operator);
         if (str_contains($upperOperator, 'IN')) {
-            $value = $this->parserArgumentsFromParentheses($this->nextToken());
+            $this->expect('(');
+            $value = [];
+            while ($this->peekToken() !== ')') {
+                $value[] = Enum\Type::matchByString($this->peekToken());
+                $this->nextToken();
+            }
+            $this->nextToken();
         } elseif (str_contains($upperOperator, 'BETWEEN')) {
             $value = [$this->nextToken()];
             $this->expect('AND');
