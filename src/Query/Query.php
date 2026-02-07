@@ -2,7 +2,9 @@
 
 namespace FQL\Query;
 
+use FQL\Exception\InvalidFormatException;
 use FQL\Exception\QueryLogicException;
+use FQL\Exception\UnableOpenFileException;
 use FQL\Interface;
 use FQL\Results;
 use FQL\Stream\Csv;
@@ -29,6 +31,9 @@ class Query implements Interface\Query
         distinct as private traitDistinct;
     }
     use Traits\Sortable;
+    use Traits\Explain;
+
+    private ?string $resultClass = null;
 
     /**
      * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
@@ -56,8 +61,18 @@ class Query implements Interface\Query
         return $this->traitGroupBy(...$fields);
     }
 
+    /**
+     * @throws UnableOpenFileException
+     * @throws InvalidFormatException
+     */
     public function execute(?string $resultClass = null): Results\ResultsProvider
     {
+        $this->resultClass = $resultClass;
+        if ($this->explain) {
+            $planRows = ExplainPlanBuilder::build($this);
+            return new Results\InMemory($planRows);
+        }
+
         $streamResult = new Results\Stream(
             $this->stream,
             $this->distinct,
@@ -86,6 +101,8 @@ class Query implements Interface\Query
     {
         $queryParts = [];
 
+        // EXPLAIN
+        $queryParts[] = $this->explainToString();
         // SELECT
         $queryParts[] = $this->selectToString();
         // FROM
@@ -112,4 +129,35 @@ class Query implements Interface\Query
     {
         return new FileQuery($this->stream->provideSource());
     }
+
+    /**
+     * Debug snapshot pro EXPLAIN / debug tooling.
+     * @return array<string,mixed>
+     */
+    public function debugState(): array
+    {
+        return [
+            'stream_class' => $this->stream::class,
+            'source' => $this->stream->provideSource(),
+
+            'distinct' => $this->distinct,
+            'selectedFields' => $this->selectedFields,
+            'excludedFields' => $this->excludedFields,
+
+            'from' => $this->getFrom(),
+
+            'where' => $this->whereConditions,
+            'having' => $this->havingConditions,
+
+            'joins' => $this->joins,
+            'groupByFields' => $this->groupByFields,
+            'orderings' => $this->orderings,
+
+            'limit' => $this->limit,
+            'offset' => $this->offset,
+
+            'resultClass' => $this->resultClass,
+        ];
+    }
+
 }

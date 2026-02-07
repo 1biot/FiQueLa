@@ -15,7 +15,8 @@ class SqlLexer implements \Iterator
     use Traits\Helpers\StringOperations;
 
     private const CONTROL_KEYWORDS = [
-        'SELECT', 'FROM', 'INNER', 'LEFT', 'JOIN',
+        'EXPLAIN', 'SELECT', 'FROM',
+        'INNER', 'LEFT', 'JOIN',
         'WHERE', 'GROUP', 'HAVING', 'ORDER',
         'LIMIT', 'OFFSET'
     ];

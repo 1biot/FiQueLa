@@ -352,6 +352,7 @@ class Stream extends ResultsProvider
         $currentOffset = 0; // Number of already skipped records
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
 
+        $seen = [];
         foreach ($stream as $item) {
             if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;

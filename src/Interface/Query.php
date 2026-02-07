@@ -31,6 +31,7 @@ interface Query extends \Stringable
     public const SELECT_ALL = '*';
     public const FROM_ALL = self::SELECT_ALL;
 
+    public const EXPLAIN = 'EXPLAIN';
     public const SELECT = 'SELECT';
     public const DISTINCT = 'DISTINCT';
     public const CASE = 'CASE';
@@ -48,6 +49,8 @@ interface Query extends \Stringable
     public const OFFSET = 'OFFSET';
     public const LIMIT = 'LIMIT';
     public const PER_PAGE_DEFAULT = 10;
+
+    public function explain(): Query;
 
     /**
      * Specify fields to select in a query.

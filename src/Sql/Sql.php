@@ -8,6 +8,7 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface;
 use FQL\Query;
+use FQL\Results;
 
 class Sql extends SqlLexer implements Interface\Parser
 {
@@ -56,6 +57,9 @@ class Sql extends SqlLexer implements Interface\Parser
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             switch (strtoupper($token)) {
+                case 'EXPLAIN':
+                    $query->explain();
+                    break;
                 case Interface\Query::SELECT:
                     $this->parseFields($query);
                     break;
