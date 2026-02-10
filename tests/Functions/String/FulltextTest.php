@@ -4,6 +4,7 @@ namespace Functions\String;
 
 use FQL\Enum;
 use FQL\Functions;
+use FQL\Exception\QueryLogicException;
 use PHPUnit\Framework\TestCase;
 
 class FulltextTest extends TestCase
@@ -60,5 +61,25 @@ class FulltextTest extends TestCase
 
         $function = new Functions\String\Fulltext(['bar', 'foo'], '-value +bar -Value', Enum\Fulltext::BOOLEAN);
         $this->assertSame(1.0, $function->__invoke(['foo' => 'foo value', 'bar' => 'Value barValue'], []));
+    }
+
+    public function testMissingQueryThrows(): void
+    {
+        $function = new Functions\String\Fulltext(['foo'], null);
+
+        $this->expectException(QueryLogicException::class);
+        $this->expectExceptionMessage('Against query is not set');
+
+        $function->__invoke(['foo' => 'bar'], []);
+    }
+
+    public function testSetQueryAndMode(): void
+    {
+        $function = new Functions\String\Fulltext(['foo'], 'bar');
+        $function->setQuery('foo');
+        $function->setMode(Enum\Fulltext::BOOLEAN);
+
+        $this->assertSame(1.0, $function->__invoke(['foo' => 'foo'], []));
+        $this->assertSame('MATCH(foo) AGAINST("foo" IN BOOLEAN MODE)', (string) $function);
     }
 }

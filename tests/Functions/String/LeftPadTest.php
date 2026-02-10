@@ -71,4 +71,11 @@ class LeftPadTest extends TestCase
         $leftPadString = (string) $leftPad;
         $this->assertEquals('LPAD(field, -5, "0")', $leftPadString);
     }
+
+    public function testLeftPadWithNonScalarValue(): void
+    {
+        $leftPad = new LeftPad('field', 5, '0');
+
+        $this->assertNull($leftPad(['field' => ['value']], []));
+    }
 }

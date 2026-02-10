@@ -27,4 +27,11 @@ class SubstringTest extends TestCase
         $substringWithoutLengthString = (string) $substringWithoutLength;
         $this->assertEquals('SUBSTRING(field, 2)', $substringWithoutLengthString);
     }
+
+    public function testSubstringWithNonScalar(): void
+    {
+        $substring = new Substring('field', 1, 3);
+
+        $this->assertNull($substring(['field' => ['value']], []));
+    }
 }

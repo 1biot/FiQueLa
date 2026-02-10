@@ -26,4 +26,19 @@ class DivideTest extends TestCase
         $div = new Divide('price', '"0"');
         $div(['price' => 10], []);
     }
+
+    public function testDivideRejectsNonNumericString(): void
+    {
+        $this->expectException(UnexpectedValueException::class);
+
+        $div = new Divide('price', '"nope"');
+        $div(['price' => 10], []);
+    }
+
+    public function testDivideTreatsNullAsZero(): void
+    {
+        $div = new Divide('"null"');
+
+        $this->assertEquals(0, $div([], []));
+    }
 }

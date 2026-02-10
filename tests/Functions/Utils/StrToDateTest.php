@@ -39,4 +39,53 @@ class StrToDateTest extends TestCase
         $strToDate = new StrToDate('value', '%Y-%m-%d');
         $this->assertNull($strToDate(['value' => '2023-02-31'], []));
     }
+
+    public function testUnsupportedFormatReturnsNull(): void
+    {
+        $strToDate = new StrToDate('value', '%Q');
+        $this->assertNull($strToDate(['value' => '2023'], []));
+
+        $strToDate = new StrToDate('value', 'abc');
+        $this->assertNull($strToDate(['value' => 'abc'], []));
+    }
+
+    public function testMissingRequiredPartsReturnsNull(): void
+    {
+        $strToDate = new StrToDate('value', '%Y-%m');
+        $this->assertNull($strToDate(['value' => '2023-10'], []));
+
+        $strToDate = new StrToDate('value', '%H');
+        $this->assertNull($strToDate(['value' => '09'], []));
+
+        $strToDate = new StrToDate('value', '%u-%W');
+        $this->assertNull($strToDate(['value' => '40-Monday'], []));
+    }
+
+    public function testTrailingDataIsTrimmed(): void
+    {
+        $strToDate = new StrToDate('value', '%Y-%m-%d');
+        $this->assertSame('2023-10-01', $strToDate(['value' => '2023-10-01 trailing'], []));
+    }
+
+    public function testMicrosecondsOutput(): void
+    {
+        $strToDate = new StrToDate('value', '%Y-%m-%d %H:%i:%s.%f');
+        $this->assertSame(
+            '2023-10-01 09:30:17.123456',
+            $strToDate(['value' => '2023-10-01 09:30:17.123456'], [])
+        );
+    }
+
+    public function testWeekBasedDateParsing(): void
+    {
+        $strToDate = new StrToDate('value', '%X-%V-%w');
+        $this->assertNull($strToDate(['value' => '2023-40-1'], []));
+    }
+
+    public function testToString(): void
+    {
+        $strToDate = new StrToDate('value', '%Y-%m-%d');
+
+        $this->assertSame('STR_TO_DATE(value, "%Y-%m-%d")', (string) $strToDate);
+    }
 }

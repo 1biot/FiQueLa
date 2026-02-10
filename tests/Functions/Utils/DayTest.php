@@ -27,4 +27,13 @@ class DayTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function testDayWithTimestampAndDateTime(): void
+    {
+        $day = new Day('dateField');
+        $timestamp = (new \DateTimeImmutable('2023-10-02'))->getTimestamp();
+
+        $this->assertSame(2, $day(['dateField' => $timestamp], []));
+        $this->assertSame(3, $day(['dateField' => new \DateTimeImmutable('2023-10-03')], []));
+    }
 }

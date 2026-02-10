@@ -32,4 +32,18 @@ class CoalesceTest extends TestCase
             ], [])
         );
     }
+
+    public function testCoalesceWithQuotedFallback(): void
+    {
+        $coalesce = new Coalesce('missing', '"fallback"');
+
+        $this->assertSame('fallback', $coalesce([], []));
+    }
+
+    public function testCoalesceAllNullReturnsEmptyString(): void
+    {
+        $coalesce = new Coalesce('actionPrice', 'price');
+
+        $this->assertSame('', $coalesce(['actionPrice' => null, 'price' => null], []));
+    }
 }

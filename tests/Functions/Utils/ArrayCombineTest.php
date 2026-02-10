@@ -51,4 +51,19 @@ class ArrayCombineTest extends TestCase
             )
         );
     }
+
+    public function testCombineWithAssociativeValues(): void
+    {
+        $combine = new ArrayCombine('keys', 'values');
+        $this->assertEquals(
+            ['a' => 10, 'b' => 20],
+            $combine(
+                [
+                    'keys' => ['a', 'b'],
+                    'values' => ['x' => 10, 'y' => 20],
+                ],
+                []
+            )
+        );
+    }
 }

@@ -10,8 +10,14 @@ class SelectCaseTest extends TestCase
     public function testSelectCase(): void
     {
         $selectCase = new SelectCase();
+        $this->assertFalse($selectCase->hasConditions());
+        $this->assertFalse($selectCase->hasDefaultStatement());
+
         $selectCase->addCondition('value = case1', 'result1');
         $selectCase->addCondition('value2 = case2', 'result2');
+
+        $this->assertTrue($selectCase->hasConditions());
+        $this->assertFalse($selectCase->hasDefaultStatement());
 
         $result = $selectCase(['value' => 'case1', 'result1' => 1, 'value2' => 'case2', 'result2' => 2], []);
         $this->assertEquals(1, $result);
@@ -26,6 +32,8 @@ class SelectCaseTest extends TestCase
 
         $selectCase->addDefault('2025');
 
+        $this->assertTrue($selectCase->hasDefaultStatement());
+
         $result = $selectCase(['value' => 'case3', 'result1' => 1, 'value2' => 'case4', 'result2' => 2], []);
         $this->assertEquals(2025, $result);
 
@@ -33,5 +41,15 @@ class SelectCaseTest extends TestCase
             "CASE WHEN value = 'case1' THEN result1 WHEN value2 = 'case2' THEN result2 ELSE 2025 END",
             (string) $selectCase
         );
+    }
+
+    public function testDefaultUsesQuotedString(): void
+    {
+        $selectCase = new SelectCase();
+        $selectCase->addDefault('"fallback"');
+
+        $result = $selectCase(['value' => 'case'], []);
+
+        $this->assertSame('fallback', $result);
     }
 }

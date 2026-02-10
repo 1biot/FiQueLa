@@ -27,4 +27,24 @@ class DateAddTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function testDateAddWithEmptyInterval(): void
+    {
+        $dateAdd = new DateAdd('dateField', '');
+        $result = $dateAdd([
+            'dateField' => '2023-10-01 12:00:00',
+        ], []);
+
+        $this->assertNull($result);
+    }
+
+    public function testDateAddWithInvalidInterval(): void
+    {
+        $this->expectException(\DateMalformedStringException::class);
+
+        $dateAdd = new DateAdd('dateField', 'not-an-interval');
+        $dateAdd([
+            'dateField' => '2023-10-01 12:00:00',
+        ], []);
+    }
 }

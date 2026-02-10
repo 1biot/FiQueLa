@@ -58,4 +58,15 @@ class DateDiffTest extends TestCase
         $dateDiffString = (string) $dateDiff;
         $this->assertEquals('DATE_DIFF(fieldDate, fieldDate2)', $dateDiffString);
     }
+
+    public function testDateDiffWithInvalidValues(): void
+    {
+        $dateDiff = new DateDiff('fieldDate', 'fieldDate2');
+        $result = $dateDiff([
+            'fieldDate' => 'invalid',
+            'fieldDate2' => 123,
+        ], []);
+
+        $this->assertNull($result);
+    }
 }

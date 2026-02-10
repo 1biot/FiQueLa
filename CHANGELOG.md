@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.4.2] Unreleased
+- Increased code coverage to 80%
+
 ## [2.4.1]
 
 ### Fixed

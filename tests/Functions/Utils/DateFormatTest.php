@@ -83,4 +83,13 @@ class DateFormatTest extends TestCase
             )
         );
     }
+
+    public function testDateFormatWithDateTime(): void
+    {
+        $date = new \DateTimeImmutable('2023-10-01 12:00:00');
+        $dateFormat = new DateFormat('dateField', 'Y-m-d');
+
+        $this->assertEquals('2023-10-01', $dateFormat(['dateField' => $date], []));
+        $this->assertSame('DATE_FORMAT(dateField, "Y-m-d")', (string) $dateFormat);
+    }
 }

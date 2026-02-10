@@ -53,11 +53,29 @@ class CastTest extends TestCase
         $this->assertFalse($cast(['flag' => '0'], []));
         $this->assertTrue($cast(['flag' => '1'], []));
         $this->assertFalse($cast(['flag' => 'false'], []));
+        $this->assertSame('CAST(flag AS BOOLEAN)', (string) $cast);
+
+        $cast = new Cast('flag', Type::TRUE);
+        $this->assertTrue($cast(['flag' => 'true'], []));
+        $this->assertSame('CAST(flag AS BOOLEAN)', (string) $cast);
+
+        $cast = new Cast('flag', Type::FALSE);
+        $this->assertFalse($cast(['flag' => 'false'], []));
+        $this->assertSame('CAST(flag AS BOOLEAN)', (string) $cast);
+
+        $cast = new Cast('stringValue', Type::STRING);
+        $this->assertSame('CAST(stringValue AS STRING)', (string) $cast);
     }
 
     public function testCastWithMissingValue(): void
     {
         $cast = new Cast('missing', Type::INTEGER);
         $this->assertNull($cast(['value' => 10], []));
+    }
+
+    public function testCastWithNullValue(): void
+    {
+        $cast = new Cast('value', Type::INTEGER);
+        $this->assertNull($cast(['value' => null], []));
     }
 }

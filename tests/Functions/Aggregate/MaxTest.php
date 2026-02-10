@@ -107,4 +107,36 @@ class MaxTest extends TestCase
 
         $this->assertEquals($max($items), $max->finalize($accumulator));
     }
+
+    public function testMaxAccumulatorHandlesDuplicates(): void
+    {
+        $max = new Max('price', true);
+        $accumulator = $max->initAccumulator();
+
+        $accumulator = $max->accumulate($accumulator, ['price' => 10]);
+        $accumulator = $max->accumulate($accumulator, ['price' => 10]);
+        $accumulator = $max->accumulate($accumulator, ['price' => 5]);
+
+        $this->assertSame(10, $max->finalize($accumulator));
+    }
+
+    public function testMaxAccumulatorNonDistinctStartsFromNull(): void
+    {
+        $max = new Max('price');
+        $accumulator = $max->initAccumulator();
+
+        $accumulator = $max->accumulate($accumulator, ['price' => 7]);
+
+        $this->assertSame(7, $max->finalize($accumulator));
+    }
+
+    public function testMaxAccumulateRejectsNonNumeric(): void
+    {
+        $max = new Max('price');
+        $accumulator = $max->initAccumulator();
+
+        $this->expectException(UnexpectedValueException::class);
+
+        $max->accumulate($accumulator, ['price' => 'bad']);
+    }
 }

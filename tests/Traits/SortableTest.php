@@ -3,6 +3,7 @@
 namespace Traits;
 
 use FQL\Stream\Json;
+use FQL\Exception\OrderByException;
 use PHPUnit\Framework\TestCase;
 
 class SortableTest extends TestCase
@@ -42,5 +43,23 @@ class SortableTest extends TestCase
         $this->assertEquals(2, $results[1]['id']);
         $this->assertEquals(3, $results[2]['id']);
         $this->assertEquals(4, $results[3]['id']);
+    }
+
+    public function testAscWithoutOrderingThrows(): void
+    {
+        $this->expectException(OrderByException::class);
+
+        $this->json->query()->asc();
+    }
+
+    public function testDuplicateOrderByThrows(): void
+    {
+        $this->expectException(OrderByException::class);
+        $this->expectExceptionMessage('Field "price" is already used for sorting.');
+
+        $this->json->query()
+            ->from('data.products')
+            ->orderBy('price')
+            ->orderBy('price');
     }
 }

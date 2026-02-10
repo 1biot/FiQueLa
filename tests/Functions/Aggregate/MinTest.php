@@ -104,4 +104,36 @@ class MinTest extends TestCase
 
         $this->assertEquals($min($items), $min->finalize($accumulator));
     }
+
+    public function testMinAccumulatorHandlesDuplicates(): void
+    {
+        $min = new Min('price', true);
+        $accumulator = $min->initAccumulator();
+
+        $accumulator = $min->accumulate($accumulator, ['price' => 10]);
+        $accumulator = $min->accumulate($accumulator, ['price' => 10]);
+        $accumulator = $min->accumulate($accumulator, ['price' => 5]);
+
+        $this->assertSame(5, $min->finalize($accumulator));
+    }
+
+    public function testMinAccumulatorNonDistinctStartsFromNull(): void
+    {
+        $min = new Min('price');
+        $accumulator = $min->initAccumulator();
+
+        $accumulator = $min->accumulate($accumulator, ['price' => 7]);
+
+        $this->assertSame(7, $min->finalize($accumulator));
+    }
+
+    public function testMinAccumulateRejectsNonNumeric(): void
+    {
+        $min = new Min('price');
+        $accumulator = $min->initAccumulator();
+
+        $this->expectException(UnexpectedValueException::class);
+
+        $min->accumulate($accumulator, ['price' => 'bad']);
+    }
 }

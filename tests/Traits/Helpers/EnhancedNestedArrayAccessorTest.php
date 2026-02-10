@@ -72,4 +72,48 @@ class EnhancedNestedArrayAccessorTest extends TestCase
             $this->accessNestedValue($this->testArray, 'space key.`key.with.dot`[1].space key 2')
         );
     }
+
+    public function testRemoveNestedValue(): void
+    {
+        $data = $this->testArray;
+        $this->removeNestedValue($data, 'a.d');
+
+        $this->assertArrayNotHasKey('d', $data['a']);
+    }
+
+    public function testInvalidIterationPathThrows(): void
+    {
+        $this->expectException(\FQL\Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid path: [] cannot be at the start');
+
+        $this->accessNestedValue($this->testArray, '[]');
+    }
+
+    public function testMissingPathReturnsNullWhenNotThrowing(): void
+    {
+        $this->assertNull($this->accessNestedValue($this->testArray, 'a.missing', false));
+    }
+
+    public function testIsAssocDetectsLists(): void
+    {
+        $this->assertTrue($this->isAssoc(['a' => 1]));
+        $this->assertFalse($this->isAssoc([1, 2, 3]));
+    }
+
+    public function testScalarIndexingWrapsScalar(): void
+    {
+        $data = ['a' => 'value'];
+
+        $this->assertSame('value', $this->accessNestedValue($data, 'a.0'));
+    }
+
+    public function testAccessNestedValueThrowsWhenScalarKey(): void
+    {
+        $data = ['a' => 'value'];
+
+        $this->expectException(\FQL\Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected array, got string');
+
+        $this->accessNestedValue($data, 'a.b');
+    }
 }

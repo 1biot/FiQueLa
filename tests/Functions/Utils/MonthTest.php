@@ -27,4 +27,13 @@ class MonthTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function testMonthWithTimestampAndDateTime(): void
+    {
+        $month = new Month('dateField');
+        $timestamp = (new \DateTimeImmutable('2023-11-02'))->getTimestamp();
+
+        $this->assertSame(11, $month(['dateField' => $timestamp], []));
+        $this->assertSame(12, $month(['dateField' => new \DateTimeImmutable('2023-12-03')], []));
+    }
 }

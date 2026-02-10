@@ -27,4 +27,13 @@ class YearTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function testYearWithTimestampAndDateTime(): void
+    {
+        $year = new Year('dateField');
+        $timestamp = (new \DateTimeImmutable('2022-11-02'))->getTimestamp();
+
+        $this->assertSame(2022, $year(['dateField' => $timestamp], []));
+        $this->assertSame(2023, $year(['dateField' => new \DateTimeImmutable('2023-12-03')], []));
+    }
 }

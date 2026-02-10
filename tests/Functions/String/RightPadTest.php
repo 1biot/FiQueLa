@@ -71,4 +71,11 @@ class RightPadTest extends TestCase
         $rightPadString = (string) $rightPad;
         $this->assertEquals('RPAD(field, -5, "0")', $rightPadString);
     }
+
+    public function testRightPadWithNonScalarValue(): void
+    {
+        $rightPad = new RightPad('field', 5, '0');
+
+        $this->assertNull($rightPad(['field' => ['value']], []));
+    }
 }

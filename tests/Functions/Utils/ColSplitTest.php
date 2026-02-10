@@ -48,4 +48,29 @@ class ColSplitTest extends TestCase
         $this->assertNull($result);
         $this->assertSame(['keep' => 'value'], $resultItem);
     }
+
+    public function testSplitWithMissingKeyUsesIndex(): void
+    {
+        $split = new ColSplit('items', 'item_%index', 'id');
+        $resultItem = [];
+        $split([
+            'items' => [
+                ['value' => 1],
+                ['value' => 2],
+            ],
+        ], $resultItem);
+
+        $this->assertSame([
+            'item_1' => ['value' => 1],
+            'item_2' => ['value' => 2],
+        ], $resultItem);
+        $this->assertSame('COL_SPLIT(items, "item_%index", "id")', (string) $split);
+    }
+
+    public function testToStringWithNullFormatAndKeyField(): void
+    {
+        $split = new ColSplit('items', null, 'id');
+
+        $this->assertSame('COL_SPLIT(items, null, "id")', (string) $split);
+    }
 }

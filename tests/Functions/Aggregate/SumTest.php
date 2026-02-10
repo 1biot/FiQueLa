@@ -113,4 +113,44 @@ class SumTest extends TestCase
 
         $this->assertEquals($sum($items), $sum->finalize($accumulator));
     }
+
+    public function testSumAccumulatorSkipsDuplicateDistinct(): void
+    {
+        $sum = new Sum('price', true);
+        $accumulator = $sum->initAccumulator();
+
+        $accumulator = $sum->accumulate($accumulator, ['price' => 100]);
+        $accumulator = $sum->accumulate($accumulator, ['price' => 100]);
+
+        $this->assertSame(100, $sum->finalize($accumulator));
+    }
+
+    public function testSumAccumulatorAddsWithoutDistinct(): void
+    {
+        $sum = new Sum('price');
+        $accumulator = $sum->initAccumulator();
+
+        $accumulator = $sum->accumulate($accumulator, ['price' => 2]);
+
+        $this->assertSame(2, $sum->finalize($accumulator));
+    }
+
+    public function testSumTreatsEmptyStringAsZero(): void
+    {
+        $sum = new Sum('price');
+
+        $this->assertSame(0, $sum([
+            ['price' => ''],
+        ]));
+    }
+
+    public function testSumAccumulateTreatsEmptyStringAsZero(): void
+    {
+        $sum = new Sum('price');
+        $accumulator = $sum->initAccumulator();
+
+        $accumulator = $sum->accumulate($accumulator, ['price' => '']);
+
+        $this->assertSame(0, $sum->finalize($accumulator));
+    }
 }

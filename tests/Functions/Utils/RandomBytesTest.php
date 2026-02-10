@@ -24,4 +24,11 @@ class RandomBytesTest extends TestCase
             strlen($randomBytes())
         );
     }
+
+    public function testToStringIncludesLength(): void
+    {
+        $randomBytes = new RandomBytes(4);
+
+        $this->assertSame('RANDOM_BYTES(4)', (string) $randomBytes);
+    }
 }

@@ -27,4 +27,24 @@ class DateSubTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    public function testDateSubWithoutSign(): void
+    {
+        $dateSub = new DateSub('dateField', '2 hours');
+        $result = $dateSub([
+            'dateField' => '2023-10-01 12:00:00',
+        ], []);
+
+        $this->assertEquals('2023-10-01 10:00:00', $result);
+    }
+
+    public function testDateSubWithEmptyInterval(): void
+    {
+        $dateSub = new DateSub('dateField', '');
+        $result = $dateSub([
+            'dateField' => '2023-10-01 12:00:00',
+        ], []);
+
+        $this->assertNull($result);
+    }
 }

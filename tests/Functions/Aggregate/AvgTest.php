@@ -117,4 +117,22 @@ class AvgTest extends TestCase
 
         $this->assertEquals($avg($items), $avg->finalize($accumulator));
     }
+
+    public function testAvgFinalizeWithEmptyAccumulator(): void
+    {
+        $avg = new Avg('price');
+        $accumulator = $avg->initAccumulator();
+
+        $this->assertSame(0, $avg->finalize($accumulator));
+    }
+
+    public function testAvgAccumulateRejectsNonNumeric(): void
+    {
+        $avg = new Avg('price');
+        $accumulator = $avg->initAccumulator();
+
+        $this->expectException(UnexpectedValueException::class);
+
+        $avg->accumulate($accumulator, ['price' => 'bad']);
+    }
 }
