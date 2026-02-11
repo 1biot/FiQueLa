@@ -31,8 +31,12 @@ class DateAdd extends MultipleFieldsFunction
             return null;
         }
 
-        $modified = $date->modify($intervalValue);
-        if (!$modified instanceof \DateTimeImmutable) {
+        try {
+            $modified = @$date->modify($intervalValue);
+            if (!$modified instanceof \DateTimeImmutable) {
+                return null;
+            }
+        } catch (\DateMalformedStringException) {
             return null;
         }
 

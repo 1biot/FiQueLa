@@ -40,11 +40,11 @@ class DateAddTest extends TestCase
 
     public function testDateAddWithInvalidInterval(): void
     {
-        $this->expectException(\DateMalformedStringException::class);
-
         $dateAdd = new DateAdd('dateField', 'not-an-interval');
-        $dateAdd([
+        $result = $dateAdd([
             'dateField' => '2023-10-01 12:00:00',
         ], []);
+
+        $this->assertNull($result);
     }
 }
