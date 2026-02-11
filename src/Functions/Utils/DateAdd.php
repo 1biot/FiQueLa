@@ -31,22 +31,14 @@ class DateAdd extends MultipleFieldsFunction
             return null;
         }
 
-        $handler = set_error_handler(static fn () => true);
-        try {
+        if (class_exists(\DateMalformedStringException::class)) {
             try {
-                $modified = $date->modify($intervalValue);
-            } catch (\Throwable $exception) {
-                if (
-                    class_exists(\DateMalformedStringException::class)
-                    && $exception instanceof \DateMalformedStringException
-                ) {
-                    return null;
-                }
-
-                throw $exception;
+                $modified = @$date->modify($intervalValue);
+            } catch (\DateMalformedStringException) {
+                return null;
             }
-        } finally {
-            restore_error_handler();
+        } else {
+            $modified = @$date->modify($intervalValue);
         }
 
         if (!$modified instanceof \DateTimeImmutable) {
