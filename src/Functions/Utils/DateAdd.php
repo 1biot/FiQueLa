@@ -36,7 +36,8 @@ class DateAdd extends MultipleFieldsFunction
             try {
                 $modified = $date->modify($intervalValue);
             } catch (\Throwable $exception) {
-                if (class_exists(\DateMalformedStringException::class)
+                if (
+                    class_exists(\DateMalformedStringException::class)
                     && $exception instanceof \DateMalformedStringException
                 ) {
                     return null;
