@@ -34,6 +34,7 @@ class DateAdd extends MultipleFieldsFunction
         if (class_exists(\DateMalformedStringException::class)) {
             try {
                 $modified = @$date->modify($intervalValue);
+            /** @phpstan-ignore-next-line */
             } catch (\DateMalformedStringException) {
                 return null;
             }
