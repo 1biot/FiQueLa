@@ -241,8 +241,8 @@ class Debugger
     public static function highlightSQL(string $sql): string
     {
         $keywords = [
-            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT', 'EXCLUDE',
-            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR', 'EXPLAIN', 'ANALYZE',
+            'EXPLAIN', 'ANALYZE', 'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
+            'EXCLUDE', 'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
             'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
         ];

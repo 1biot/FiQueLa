@@ -59,25 +59,6 @@ class Query implements Interface\Query
 
     public function execute(?string $resultClass = null): Results\ResultsProvider
     {
-        if ($this->explain) {
-            $streamResult = new Results\Stream(
-                $this->stream,
-                $this->distinct,
-                $this->selectedFields,
-                $this->excludedFields,
-                $this->getFrom(),
-                $this->whereConditions,
-                $this->havingConditions,
-                $this->joins,
-                $this->groupByFields,
-                $this->orderings,
-                $this->limit,
-                $this->offset
-            );
-
-            return new Results\InMemory($streamResult->explain($this->explainAnalyze));
-        }
-
         $streamResult = new Results\Stream(
             $this->stream,
             $this->distinct,
@@ -93,13 +74,19 @@ class Query implements Interface\Query
             $this->offset
         );
 
-        return match ($resultClass) {
-            Results\InMemory::class => new Results\InMemory(iterator_to_array($streamResult->getIterator())),
-            Results\Stream::class => $streamResult,
-            default => $streamResult->hasJoin() || $streamResult->isSortable()
-                ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
-                : $streamResult
-        };
+        if ($this->explain) {
+            return new Results\InMemory($streamResult->explain($this->explainAnalyze));
+        }
+
+        $resolvedResultClass = $resultClass ?? (
+            $streamResult->hasJoin() || $streamResult->isSortable()
+                ? Results\InMemory::class
+                : Results\Stream::class
+        );
+
+        return $resolvedResultClass === Results\InMemory::class
+            ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
+            : $streamResult;
     }
 
     public function __toString(): string
