@@ -239,4 +239,33 @@ class ProviderTest extends TestCase
         $this->assertArrayNotHasKey('price', $data[1]);
         $this->assertArrayNotHasKey('price', $data[2]);
     }
+
+    public function testExplainPlan(): void
+    {
+        $results = $this->json->query()
+            ->from('data.products')
+            ->explain()
+            ->execute();
+
+        $rows = iterator_to_array($results->fetchAll());
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('stream', $rows[0]['phase']);
+        $this->assertNull($rows[0]['rows_out']);
+    }
+
+    public function testExplainAnalyze(): void
+    {
+        $results = $this->json->query()
+            ->from('data.products')
+            ->explainAnalyze()
+            ->execute();
+
+        $rows = iterator_to_array($results->fetchAll());
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('stream', $rows[0]['phase']);
+        $this->assertSame(5, $rows[0]['rows_out']);
+        $this->assertNotNull($rows[0]['time_ms']);
+    }
 }

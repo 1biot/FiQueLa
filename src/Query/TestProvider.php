@@ -68,6 +68,16 @@ class TestProvider implements Query
         return new Results\InMemory([]);
     }
 
+    public function explain(): Query
+    {
+        return $this;
+    }
+
+    public function explainAnalyze(): Query
+    {
+        return $this;
+    }
+
     public function test(): string
     {
         return '';

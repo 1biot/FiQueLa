@@ -123,6 +123,18 @@ class Stream extends ResultsProvider
     }
 
     /**
+     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
+     */
+    public function explain(bool $analyze = false): array
+    {
+        $rows = $analyze
+            ? $this->buildExplainAnalyzeRows()
+            : $this->buildExplainPlanRows();
+
+        return $this->finalizeExplainRows($rows);
+    }
+
+    /**
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
     private function applyStreamSource(): \Traversable
@@ -131,6 +143,603 @@ class Stream extends ResultsProvider
             ? null
             : $this->from;
         return $this->stream->getStreamGenerator($streamSource);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function buildExplainPlanRows(): array
+    {
+        $rows = [];
+        $rows[] = $this->createExplainRow('stream', $this->getStreamNote(), false, false);
+
+        if ($this->hasJoin()) {
+            foreach ($this->joins as $join) {
+                $rows[] = $this->createExplainRow('join', $this->getJoinNote($join), false, true);
+            }
+        }
+
+        if ($this->hasWhereConditions()) {
+            $rows[] = $this->createExplainRow('where', $this->getWhereNote(), false, true);
+        }
+
+        if ($this->isGroupable()) {
+            $rows[] = $this->createExplainRow('group', $this->getGroupNote(), false, true);
+        }
+
+        if ($this->hasHavingConditions()) {
+            $rows[] = $this->createExplainRow('having', $this->getHavingNote(), false, true);
+        }
+
+        if ($this->isSortable()) {
+            $rows[] = $this->createExplainRow('sort', $this->getSortNote(), false, true);
+        }
+
+        if ($this->isLimitable()) {
+            $rows[] = $this->createExplainRow('limit', $this->getLimitNote($this->isLimitAppliedInStream()), false, true);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
+     */
+    private function buildExplainAnalyzeRows(): array
+    {
+        $rows = [];
+        $streamRow = $this->addExplainRow($rows, 'stream', $this->getStreamNote(), true, false);
+
+        $stream = $this->applyStreamSourceExplain($rows, $streamRow);
+
+        if ($this->hasJoin()) {
+            foreach ($this->joins as $join) {
+                $joinRow = $this->addExplainRow($rows, 'join', $this->getJoinNote($join), true, true);
+                $stream = $this->applyJoinExplain($stream, $rows, $joinRow, $join);
+            }
+        }
+
+        $whereRow = $this->hasWhereConditions()
+            ? $this->addExplainRow($rows, 'where', $this->getWhereNote(), true, true)
+            : null;
+
+        $havingRow = $this->hasHavingConditions()
+            ? $this->addExplainRow($rows, 'having', $this->getHavingNote(), true, true)
+            : null;
+
+        $limitAtStream = $this->isLimitAppliedInStream();
+        $limitRow = $this->isLimitable() && $limitAtStream
+            ? $this->addExplainRow($rows, 'limit', $this->getLimitNote(true), true, true)
+            : null;
+
+        if ($this->isGroupable()) {
+            $groupRow = $this->addExplainRow($rows, 'group', $this->getGroupNote(), true, true);
+            $stream = $this->applyGroupingExplain(
+                $stream,
+                $rows,
+                $whereRow,
+                $groupRow,
+                $havingRow,
+                $limitRow,
+                $limitAtStream
+            );
+        } else {
+            $stream = $this->applyBaseStreamExplain(
+                $stream,
+                $rows,
+                $whereRow,
+                $havingRow,
+                $limitRow,
+                $limitAtStream
+            );
+        }
+
+        if ($this->isSortable()) {
+            $sortRow = $this->addExplainRow($rows, 'sort', $this->getSortNote(), true, true);
+            $stream = $this->applySortingExplain($stream, $rows, $sortRow);
+
+            if ($this->isLimitable()) {
+                $limitRow = $this->addExplainRow($rows, 'limit', $this->getLimitNote(false), true, true);
+                $stream = $this->applyLimitExplain($stream, $rows, $limitRow);
+            }
+        }
+
+        foreach ($stream as $item) {
+            unset($item);
+        }
+
+        return $rows;
+    }
+
+    private function hasWhereConditions(): bool
+    {
+        return count($this->where) > 0;
+    }
+
+    private function hasHavingConditions(): bool
+    {
+        return count($this->havings) > 0;
+    }
+
+    private function isLimitAppliedInStream(): bool
+    {
+        return $this->isLimitable() && !$this->isSortable();
+    }
+
+    private function getStreamNote(): string
+    {
+        $source = $this->stream->provideSource();
+        if ($this->from === Query::SELECT_ALL || $this->from === '') {
+            return sprintf('read source %s', $source);
+        }
+
+        return sprintf('read source %s.%s', $source, $this->from);
+    }
+
+    /**
+     * @param JoinAbleArray $join
+     */
+    private function getJoinNote(array $join): string
+    {
+        $alias = $join['alias'] ?? '';
+        $aliasNote = $alias !== '' ? ' AS ' . $alias : '';
+        $operator = ($join['operator'] ?? Enum\Operator::EQUAL)->value;
+        $leftKey = $join['leftKey'] ?? '';
+        $rightKey = $join['rightKey'] ?? '';
+        $condition = $leftKey !== '' && $rightKey !== ''
+            ? sprintf('%s %s %s', $leftKey, $operator, $rightKey)
+            : '[No Condition]';
+
+        $source = (string) $join['table']->provideFileQuery();
+        return sprintf('%s%s ON %s (%s)', $join['type']->value, $aliasNote, $condition, $source);
+    }
+
+    private function getWhereNote(): string
+    {
+        return 'filtered (where)';
+    }
+
+    private function getHavingNote(): string
+    {
+        return 'filtered (having)';
+    }
+
+    private function getGroupNote(): string
+    {
+        if ($this->groupByFields !== []) {
+            return sprintf('group by %s', implode(', ', $this->groupByFields));
+        }
+
+        return 'aggregate';
+    }
+
+    private function getSortNote(): string
+    {
+        if ($this->orderings === []) {
+            return 'order by';
+        }
+
+        $parts = [];
+        foreach ($this->orderings as $field => $direction) {
+            $parts[] = sprintf('%s %s', $field, $direction->value);
+        }
+
+        return sprintf('order by %s', implode(', ', $parts));
+    }
+
+    private function getLimitNote(bool $streamLimit): string
+    {
+        $parts = [];
+        if ($this->offset !== null) {
+            $parts[] = sprintf('offset %d', $this->offset);
+        }
+        if ($this->limit !== null) {
+            $parts[] = sprintf('limit %d', $this->limit);
+        }
+
+        if ($parts === []) {
+            $parts[] = 'limit';
+        }
+
+        $note = implode(', ', $parts);
+        return $streamLimit ? $note . ' (stream)' : $note;
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function finalizeExplainRows(array $rows): array
+    {
+        foreach ($rows as $index => $row) {
+            if ($row['time_ms'] !== null) {
+                $rows[$index]['time_ms'] = round((float) $row['time_ms'], 3);
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}
+     */
+    private function createExplainRow(string $phase, string $note, bool $withMetrics, bool $hasInput): array
+    {
+        return [
+            'phase' => $phase,
+            'rows_in' => $withMetrics && $hasInput ? 0 : null,
+            'rows_out' => $withMetrics ? 0 : null,
+            'time_ms' => $withMetrics ? 0.0 : null,
+            'note' => $note,
+        ];
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function addExplainRow(
+        array &$rows,
+        string $phase,
+        string $note,
+        bool $withMetrics,
+        bool $hasInput
+    ): int {
+        $rows[] = $this->createExplainRow($phase, $note, $withMetrics, $hasInput);
+        return array_key_last($rows);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function applyStreamSourceExplain(array &$rows, int $rowIndex): \Traversable
+    {
+        $start = microtime(true);
+        foreach ($this->applyStreamSource() as $item) {
+            $rows[$rowIndex]['rows_out']++;
+            yield $item;
+        }
+        $rows[$rowIndex]['time_ms'] = $this->elapsedMs($start);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     * @param JoinAbleArray $join
+     */
+    private function applyJoinExplain(\Traversable $leftData, array &$rows, int $rowIndex, array $join): \Traversable
+    {
+        $input = $this->wrapInputWithCounter($leftData, $rows, $rowIndex);
+        $start = microtime(true);
+        foreach ($this->applyJoin($input, $join) as $item) {
+            $rows[$rowIndex]['rows_out']++;
+            yield $item;
+        }
+        $rows[$rowIndex]['time_ms'] = $this->elapsedMs($start);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function applyBaseStreamExplain(
+        \Traversable $stream,
+        array &$rows,
+        ?int $whereRow,
+        ?int $havingRow,
+        ?int $limitRow,
+        bool $limitAtStream
+    ): \Traversable {
+        $count = 0;
+        $currentOffset = 0;
+        $whereTime = 0.0;
+        $havingTime = 0.0;
+        $limitTime = 0.0;
+        $seen = [];
+
+        foreach ($stream as $item) {
+            if ($whereRow !== null) {
+                $rows[$whereRow]['rows_in']++;
+                $start = microtime(true);
+                $whereResult = $this->evaluateConditions(Condition::WHERE, $item);
+                $whereTime += $this->elapsedMs($start);
+                if (!$whereResult) {
+                    continue;
+                }
+                $rows[$whereRow]['rows_out']++;
+            } elseif (!$this->evaluateConditions(Condition::WHERE, $item)) {
+                continue;
+            }
+
+            $resultItem = $this->applySelect($item);
+
+            if ($havingRow !== null) {
+                $rows[$havingRow]['rows_in']++;
+                $start = microtime(true);
+                $havingResult = $this->evaluateConditions(Condition::HAVING, $resultItem);
+                $havingTime += $this->elapsedMs($start);
+                if (!$havingResult) {
+                    continue;
+                }
+                $rows[$havingRow]['rows_out']++;
+            } elseif (!$this->evaluateConditions(Condition::HAVING, $resultItem)) {
+                continue;
+            }
+
+            if ($this->distinct) {
+                $hash = md5(serialize($resultItem));
+                if (isset($seen[$hash])) {
+                    continue;
+                }
+                $seen[$hash] = true;
+            }
+
+            if ($limitRow !== null) {
+                $rows[$limitRow]['rows_in']++;
+                $start = microtime(true);
+                if ($limitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                    $currentOffset++;
+                    $limitTime += $this->elapsedMs($start);
+                    continue;
+                }
+                $limitTime += $this->elapsedMs($start);
+            } elseif ($limitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                $currentOffset++;
+                continue;
+            }
+
+            yield $this->applyExcludeFromSelect($resultItem);
+
+            if ($limitRow !== null) {
+                $rows[$limitRow]['rows_out']++;
+            }
+
+            $count++;
+            if ($limitAtStream && $this->limit !== null && $count >= $this->limit) {
+                break;
+            }
+        }
+
+        if ($whereRow !== null) {
+            $rows[$whereRow]['time_ms'] = $whereTime;
+        }
+        if ($havingRow !== null) {
+            $rows[$havingRow]['time_ms'] = $havingTime;
+        }
+        if ($limitRow !== null) {
+            $rows[$limitRow]['time_ms'] = $limitTime;
+        }
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function applyGroupingExplain(
+        \Traversable $stream,
+        array &$rows,
+        ?int $whereRow,
+        int $groupRow,
+        ?int $havingRow,
+        ?int $limitRow,
+        bool $limitAtStream
+    ): \Traversable {
+        $groupedData = [];
+        $groupKey = Query::SELECT_ALL;
+        $aggregateFunctions = $this->getAggregateFunctions();
+        $incrementalAggregates = $aggregateFunctions;
+        $whereTime = 0.0;
+        $groupTime = 0.0;
+
+        foreach ($stream as $item) {
+            if ($whereRow !== null) {
+                $rows[$whereRow]['rows_in']++;
+                $start = microtime(true);
+                $whereResult = $this->evaluateConditions(Condition::WHERE, $item);
+                $whereTime += $this->elapsedMs($start);
+                if (!$whereResult) {
+                    continue;
+                }
+                $rows[$whereRow]['rows_out']++;
+            } elseif (!$this->evaluateConditions(Condition::WHERE, $item)) {
+                continue;
+            }
+
+            $rows[$groupRow]['rows_in']++;
+            $startGroup = microtime(true);
+            if ($this->hasPhase('group')) {
+                $groupKey = $this->createGroupKey($item);
+            }
+
+            if (!isset($groupedData[$groupKey])) {
+                $groupedData[$groupKey] = $this->createGroupState(
+                    $item,
+                    $incrementalAggregates
+                );
+                $groupTime += $this->elapsedMs($startGroup);
+                continue;
+            }
+
+            foreach ($incrementalAggregates as $finalField => $function) {
+                $groupedData[$groupKey]['accumulators'][$finalField] = $function->accumulate(
+                    $groupedData[$groupKey]['accumulators'][$finalField],
+                    $item
+                );
+            }
+            $groupTime += $this->elapsedMs($startGroup);
+        }
+
+        if ($whereRow !== null) {
+            $rows[$whereRow]['time_ms'] = $whereTime;
+        }
+
+        $rows[$groupRow]['rows_out'] = count($groupedData);
+        $rows[$groupRow]['time_ms'] = $groupTime;
+
+        if ($groupKey === Query::SELECT_ALL) {
+            if (empty($groupedData[Query::SELECT_ALL] ?? null)) {
+                return yield from [];
+            }
+
+            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateFunctions);
+
+            $havingTime = 0.0;
+            if ($havingRow !== null) {
+                $rows[$havingRow]['rows_in']++;
+                $start = microtime(true);
+                $havingResult = $this->evaluateConditions(Condition::HAVING, $aggregatedItem);
+                $havingTime += $this->elapsedMs($start);
+                if (!$havingResult) {
+                    $rows[$havingRow]['time_ms'] = $havingTime;
+                    return yield from [];
+                }
+                $rows[$havingRow]['rows_out']++;
+            } elseif (!$this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
+                return yield from [];
+            }
+
+            if ($havingRow !== null) {
+                $rows[$havingRow]['time_ms'] = $havingTime;
+            }
+
+            if ($limitRow !== null) {
+                $rows[$limitRow]['rows_in']++;
+                $rows[$limitRow]['rows_out']++;
+            }
+
+            return yield $this->applyExcludeFromSelect($aggregatedItem);
+        }
+
+        $count = 0;
+        $currentOffset = 0;
+        $havingTime = 0.0;
+        $limitTime = 0.0;
+        foreach ($groupedData as $groupState) {
+            $aggregatedItem = $this->applyAggregations($groupState, $aggregateFunctions);
+            if ($havingRow !== null) {
+                $rows[$havingRow]['rows_in']++;
+                $start = microtime(true);
+                $havingResult = $this->evaluateConditions(Condition::HAVING, $aggregatedItem);
+                $havingTime += $this->elapsedMs($start);
+                if (!$havingResult) {
+                    continue;
+                }
+                $rows[$havingRow]['rows_out']++;
+            } elseif (!$this->evaluateConditions(Condition::HAVING, $aggregatedItem)) {
+                continue;
+            }
+
+            if ($limitRow !== null) {
+                $rows[$limitRow]['rows_in']++;
+                $start = microtime(true);
+                if ($limitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                    $currentOffset++;
+                    $limitTime += $this->elapsedMs($start);
+                    continue;
+                }
+                $limitTime += $this->elapsedMs($start);
+            } elseif ($limitAtStream && $this->offset !== null && $currentOffset < $this->offset) {
+                $currentOffset++;
+                continue;
+            }
+
+            yield $this->applyExcludeFromSelect($aggregatedItem);
+
+            if ($limitRow !== null) {
+                $rows[$limitRow]['rows_out']++;
+            }
+
+            $count++;
+            if ($limitAtStream && $this->limit !== null && $count >= $this->limit) {
+                break;
+            }
+        }
+
+        if ($havingRow !== null) {
+            $rows[$havingRow]['time_ms'] = $havingTime;
+        }
+        if ($limitRow !== null) {
+            $rows[$limitRow]['time_ms'] = $limitTime;
+        }
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function applySortingExplain(\Traversable $iterator, array &$rows, int $rowIndex): \Traversable
+    {
+        $input = $this->wrapInputWithCounter($iterator, $rows, $rowIndex);
+        $start = microtime(true);
+        if ($this->orderings === []) {
+            foreach ($input as $item) {
+                $rows[$rowIndex]['rows_out']++;
+                yield $item;
+            }
+            $rows[$rowIndex]['time_ms'] = $this->elapsedMs($start);
+            return;
+        }
+
+        $data = iterator_to_array($input);
+        usort($data, function ($a, $b): int {
+            foreach ($this->orderings as $field => $type) {
+                $valA = $a[$field] ?? null;
+                $valB = $b[$field] ?? null;
+
+                $cmp = match ($type) {
+                    Enum\Sort::ASC => ($valA <=> $valB),
+                    Enum\Sort::DESC => ($valB <=> $valA),
+                };
+
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+            }
+
+            return 0;
+        });
+
+        $rows[$rowIndex]['rows_out'] = count($data);
+        foreach ($data as $item) {
+            yield $item;
+        }
+        $rows[$rowIndex]['time_ms'] = $this->elapsedMs($start);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function applyLimitExplain(\Traversable $data, array &$rows, int $rowIndex): \Traversable
+    {
+        $count = 0;
+        $currentOffset = 0;
+        $start = microtime(true);
+        foreach ($this->wrapInputWithCounter($data, $rows, $rowIndex) as $item) {
+            if ($this->offset !== null && $currentOffset < $this->offset) {
+                $currentOffset++;
+                continue;
+            }
+
+            $rows[$rowIndex]['rows_out']++;
+            yield $item;
+
+            $count++;
+            if ($this->limit !== null && $count >= $this->limit) {
+                break;
+            }
+        }
+        $rows[$rowIndex]['time_ms'] = $this->elapsedMs($start);
+    }
+
+    /**
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function wrapInputWithCounter(\Traversable $input, array &$rows, int $rowIndex): \Generator
+    {
+        foreach ($input as $item) {
+            $rows[$rowIndex]['rows_in']++;
+            yield $item;
+        }
+    }
+
+    private function elapsedMs(float $start): float
+    {
+        return (microtime(true) - $start) * 1000;
     }
 
     /**

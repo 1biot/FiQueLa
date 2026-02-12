@@ -56,6 +56,14 @@ class Sql extends SqlLexer implements Interface\Parser
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             switch (strtoupper($token)) {
+                case Interface\Query::EXPLAIN:
+                    if (strtoupper($this->peekToken()) === Interface\Query::ANALYZE) {
+                        $this->nextToken();
+                        $query->explainAnalyze();
+                    } else {
+                        $query->explain();
+                    }
+                    break;
                 case Interface\Query::SELECT:
                     $this->parseFields($query);
                     break;

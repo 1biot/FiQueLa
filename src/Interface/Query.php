@@ -47,6 +47,8 @@ interface Query extends \Stringable
     public const HAVING = 'HAVING';
     public const OFFSET = 'OFFSET';
     public const LIMIT = 'LIMIT';
+    public const EXPLAIN = 'EXPLAIN';
+    public const ANALYZE = 'ANALYZE';
     public const PER_PAGE_DEFAULT = 10;
 
     /**
@@ -581,6 +583,20 @@ interface Query extends \Stringable
      * @return ResultsProvider
      */
     public function execute(?string $resultClass = null): Results\ResultsProvider;
+
+    /**
+     * Build an explain plan for the query.
+     *
+     * When executed, the results are returned as a flat table (InMemory).
+     */
+    public function explain(): Query;
+
+    /**
+     * Build an explain plan and run the query to collect real metrics.
+     *
+     * When executed, the results are returned as a flat table (InMemory).
+     */
+    public function explainAnalyze(): Query;
 
     /**
      * @throws Exception\InvalidFormatException

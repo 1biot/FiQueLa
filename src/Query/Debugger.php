@@ -242,7 +242,7 @@ class Debugger
     {
         $keywords = [
             'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT', 'EXCLUDE',
-            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
+            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR', 'EXPLAIN', 'ANALYZE',
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
             'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
         ];
