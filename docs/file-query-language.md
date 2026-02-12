@@ -524,7 +524,9 @@ Columns:
 - `phase`
 - `rows_in`
 - `rows_out`
+- `filtered`
 - `time_ms`
+- `duration_pct`
 - `note`
 
 **Example:**

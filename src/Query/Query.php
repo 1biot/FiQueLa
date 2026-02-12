@@ -106,6 +106,8 @@ class Query implements Interface\Query
     {
         $queryParts = [];
 
+        // EXPLAIN
+        $queryParts[] = $this->explainToString();
         // SELECT
         $queryParts[] = $this->selectToString();
         // FROM

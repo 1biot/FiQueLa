@@ -86,6 +86,9 @@
     "example:csv": [
       "php -f examples/csv.php"
     ],
+    "example:explain": [
+      "php -f examples/explain.php"
+    ],
     "example:join": [
       "php -f examples/join.php"
     ],

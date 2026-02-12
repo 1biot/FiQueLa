@@ -147,7 +147,7 @@ class Stream extends ResultsProvider
     }
 
     /**
-     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
+     * @return array<int, ExplainResultArray>
      */
     private function buildExplainPlanRows(): array
     {
@@ -356,7 +356,25 @@ class Stream extends ResultsProvider
      */
     private function finalizeExplainRows(array $rows): array
     {
+        $totalTime = 0.0;
+        foreach ($rows as $row) {
+            if ($row['time_ms'] !== null) {
+                $totalTime += (float) $row['time_ms'];
+            }
+        }
+
         foreach ($rows as $index => $row) {
+            if ($row['rows_in'] !== null && $row['rows_out'] !== null) {
+                $rows[$index]['filtered'] = $row['rows_in'] - $row['rows_out'];
+            }
+
+            if ($row['time_ms'] !== null) {
+                $duration = $totalTime > 0.0
+                    ? ((float) $row['time_ms'] / $totalTime) * 100
+                    : 0.0;
+                $rows[$index]['duration_pct'] = round($duration, 3);
+            }
+
             if ($row['time_ms'] !== null) {
                 $rows[$index]['time_ms'] = round((float) $row['time_ms'], 3);
             }
@@ -374,7 +392,9 @@ class Stream extends ResultsProvider
             'phase' => $phase,
             'rows_in' => $withMetrics && $hasInput ? 0 : null,
             'rows_out' => $withMetrics ? 0 : null,
+            'filtered' => null,
             'time_ms' => $withMetrics ? 0.0 : null,
+            'duration_pct' => null,
             'note' => $note,
         ];
     }

@@ -480,6 +480,15 @@ $query->page(2, perPage: 20);
 Use `explain()` to get a plan-only result and `explainAnalyze()` to execute the query and collect real row counts and
 timings. The output is always a flat table (Results\InMemory).
 
+Columns:
+- `phase`
+- `rows_in`
+- `rows_out`
+- `filtered`
+- `time_ms`
+- `duration_pct`
+- `note`
+
 ```php
 $results = $query
     ->from('data.products')
