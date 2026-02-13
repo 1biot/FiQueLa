@@ -339,7 +339,7 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
 - [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
-- [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
+- [x] ~~**Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.~~
 - [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
 - [x] ~~**Tests**: Increase test coverage (80%+).~~
 - [ ] **Tests**: Increase test coverage (90%+).

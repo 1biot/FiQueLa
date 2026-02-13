@@ -117,7 +117,8 @@
       "@example:json",
       "@example:sql",
       "@example:xml",
-      "@example:yaml"
+      "@example:yaml",
+      "@example:explain"
     ]
   }
 }
