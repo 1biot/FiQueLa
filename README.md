@@ -208,6 +208,7 @@ composer example:neon
 composer example:sql
 composer example:xml
 composer example:yaml
+composer example:explain
 ```
 
 Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/runs/12992585648/job/36232767074) or run
@@ -335,18 +336,19 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
 - [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [x] ~~**Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.~~
 - [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
 - [x] ~~**Tests**: Increase test coverage (80%+).~~
-- [ ] **Tests**: Increase test coverage (90%+).
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
-- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
+- [ ] **Tests**: Increase test coverage (90%+).
+- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
+
 
 ## 9. Contributions
 

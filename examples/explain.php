@@ -46,4 +46,3 @@ SQL;
 } catch (\Exception $e) {
     Query\Debugger::echoException($e);
 }
-
