@@ -55,6 +55,7 @@ use FQL\Functions\Utils\RandomBytes;
 use FQL\Functions\Utils\SelectIf;
 use FQL\Functions\Utils\SelectIfNull;
 use FQL\Functions\Utils\SelectIsNull;
+use FQL\Query\Provider;
 use FQL\Query\TestProvider;
 use FQL\Sql\Sql;
 use PHPUnit\Framework\TestCase;
@@ -148,5 +149,31 @@ class SqlTest extends TestCase
             'substr' => ['SELECT SUBSTR(name, 1, 2)', 'SUBSTRING(name, 1, 2)', Substring::class],
             'locate' => ['SELECT LOCATE("foo", name, 2)', 'LOCATE(foo, name, 2)', Locate::class],
         ];
+    }
+
+    public function testExplainParsing(): void
+    {
+        $path = realpath(__DIR__ . '/../../examples/data/products.json');
+        $this->assertNotFalse($path);
+        $sql = sprintf('EXPLAIN SELECT id FROM [json](%s).data.products', $path);
+
+        $rows = iterator_to_array(Provider::fql($sql)->execute()->fetchAll());
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('stream', $rows[0]['phase']);
+        $this->assertNull($rows[0]['rows_out']);
+    }
+
+    public function testExplainAnalyzeParsing(): void
+    {
+        $path = realpath(__DIR__ . '/../../examples/data/products.json');
+        $this->assertNotFalse($path);
+        $sql = sprintf('EXPLAIN ANALYZE SELECT id FROM [json](%s).data.products', $path);
+
+        $rows = iterator_to_array(Provider::fql($sql)->execute()->fetchAll());
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('stream', $rows[0]['phase']);
+        $this->assertSame(5, $rows[0]['rows_out']);
     }
 }

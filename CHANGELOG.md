@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.0]
+
+### Added
+- Added `EXPLAIN` and `EXPLAIN ANALYZE` for FQL and Fluent API, returning flat InMemory results with plan details and metrics.
+
 ## [2.4.2]
 - Increased code coverage to 80%
 
@@ -13,7 +18,7 @@
 
 ### Added
 - Added code coverage report
-- [FiQuela CLI](https://github.com/1biot/fiquela-cli) is part of the main repository now
+- [FiQueLa CLI](https://github.com/1biot/fiquela-cli) is part of the main repository now
 - Added new function `FROM_UNIXTIME` for converting unix timestamp
 - Added variadic math functions: `ADD`, `SUB`, `MULTIPLY`, `DIVIDE` supporting both field references and literal values (strings) in fluent API
 

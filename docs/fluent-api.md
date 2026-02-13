@@ -11,6 +11,7 @@ Fluent API is a way to build queries in a more readable and maintainable way. It
 * _5_ - [Grouping and Aggregations](#vb-aggregations-and-functions)
 * _6_ - [Sorting and Filtering](#vc-sorting-and-filtering)
 * _7_ - [Pagination and Limits](#vd-pagination-and-limits)
+* _8_ - [Explain](#explain)
 
 ## 1. Select and Alias Fields
 
@@ -472,6 +473,40 @@ or you can use the `page()` method to paginate the data in your query results.
 
 ```php
 $query->page(2, perPage: 20);
+```
+
+## Explain
+
+Use `explain()` to get a plan-only result and `explainAnalyze()` to execute the query and collect real row counts and
+timings. The output is always a flat table (Results\InMemory).
+
+Columns:
+- `phase`
+- `rows_in`
+- `rows_out`
+- `filtered`
+- `time_ms`
+- `duration_pct`
+- `note`
+
+```php
+$results = $query
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN, 100)
+    ->orderBy('name')
+    ->limit(10)
+    ->explain()
+    ->execute();
+```
+
+```php
+$results = $query
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN, 100)
+    ->orderBy('name')
+    ->limit(10)
+    ->explainAnalyze()
+    ->execute();
 ```
 
 ## Next steps

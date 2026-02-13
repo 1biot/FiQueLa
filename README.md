@@ -7,9 +7,9 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-80.76%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_530-lightgreen)
-![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1409-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-80.01%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_537-lightgreen)
+![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1478-lightgreen)
 ![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
@@ -208,6 +208,7 @@ composer example:neon
 composer example:sql
 composer example:xml
 composer example:yaml
+composer example:explain
 ```
 
 Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/runs/12992585648/job/36232767074) or run
@@ -335,18 +336,19 @@ to load all data into memory. It may cause memory issues for large datasets. But
 ## 8. Planning Features
 
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
 - [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
-- [ ] **Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.
+- [x] ~~**Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.~~
 - [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
 - [x] ~~**Tests**: Increase test coverage (80%+).~~
-- [ ] **Tests**: Increase test coverage (90%+).
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
-- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 - [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
+- [ ] **Tests**: Increase test coverage (90%+).
+- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
+
 
 ## 9. Contributions
 

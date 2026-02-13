@@ -29,6 +29,7 @@ class Query implements Interface\Query
         distinct as private traitDistinct;
     }
     use Traits\Sortable;
+    use Traits\Explain;
 
     /**
      * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
@@ -73,19 +74,27 @@ class Query implements Interface\Query
             $this->offset
         );
 
-        return match ($resultClass) {
-            Results\InMemory::class => new Results\InMemory(iterator_to_array($streamResult->getIterator())),
-            Results\Stream::class => $streamResult,
-            default => $streamResult->hasJoin() || $streamResult->isSortable()
-                ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
-                : $streamResult
-        };
+        if ($this->explain) {
+            return new Results\InMemory($streamResult->explain($this->explainAnalyze));
+        }
+
+        $resolvedResultClass = $resultClass ?? (
+            $streamResult->hasJoin() || $streamResult->isSortable()
+                ? Results\InMemory::class
+                : Results\Stream::class
+        );
+
+        return $resolvedResultClass === Results\InMemory::class
+            ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
+            : $streamResult;
     }
 
     public function __toString(): string
     {
         $queryParts = [];
 
+        // EXPLAIN
+        $queryParts[] = $this->explainToString();
         // SELECT
         $queryParts[] = $this->selectToString();
         // FROM

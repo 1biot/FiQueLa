@@ -13,6 +13,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _7_ - [Grouping and Aggregations](#7-grouping-and-aggregations)
 * _8_ - [Sorting and Filtering](#8-sorting-and-filtering)
 * _9_ - [Pagination and Limits](#9-pagination-and-limits)
+* _10_ - [Explain](#10-explain)
 
 ## 1. Interpreted FQL
 
@@ -512,6 +513,46 @@ SELECT
 FROM [jsonFile](./examples/data/products.tmp).data.products
 LIMIT 10
 OFFSET 5
+```
+
+## 10. Explain
+
+Use `EXPLAIN` to get a flat, human-friendly execution plan. Use `EXPLAIN ANALYZE` to execute the query and collect
+real row counts and timings. The result is always a simple table and suitable for display.
+
+Columns:
+- `phase`
+- `rows_in`
+- `rows_out`
+- `filtered`
+- `time_ms`
+- `duration_pct`
+- `note`
+
+**Example:**
+
+```sql
+EXPLAIN
+SELECT
+    id,
+    name
+FROM [json](./examples/data/products.tmp).data.products
+WHERE price > 100
+ORDER BY name DESC
+LIMIT 10
+```
+
+**Example with analysis:**
+
+```sql
+EXPLAIN ANALYZE
+SELECT
+    id,
+    name
+FROM [json](./examples/data/products.tmp).data.products
+WHERE price > 100
+ORDER BY name DESC
+LIMIT 10
 ```
 
 ## Next steps
