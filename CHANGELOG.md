@@ -1,25 +1,18 @@
 # Changelog
 
-<<<<<<< Updated upstream
 ## [2.6.0]
 
 ### Added
 - Added `INTO` statement with `WITH` settings to export query results (json, ndjson, csv, xml, yaml, neon), including basePath validation.
 
 ## [2.5.0]
-=======
-## [2.4.2]
->>>>>>> Stashed changes
 
 ### Added
 - Added `EXPLAIN` and `EXPLAIN ANALYZE` for FQL and Fluent API, returning flat InMemory results with plan details and metrics.
 
-<<<<<<< Updated upstream
 ## [2.4.2]
 - Increased code coverage to 80%
 
-=======
->>>>>>> Stashed changes
 ## [2.4.1]
 
 ### Fixed

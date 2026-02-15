@@ -241,13 +241,8 @@ class Debugger
     public static function highlightSQL(string $sql): string
     {
         $keywords = [
-<<<<<<< Updated upstream
             'EXPLAIN', 'ANALYZE', 'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
             'EXCLUDE', 'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
-=======
-            'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT', 'EXCLUDE',
-            'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR', 'EXPLAIN', 'ANALYZE',
->>>>>>> Stashed changes
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
             'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
         ];

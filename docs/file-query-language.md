@@ -14,10 +14,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _8_ - [Sorting and Filtering](#8-sorting-and-filtering)
 * _9_ - [Pagination and Limits](#9-pagination-and-limits)
 * _10_ - [Explain](#10-explain)
-<<<<<<< Updated upstream
 * _11_ - [INTO (Export)](#11-into-export)
-=======
->>>>>>> Stashed changes
 
 ## 1. Interpreted FQL
 
@@ -528,13 +525,9 @@ Columns:
 - `phase`
 - `rows_in`
 - `rows_out`
-<<<<<<< Updated upstream
 - `filtered`
 - `time_ms`
 - `duration_pct`
-=======
-- `time_ms`
->>>>>>> Stashed changes
 - `note`
 
 **Example:**
@@ -563,7 +556,6 @@ ORDER BY name DESC
 LIMIT 10
 ```
 
-<<<<<<< Updated upstream
 ## 11. INTO (Export)
 
 Use `INTO` to export query results into a file. The format is detected from the file extension, or can be forced via
@@ -593,8 +585,6 @@ WITH (
 
 For full list of formats and settings see [Fetching Data](fetching-data.md).
 
-=======
->>>>>>> Stashed changes
 ## Next steps
 - [Opening Files](opening-files.md)
 - [Fluent API](fluent-api.md)
