@@ -10,6 +10,7 @@ $results = $query->execute();
 
 - [Results provider](#results-provider)
 - [Results methods](#results-methods)
+- [Exporting with INTO](#exporting-with-into)
 - [Mapping - Data Transfer Objects](#mapping---data-transfer-objects)
 
 ## Results provider
@@ -124,6 +125,76 @@ Method to get minimum value.
 ```php
 $min = $results->min('total_price');
 ```
+
+## Exporting with INTO
+
+You can export data using the SQL-like `INTO` statement or directly from a `Results\Stream` instance.
+
+```sql
+SELECT id, name, price
+FROM [json](./examples/data/products.tmp).data.products
+WHERE price > 10
+INTO "exports/products.json";
+```
+
+`WITH (...)` lets you configure the writer:
+
+```sql
+SELECT id, name, price
+FROM [json](./examples/data/products.tmp).data.products
+INTO "exports/products.ndjson"
+WITH (
+  format = "ndjson",
+  unescaped_unicode = true
+);
+```
+
+You can also export from the results object (stream mode):
+
+```php
+use FQL\Results;
+
+$results = $query->execute(Results\Stream::class);
+$results->into('exports/products.csv', [
+    'format' => 'csv',
+    'header' => true,
+    'delimiter' => ';',
+    'encoding' => 'utf-8',
+]);
+```
+
+### Supported formats and settings
+
+`json`
+- `pretty` (bool)
+- `unescaped_slashes` (bool)
+- `unescaped_unicode` (bool)
+- `depth` (int)
+
+`ndjson`
+- `unescaped_slashes` (bool)
+- `unescaped_unicode` (bool)
+- `depth` (int)
+
+`csv`
+- `delimiter` (string)
+- `header` (bool)
+- `encoding` (string)
+
+`xml`
+- `root` (string)
+- `item` (string)
+- `encoding` (string)
+- `pretty` (bool)
+
+`yaml`
+- `indent` (int)
+- `inline` (int)
+- `flags` (int)
+
+`neon`
+- `block` (bool)
+- `indent` (int|string)
 
 ## Mapping - Data Transfer Objects
 

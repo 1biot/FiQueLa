@@ -7,7 +7,7 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-80.01%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-80.36%25-yellow)
 ![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_537-lightgreen)
 ![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1478-lightgreen)
 ![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
@@ -342,8 +342,8 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
 - [x] ~~**Tests**: Increase test coverage (80%+).~~
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
-- [ ] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ - Instead of this, it will comes support
-for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.
+- [x] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ ~~- Instead of this, it will comes support
+for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.~~
 - [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
 - [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage (90%+).

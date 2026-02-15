@@ -14,6 +14,12 @@ interface Stream
     public static function string(string $data): self;
 
     /**
+     * @param StreamProviderArrayIterator $data
+     * @param array<string, mixed> $settings
+     */
+    public static function write(string $fileName, \Traversable $data, array $settings = []): void;
+
+    /**
      * @param string|null $query
      * @return StreamProviderArrayIterator
      */

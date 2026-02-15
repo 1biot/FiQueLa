@@ -5,6 +5,9 @@ namespace FQL\Stream;
 use FQL\Exception;
 use FQL\Interface;
 
+/**
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
+ */
 final class Json extends ArrayStreamProvider
 {
     /**
@@ -54,5 +57,60 @@ final class Json extends ArrayStreamProvider
     public function provideSource(): string
     {
         return '[json](memory)';
+    }
+
+    /**
+     * @param StreamProviderArrayIterator $data
+     * @param array<string, mixed> $settings
+     * @throws Exception\UnexpectedValueException
+     * @throws Exception\UnableOpenFileException
+     */
+    public static function write(string $fileName, \Traversable $data, array $settings = []): void
+    {
+        self::assertAllowedSettings(
+            $settings,
+            ['pretty', 'unescaped_slashes', 'unescaped_unicode', 'depth'],
+            'JSON'
+        );
+
+        $depth = isset($settings['depth']) ? (int) $settings['depth'] : 512;
+        if ($depth <= 0) {
+            throw new Exception\UnexpectedValueException('JSON depth must be greater than 0');
+        }
+
+        $options = 0;
+        if (!empty($settings['pretty'])) {
+            $options |= JSON_PRETTY_PRINT;
+        }
+        if (!empty($settings['unescaped_slashes'])) {
+            $options |= JSON_UNESCAPED_SLASHES;
+        }
+        if (!empty($settings['unescaped_unicode'])) {
+            $options |= JSON_UNESCAPED_UNICODE;
+        }
+
+        $handle = fopen($fileName, 'wb');
+        if ($handle === false) {
+            throw new Exception\UnableOpenFileException(sprintf('Unable to open file: %s', $fileName));
+        }
+
+        $first = true;
+        fwrite($handle, '[');
+        foreach ($data as $item) {
+            $encoded = json_encode($item, $options, $depth);
+            if ($encoded === false) {
+                fclose($handle);
+                throw new Exception\UnexpectedValueException('JSON encode error: ' . json_last_error_msg());
+            }
+
+            if (!$first) {
+                fwrite($handle, ',');
+            }
+
+            fwrite($handle, $encoded);
+            $first = false;
+        }
+        fwrite($handle, ']');
+        fclose($handle);
     }
 }

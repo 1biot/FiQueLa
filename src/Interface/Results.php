@@ -41,4 +41,9 @@ interface Results extends \Countable
     public function min(string $key): float;
 
     public function max(string $key): float;
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    public function into(string $fileName, array $settings = []): void;
 }

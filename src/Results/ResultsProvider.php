@@ -2,12 +2,15 @@
 
 namespace FQL\Results;
 
+use FQL\Enum;
 use FQL\Exception\InvalidArgumentException;
-use FQL\Functions;
+use FQL\Exception\UnableOpenFileException;
+use FQL\Exception\UnexpectedValueException;
 use FQL\Interface\Results;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
+ * @phpstan-import-type StreamProviderArrayIterator from Stream
  * @phpstan-import-type StreamProviderArrayIteratorValue from Stream
  * @implements \IteratorAggregate<StreamProviderArrayIteratorValue>
  */
@@ -133,6 +136,74 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         }
 
         return $max;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @throws UnexpectedValueException
+     * @throws UnableOpenFileException
+     */
+    public function into(string $fileName, array $settings = []): void
+    {
+        $normalizedSettings = $this->normalizeIntoSettings($settings);
+        $format = $normalizedSettings['format'] ?? $this->detectIntoFormat($fileName);
+        $format = strtolower((string) $format);
+        unset($normalizedSettings['format']);
+
+        if ($format === 'yml') {
+            $format = 'yaml';
+        }
+
+        $this->ensureIntoDirectoryExists($fileName);
+
+        $formatEnum = Enum\Format::fromExtension($format);
+        $providerClass = $formatEnum->getFormatProviderClass();
+        $providerClass::write($fileName, $this->getIterator(), $normalizedSettings);
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function normalizeIntoSettings(array $settings): array
+    {
+        $normalized = [];
+        foreach ($settings as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            $normalized[strtolower($key)] = $value;
+        }
+
+        return $normalized;
+    }
+
+    private function detectIntoFormat(string $fileName): string
+    {
+        $extension = strtolower((string) pathinfo($fileName, PATHINFO_EXTENSION));
+        if ($extension === '') {
+            throw new UnexpectedValueException('INTO requires a format setting or file extension');
+        }
+
+        return $extension;
+    }
+
+    /**
+     * @throws UnableOpenFileException
+     */
+    private function ensureIntoDirectoryExists(string $fileName): void
+    {
+        $directory = dirname($fileName);
+        if ($directory === '' || $directory === '.') {
+            return;
+        }
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new UnableOpenFileException(
+                sprintf('Unable to create directory: %s', $directory)
+            );
+        }
     }
 
     /**

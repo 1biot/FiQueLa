@@ -11,14 +11,7 @@ use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
 use FQL\Interface\Query;
-use FQL\Stream\Csv;
-use FQL\Stream\Json;
-use FQL\Stream\JsonStream;
-use FQL\Stream\Neon;
-use FQL\Stream\Xml;
-use FQL\Stream\Yaml;
 use FQL\Traits;
-use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -83,6 +76,7 @@ class Stream extends ResultsProvider
         yield from $this->buildStream();
     }
 
+
     public function count(): int
     {
         if ($this->innerCounter === null) {
@@ -124,7 +118,11 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @return array<int, ExplainResultArray>
+=======
+     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
+>>>>>>> Stashed changes
      */
     public function explain(bool $analyze = false): array
     {
@@ -147,7 +145,11 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @return array<int, ExplainResultArray>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function buildExplainPlanRows(): array
     {
@@ -177,19 +179,27 @@ class Stream extends ResultsProvider
         }
 
         if ($this->isLimitable()) {
+<<<<<<< Updated upstream
             $rows[] = $this->createExplainRow(
                 'limit',
                 $this->getLimitNote($this->isLimitAppliedInStream()),
                 false,
                 true
             );
+=======
+            $rows[] = $this->createExplainRow('limit', $this->getLimitNote($this->isLimitAppliedInStream()), false, true);
+>>>>>>> Stashed changes
         }
 
         return $rows;
     }
 
     /**
+<<<<<<< Updated upstream
      * @return array<int, ExplainResultArray>
+=======
+     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
+>>>>>>> Stashed changes
      */
     private function buildExplainAnalyzeRows(): array
     {
@@ -287,7 +297,12 @@ class Stream extends ResultsProvider
      */
     private function getJoinNote(array $join): string
     {
+<<<<<<< Updated upstream
         $aliasNote = ' AS ' . $join['alias'];
+=======
+        $alias = $join['alias'] ?? '';
+        $aliasNote = $alias !== '' ? ' AS ' . $alias : '';
+>>>>>>> Stashed changes
         $operator = ($join['operator'] ?? Enum\Operator::EQUAL)->value;
         $leftKey = $join['leftKey'] ?? '';
         $rightKey = $join['rightKey'] ?? '';
@@ -351,6 +366,7 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param array<int, ExplainResultArray> $rows
      * @return array<int, ExplainResultArray>
      */
@@ -375,6 +391,13 @@ class Stream extends ResultsProvider
                 $rows[$index]['duration_pct'] = round($duration, 3);
             }
 
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     */
+    private function finalizeExplainRows(array $rows): array
+    {
+        foreach ($rows as $index => $row) {
+>>>>>>> Stashed changes
             if ($row['time_ms'] !== null) {
                 $rows[$index]['time_ms'] = round((float) $row['time_ms'], 3);
             }
@@ -384,7 +407,11 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @return ExplainResultArray
+=======
+     * @return array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}
+>>>>>>> Stashed changes
      */
     private function createExplainRow(string $phase, string $note, bool $withMetrics, bool $hasInput): array
     {
@@ -392,15 +419,23 @@ class Stream extends ResultsProvider
             'phase' => $phase,
             'rows_in' => $withMetrics && $hasInput ? 0 : null,
             'rows_out' => $withMetrics ? 0 : null,
+<<<<<<< Updated upstream
             'filtered' => null,
             'time_ms' => $withMetrics ? 0.0 : null,
             'duration_pct' => null,
+=======
+            'time_ms' => $withMetrics ? 0.0 : null,
+>>>>>>> Stashed changes
             'note' => $note,
         ];
     }
 
     /**
+<<<<<<< Updated upstream
      * @param array<int, ExplainResultArray> $rows
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function addExplainRow(
         array &$rows,
@@ -414,9 +449,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param array<int, ExplainResultArray> $rows
      * @param int $rowIndex
      * @return \Traversable<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function applyStreamSourceExplain(array &$rows, int $rowIndex): \Traversable
     {
@@ -429,10 +468,15 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $leftData
      * @param array<int, ExplainResultArray> $rows
      * @param JoinAbleArray $join
      * @return \Traversable<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+     * @param JoinAbleArray $join
+>>>>>>> Stashed changes
      */
     private function applyJoinExplain(\Traversable $leftData, array &$rows, int $rowIndex, array $join): \Traversable
     {
@@ -446,9 +490,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @param array<int, ExplainResultArray> $rows
      * @return \Generator<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function applyBaseStreamExplain(
         \Traversable $stream,
@@ -540,9 +588,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @param array<int, ExplainResultArray> $rows
      * @return \Traversable<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function applyGroupingExplain(
         \Traversable $stream,
@@ -693,9 +745,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
      * @param array<int, ExplainResultArray> $rows
      * @return \Traversable<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function applySortingExplain(\Traversable $iterator, array &$rows, int $rowIndex): \Traversable
     {
@@ -737,9 +793,13 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $data
      * @param array<int, ExplainResultArray> $rows
      * @return \Traversable<StreamProviderArrayIteratorValue>
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      */
     private function applyLimitExplain(\Traversable $data, array &$rows, int $rowIndex): \Traversable
     {
@@ -764,8 +824,12 @@ class Stream extends ResultsProvider
     }
 
     /**
+<<<<<<< Updated upstream
      * @param \Traversable<StreamProviderArrayIteratorValue> $input
      * @param array<int, ExplainResultArray> $rows
+=======
+     * @param array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}> $rows
+>>>>>>> Stashed changes
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
     private function wrapInputWithCounter(\Traversable $input, array &$rows, int $rowIndex): \Generator

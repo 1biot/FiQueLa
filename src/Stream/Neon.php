@@ -6,6 +6,9 @@ use FQL\Exception;
 use FQL\Interface;
 use Nette\Neon as NeonProvider;
 
+/**
+ * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
+ */
 class Neon extends ArrayStreamProvider
 {
     /**
@@ -44,5 +47,37 @@ class Neon extends ArrayStreamProvider
     public function provideSource(): string
     {
         return '[neon](memory)';
+    }
+
+    /**
+     * @param StreamProviderArrayIterator $data
+     * @param array<string, mixed> $settings
+     * @throws Exception\UnexpectedValueException
+     * @throws Exception\UnableOpenFileException
+     */
+    public static function write(string $fileName, \Traversable $data, array $settings = []): void
+    {
+        self::assertAllowedSettings(
+            $settings,
+            ['block', 'indent'],
+            'NEON'
+        );
+
+        $block = (bool) ($settings['block'] ?? false);
+        $indent = $settings['indent'] ?? "\t";
+        if (is_int($indent)) {
+            $indent = str_repeat(' ', max(0, $indent));
+        }
+
+        $indentString = (string) $indent;
+        if ($indentString === '') {
+            $indentString = "\t";
+        }
+
+        $dataArray = iterator_to_array($data);
+        $neon = NeonProvider\Neon::encode($dataArray, $block, $indentString);
+        if (file_put_contents($fileName, $neon) === false) {
+            throw new Exception\UnableOpenFileException(sprintf('Unable to open file: %s', $fileName));
+        }
     }
 }
