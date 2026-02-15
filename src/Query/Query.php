@@ -62,25 +62,6 @@ class Query implements Interface\Query
 
     public function execute(?string $resultClass = null): Results\ResultsProvider
     {
-        if ($this->explain) {
-            $streamResult = new Results\Stream(
-                $this->stream,
-                $this->distinct,
-                $this->selectedFields,
-                $this->excludedFields,
-                $this->getFrom(),
-                $this->whereConditions,
-                $this->havingConditions,
-                $this->joins,
-                $this->groupByFields,
-                $this->orderings,
-                $this->limit,
-                $this->offset
-            );
-
-            return new Results\InMemory($streamResult->explain($this->explainAnalyze));
-        }
-
         $streamResult = new Results\Stream(
             $this->stream,
             $this->distinct,

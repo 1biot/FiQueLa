@@ -118,11 +118,7 @@ class Stream extends ResultsProvider
     }
 
     /**
-<<<<<<< Updated upstream
      * @return array<int, ExplainResultArray>
-=======
-     * @return array<int, array{phase: string, rows_in: int|null, rows_out: int|null, time_ms: float|null, note: string}>
->>>>>>> Stashed changes
      */
     public function explain(bool $analyze = false): array
     {

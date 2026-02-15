@@ -8,7 +8,7 @@ use League\Csv\CharsetConverter;
 use League\Csv\Writer;
 
 /**
- * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
+ * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
  */
 class Csv extends CsvProvider
 {
@@ -41,7 +41,7 @@ class Csv extends CsvProvider
     }
 
     /**
-     * @param StreamProviderArrayIterator $data
+     * @param \Traversable<StreamProviderArrayIteratorValue> $data
      * @param array<string, mixed> $settings
      * @throws Exception\UnexpectedValueException
      * @throws Exception\UnableOpenFileException
