@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.6.0]
+
+### Added
+- Added `INTO` statement with `WITH` settings to export query results (json, ndjson, csv, xml, yaml, neon), including basePath validation.
+
 ## [2.5.0]
 
 ### Added

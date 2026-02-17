@@ -14,6 +14,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _8_ - [Sorting and Filtering](#8-sorting-and-filtering)
 * _9_ - [Pagination and Limits](#9-pagination-and-limits)
 * _10_ - [Explain](#10-explain)
+* _11_ - [INTO (Export)](#11-into-export)
 
 ## 1. Interpreted FQL
 
@@ -554,6 +555,35 @@ WHERE price > 100
 ORDER BY name DESC
 LIMIT 10
 ```
+
+## 11. INTO (Export)
+
+Use `INTO` to export query results into a file. The format is detected from the file extension, or can be forced via
+`WITH (format = "...")`. Settings are passed as key/value pairs in the `WITH (...)` clause.
+
+```sql
+SELECT id, name, price
+FROM [json](./examples/data/products.tmp).data.products
+WHERE price > 10
+ORDER BY price DESC
+INTO "exports/products.json";
+```
+
+With settings:
+
+```sql
+SELECT id, name, price
+FROM [json](./examples/data/products.tmp).data.products
+INTO "exports/products.csv"
+WITH (
+  format = "csv",
+  header = true,
+  delimiter = ";",
+  encoding = "utf-8"
+);
+```
+
+For full list of formats and settings see [Fetching Data](fetching-data.md).
 
 ## Next steps
 - [Opening Files](opening-files.md)

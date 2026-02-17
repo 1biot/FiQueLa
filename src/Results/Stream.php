@@ -11,14 +11,7 @@ use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
 use FQL\Interface\Query;
-use FQL\Stream\Csv;
-use FQL\Stream\Json;
-use FQL\Stream\JsonStream;
-use FQL\Stream\Neon;
-use FQL\Stream\Xml;
-use FQL\Stream\Yaml;
 use FQL\Traits;
-use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -82,6 +75,7 @@ class Stream extends ResultsProvider
     {
         yield from $this->buildStream();
     }
+
 
     public function count(): int
     {

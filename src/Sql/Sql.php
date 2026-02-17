@@ -8,9 +8,15 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface;
 use FQL\Query;
+use FQL\Results;
 
 class Sql extends SqlLexer implements Interface\Parser
 {
+    private ?string $intoFileName = null;
+
+    /** @var array<string, mixed> */
+    private array $intoSettings = [];
+
     public function __construct(private readonly string $sql, private ?string $basePath = null)
     {
         $this->tokenize($this->sql);
@@ -22,7 +28,21 @@ class Sql extends SqlLexer implements Interface\Parser
      */
     public function parse(): Interface\Results
     {
-        return $this->toQuery()->execute();
+        $query = $this->toQuery();
+        $results = $query->execute($this->intoFileName !== null ? Results\Stream::class : null);
+
+        if ($this->intoFileName !== null) {
+            if (!$results instanceof Results\Stream) {
+                throw new Exception\UnexpectedValueException('INTO is not supported for this query type');
+            }
+
+            $results->into(
+                $this->resolveIntoFilePath($this->intoFileName),
+                $this->intoSettings
+            );
+        }
+
+        return $results;
     }
 
     /**
@@ -141,6 +161,31 @@ class Sql extends SqlLexer implements Interface\Parser
                     $limit = (int) $this->nextToken();
                     $offset = $this->nextToken();
                     $query->limit($limit, $offset === '' ? null : (int) $offset);
+                    break;
+
+                case 'INTO':
+                    if ($this->intoFileName !== null) {
+                        throw new Exception\UnexpectedValueException('INTO can be defined only once');
+                    }
+
+                    $fileName = $this->nextToken();
+                    if ($fileName === '') {
+                        throw new Exception\UnexpectedValueException('Missing INTO file name');
+                    }
+
+                    $this->intoFileName = $this->normalizeIntoFileName($fileName);
+                    if (strtoupper($this->peekToken()) === 'WITH') {
+                        $this->nextToken();
+                        $this->intoSettings = $this->parseIntoSettings();
+                    }
+                    break;
+
+                case 'WITH':
+                    if ($this->intoFileName === null) {
+                        throw new Exception\UnexpectedValueException('WITH is only allowed after INTO');
+                    }
+
+                    $this->intoSettings = $this->parseIntoSettings();
                     break;
 
                 default:
@@ -521,6 +566,121 @@ class Sql extends SqlLexer implements Interface\Parser
         } catch (\ValueError) {
             throw new Exception\QueryLogicException(sprintf('Unsupported CAST type: %s', $typeString));
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseIntoSettings(): array
+    {
+        $this->expect('(');
+
+        $settings = [];
+        while (!$this->isEOF() && $this->peekToken() !== ')') {
+            $token = $this->nextToken();
+            if ($token === ',') {
+                continue;
+            }
+
+            if ($token === '') {
+                throw new Exception\UnexpectedValueException('Unexpected INTO settings token');
+            }
+
+            $key = $token;
+            if ($this->peekToken() !== '=') {
+                throw new Exception\UnexpectedValueException('Expected "=" in INTO settings');
+            }
+            $this->nextToken();
+
+            $valueToken = $this->nextToken();
+            if ($valueToken === '') {
+                throw new Exception\UnexpectedValueException('Missing value in INTO settings');
+            }
+
+            $settings[$key] = Enum\Type::matchByString($valueToken);
+        }
+
+        $this->expect(')');
+        return $settings;
+    }
+
+    private function normalizeIntoFileName(string $fileName): string
+    {
+        $fileName = rtrim(trim($fileName), ';');
+        if ($this->isQuoted($fileName) || $this->isBacktick($fileName)) {
+            $fileName = $this->removeQuotes($fileName);
+        }
+
+        return $fileName;
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     */
+    private function resolveIntoFilePath(string $fileName): string
+    {
+        $fileName = $this->normalizeIntoFileName($fileName);
+        if ($this->basePath === null) {
+            return $fileName;
+        }
+
+        $basePathRealPath = realpath($this->basePath);
+        if ($basePathRealPath === false) {
+            throw new Exception\InvalidFormatException('Invalid base path');
+        }
+
+        $candidate = $this->isAbsolutePath($fileName)
+            ? $fileName
+            : $basePathRealPath . DIRECTORY_SEPARATOR . $fileName;
+
+        $normalized = $this->normalizePath($candidate);
+        $basePathNormalized = rtrim($this->normalizePath($basePathRealPath), DIRECTORY_SEPARATOR);
+
+        if (
+            $normalized !== $basePathNormalized
+            && !str_starts_with($normalized, $basePathNormalized . DIRECTORY_SEPARATOR)
+        ) {
+            throw new Exception\InvalidFormatException('Invalid path of file');
+        }
+
+        return $normalized;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if ($path === '') {
+            return false;
+        }
+
+        if ($path[0] === '/' || $path[0] === '\\') {
+            return true;
+        }
+
+        return (bool) preg_match('/^[A-Za-z]:[\\/]/', $path);
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+        $isAbsolute = str_starts_with($path, '/');
+        $segments = array_filter(explode('/', $path), fn ($segment) => $segment !== '');
+
+        $resolved = [];
+        foreach ($segments as $segment) {
+            if ($segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($resolved);
+                continue;
+            }
+
+            $resolved[] = $segment;
+        }
+
+        $normalized = ($isAbsolute ? '/' : '') . implode('/', $resolved);
+        return $normalized === '' ? ($isAbsolute ? '/' : '.') : $normalized;
     }
 
     public function getBasePath(): ?string

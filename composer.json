@@ -9,6 +9,7 @@
     "ext-json": "*",
     "ext-mbstring": "*",
     "ext-xmlreader": "*",
+    "ext-xmlwriter": "*",
     "ext-simplexml": "*",
     "ext-libxml": "*",
     "ext-readline": "*",
