@@ -31,9 +31,6 @@ class Query implements Interface\Query
     use Traits\Sortable;
     use Traits\Explain;
 
-    private bool $explain = false;
-    private bool $explainAnalyze = false;
-
     /**
      * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
      */
@@ -90,20 +87,6 @@ class Query implements Interface\Query
         return $resolvedResultClass === Results\InMemory::class
             ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
             : $streamResult;
-    }
-
-    public function explain(): Interface\Query
-    {
-        $this->explain = true;
-        $this->explainAnalyze = false;
-        return $this;
-    }
-
-    public function explainAnalyze(): Interface\Query
-    {
-        $this->explain = true;
-        $this->explainAnalyze = true;
-        return $this;
     }
 
     public function __toString(): string
