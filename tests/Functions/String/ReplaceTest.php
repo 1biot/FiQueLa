@@ -40,4 +40,17 @@ class ReplaceTest extends TestCase
         $result = $replace([], []);
         $this->assertEquals('HTML Tutorial', $result);
     }
+
+    public function testFieldIsArray(): void
+    {
+        $replace = new Replace('field', 'SQL', 'HTML');
+        $result = $replace(['field' => ['SQL is the best.', 'SQL is better than PHP.']], []);
+        $this->assertEquals(
+            [
+                'HTML is the best.',
+                'HTML is better than PHP.'
+            ],
+            $result
+        );
+    }
 }

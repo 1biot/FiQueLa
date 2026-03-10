@@ -333,6 +333,11 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\ArrayFilter($field));
     }
 
+    public function arraySearch(string $field, string $value): Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\ArraySearch($field, $value));
+    }
+
     public function cast(string $field, Enum\Type $as): Interface\Query
     {
         return $this->addFieldFunction(new Functions\Utils\Cast($field, $as));

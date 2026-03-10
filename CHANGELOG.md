@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.1] - Unreleased
+
+### Added
+- new method `ARRAY_SEARCH`
+
+### Fixed
+- method `REPLACE` now could replace values for array accessor
+- `IN` operator knows list of values by array accessor - not done yet
+
 ## [2.5.0]
 
 ### Added

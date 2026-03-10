@@ -12,6 +12,7 @@ use FQL\Traits\Helpers;
 class SimpleCondition extends Condition
 {
     use Helpers\EnhancedNestedArrayAccessor;
+    use Helpers\StringOperations;
 
     /**
      * @param ConditionValue $value
@@ -31,8 +32,12 @@ class SimpleCondition extends Condition
     public function evaluate(array $item, bool $nestingValues): bool
     {
         $value = $nestingValues
-            ? $this->accessNestedValue($item, $this->field, false)
-            : ($item[$this->field] ?? $this->field);
+            ? (
+                $this->accessNestedValue($item, $this->field, false)
+                    ?? ($this->isQuoted($this->field)
+                        ? $this->removeQuotes($this->field)
+                        : null)
+            ) : ($item[$this->field] ?? $this->field);
 
         $compareValue = $this->value;
         if (is_scalar($this->value)) {
