@@ -69,10 +69,12 @@ enum Operator: string
                 array_map(
                     function ($value) {
                         return is_string($value)
-                            ? sprintf('"%s"', $value)
-                            : $value;
+                            ? ($this->hasSquareBracketsString($value)
+                                ? $value
+                                : sprintf('"%s"', $value)
+                            ) : $value;
                     },
-                    $right
+                    is_string($right) ? [$right] : $right
                 )
             )),
             self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
