@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.6.0]
+
+### Added
+- Added new API client layer in `src/Client` based on native cURL transport (`FiQueLaClient`, DTOs, typed exceptions, transport abstraction).
+- Added dual CLI execution modes: local filesystem mode and API mode (`--connect`, `--server`, `--user`, `--password`).
+- Added credentials/session management in `~/.fql`:
+  - `auth.json` for multiserver credentials (permission check `0600`),
+  - `sessions.json` for JWT session tokens (permission check `0600`).
+- Added API history integration for interactive mode (`~/.fql/history-api`) and local history file migration to `~/.fql/history`.
+- Added quote-aware query splitting for semicolon handling inside strings (e.g. CSV delimiter `";"`).
+- Added extensive test coverage for new CLI/API components (command, repl, pager, history manager, local executor, curl transport).
+
+### Changed
+- Refactored CLI from monolithic `bin/fiquela-cli` implementation into structured classes under `src/Cli`.
+- Updated non-interactive CLI output to always emit compact JSON.
+- Updated API non-interactive execution to auto-export full result sets when API response is paginated.
+- Improved interactive header to show detailed runtime mode context (LOCAL/API, file/server info).
+- Removed `guzzlehttp/guzzle` dependency; API communication now uses only native cURL.
+
+### Fixed
+- Fixed directory stream warnings for restricted/unreadable entries (mime_content_type / md5_file now handled safely).
+- Fixed permission test instability in CI environments by hardening chmod/stat cache handling.
+
 ## [2.5.0]
 
 ### Added
