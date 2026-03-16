@@ -8,6 +8,7 @@ class ServerConfig
         public readonly string $name,
         public readonly string $url,
         public readonly string $user,
+        #[\SensitiveParameter]
         public readonly string $secret
     ) {
     }

@@ -49,7 +49,7 @@ class FiQueLaClient
     // Auth
     // -------------------------------------------------------
 
-    public function login(string $user, string $secret): AuthToken
+    public function login(string $user, #[\SensitiveParameter] string $secret): AuthToken
     {
         $response = $this->request('POST', '/api/auth/login', [
             'username' => $user,
@@ -59,7 +59,7 @@ class FiQueLaClient
         return AuthToken::fromArray($response->json());
     }
 
-    public function revoke(string $user, string $secret): AuthToken
+    public function revoke(string $user, #[\SensitiveParameter] string $secret): AuthToken
     {
         $response = $this->request('POST', '/api/auth/revoke', [
             'username' => $user,
