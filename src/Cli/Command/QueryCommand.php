@@ -61,7 +61,15 @@ class QueryCommand extends Command
         }
 
         $isApiMode = (bool) $input->getOption('connect');
-        $query = $input->getArgument('query') ?? '';
+        $queryArgument = $input->getArgument('query');
+        $query = is_string($queryArgument) ? $queryArgument : '';
+
+        if ($query === '') {
+            $stdinQuery = $this->readQueryFromStdinIfPiped();
+            if ($stdinQuery !== null) {
+                $query = $stdinQuery;
+            }
+        }
 
         try {
             $executor = $isApiMode
@@ -106,6 +114,29 @@ class QueryCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    private function readQueryFromStdinIfPiped(): ?string
+    {
+        if (!defined('STDIN')) {
+            return null;
+        }
+
+        if (function_exists('stream_isatty') && @stream_isatty(STDIN)) {
+            return null;
+        }
+
+        $content = stream_get_contents(STDIN);
+        if ($content === false) {
+            return null;
+        }
+
+        $query = trim($content);
+        if ($query === '') {
+            return null;
+        }
+
+        return $query;
     }
 
     /**

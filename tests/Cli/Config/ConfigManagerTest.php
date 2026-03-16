@@ -59,11 +59,24 @@ class ConfigManagerTest extends TestCase
         file_put_contents($authFile, '[]');
 
         // Set correct permissions
-        chmod($authFile, 0600);
+        $this->assertTrue(chmod($authFile, 0600));
+        clearstatcache(true, $authFile);
         $this->assertTrue($this->manager->validateAuthFilePermissions());
 
         // Set incorrect permissions
-        chmod($authFile, 0644);
+        $this->assertTrue(chmod($authFile, 0644));
+        clearstatcache(true, $authFile);
+
+        $perms = fileperms($authFile);
+        if ($perms === false) {
+            $this->markTestSkipped('Unable to read file permissions in this environment.');
+        }
+
+        $actualPerms = $perms & 0777;
+        if ($actualPerms === 0600) {
+            $this->markTestSkipped('Filesystem does not apply chmod(0644) reliably in this environment.');
+        }
+
         $this->assertFalse($this->manager->validateAuthFilePermissions());
     }
 

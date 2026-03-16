@@ -59,6 +59,8 @@ class ConfigManager
             return false;
         }
 
+        clearstatcache(true, $this->authFile);
+
         $perms = fileperms($this->authFile);
         if ($perms === false) {
             return false;
