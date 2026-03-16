@@ -9,18 +9,20 @@ class ApiQueryExecutor implements QueryExecutorInterface
 {
     private FiQueLaClient $client;
     private string $serverName;
+    private ?string $file;
 
-    public function __construct(FiQueLaClient $client, string $serverName = '')
+    public function __construct(FiQueLaClient $client, string $serverName = '', ?string $file = null)
     {
         $this->client = $client;
         $this->serverName = $serverName;
+        $this->file = $file;
     }
 
     public function execute(string $query, ?int $page = null, ?int $itemsPerPage = null): QueryResult
     {
         $apiResult = $this->client->query(
             $query,
-            null,
+            $this->file,
             $itemsPerPage,
             $page
         );
@@ -31,7 +33,7 @@ class ApiQueryExecutor implements QueryExecutorInterface
     public function executeAll(string $query): QueryResult
     {
         // First execute to get the hash and check pagination
-        $apiResult = $this->client->query($query, null, 1000, 1);
+        $apiResult = $this->client->query($query, $this->file, 1000, 1);
 
         if ($apiResult->pagination->hasMultiplePages()) {
             // Export full results via export endpoint
@@ -65,6 +67,11 @@ class ApiQueryExecutor implements QueryExecutorInterface
     public function getClient(): FiQueLaClient
     {
         return $this->client;
+    }
+
+    public function getFile(): ?string
+    {
+        return $this->file;
     }
 
     private function toQueryResult(ApiQueryResult $apiResult): QueryResult

@@ -31,6 +31,11 @@ class ApiQueryExecutorTest extends TestCase
         $this->assertEquals('test-server', $this->executor->getServerName());
     }
 
+    public function testGetFileDefaultNull(): void
+    {
+        $this->assertNull($this->executor->getFile());
+    }
+
     public function testExecute(): void
     {
         $this->transport->addResponse(new Response(200, [], json_encode([
@@ -160,5 +165,57 @@ class ApiQueryExecutorTest extends TestCase
         $result = $this->executor->execute('SELECT *');
 
         $this->assertEquals(1.5, $result->elapsed); // 1500ms = 1.5s
+    }
+
+    public function testExecuteSendsFileWhenConfigured(): void
+    {
+        $executor = new ApiQueryExecutor($this->client, 'test-server', 'users.csv');
+
+        $this->transport->addResponse(new Response(200, [], json_encode([
+            'query' => 'SELECT * FROM *',
+            'file' => 'users.csv',
+            'hash' => 'abc',
+            'data' => [['id' => 1]],
+            'elapsed' => 10.0,
+            'pagination' => [
+                'page' => 1,
+                'pageCount' => 1,
+                'itemCount' => 1,
+                'itemsPerPage' => 1000,
+                'offset' => 0,
+            ],
+        ])));
+
+        $executor->execute('SELECT * FROM *');
+
+        $request = $this->transport->getLastRequest();
+        $body = json_decode((string) $request['body'], true);
+        $this->assertEquals('users.csv', $body['file']);
+    }
+
+    public function testExecuteAllSendsFileWhenConfigured(): void
+    {
+        $executor = new ApiQueryExecutor($this->client, 'test-server', 'users.csv');
+
+        $this->transport->addResponse(new Response(200, [], json_encode([
+            'query' => 'SELECT * FROM *',
+            'file' => 'users.csv',
+            'hash' => 'abc',
+            'data' => [['id' => 1]],
+            'elapsed' => 10.0,
+            'pagination' => [
+                'page' => 1,
+                'pageCount' => 1,
+                'itemCount' => 1,
+                'itemsPerPage' => 1000,
+                'offset' => 0,
+            ],
+        ])));
+
+        $executor->executeAll('SELECT * FROM *');
+
+        $request = $this->transport->getLastRequest();
+        $body = json_decode((string) $request['body'], true);
+        $this->assertEquals('users.csv', $body['file']);
     }
 }

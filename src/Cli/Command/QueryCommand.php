@@ -183,6 +183,8 @@ class QueryCommand extends Command
         $serverName = $input->getOption('server');
         $user = $input->getOption('user');
         $password = $input->getOption('password');
+        $file = $input->getOption('file');
+        $apiFile = is_string($file) && $file !== '' ? $file : null;
 
         // Try to load from auth.json
         $serverConfig = null;
@@ -260,7 +262,7 @@ class QueryCommand extends Command
             $existingToken = $this->sessionManager->getToken($serverConfig->url);
             if ($existingToken !== null) {
                 $client->setToken($existingToken->token);
-                return new ApiQueryExecutor($client, $serverConfig->name);
+                return new ApiQueryExecutor($client, $serverConfig->name, $apiFile);
             }
         }
 
@@ -272,7 +274,7 @@ class QueryCommand extends Command
             // Save token to session
             $this->sessionManager->saveToken($serverConfig->url, $authToken);
 
-            return new ApiQueryExecutor($client, $serverConfig->name);
+            return new ApiQueryExecutor($client, $serverConfig->name, $apiFile);
         } catch (AuthenticationException $e) {
             $output->writeln(sprintf('<error>Authentication failed: %s</error>', $e->getMessage()));
             return null;
