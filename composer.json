@@ -12,13 +12,13 @@
     "ext-simplexml": "*",
     "ext-libxml": "*",
     "ext-readline": "*",
+    "ext-curl": "*",
     "symfony/console": "^8.0",
     "phpoffice/phpspreadsheet": "^5.4",
     "halaxa/json-machine": "^1.2",
     "league/csv": "^9.28",
     "symfony/yaml": "^8.0",
     "nette/neon": "^3.4",
-    "guzzlehttp/guzzle": "^7.10",
     "nette/utils": "^4.1"
   },
   "bin": ["bin/fiquela-cli"],
@@ -33,6 +33,11 @@
   "autoload": {
     "psr-4": {
       "FQL\\": "./src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "": "./tests/"
     }
   },
   "scripts": {
