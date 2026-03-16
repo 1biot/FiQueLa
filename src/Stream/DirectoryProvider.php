@@ -32,10 +32,15 @@ abstract class DirectoryProvider extends AbstractStream
                 continue;
             }
 
+            $realPath = $file->getRealPath();
+            $realPathString = is_string($realPath) ? $realPath : null;
+            $isDir = $file->isDir();
+            $isFile = $file->isFile();
+
             yield [
                 'name' => $file->getBasename(),
                 'path' => $file->getPath(),
-                'realpath' => $file->getRealPath(),
+                'realpath' => $realPathString,
                 'size_B' => $file->getSize(),
                 'size_KB' => round($file->getSize() / 1024, 2),
                 'size_MB' => round($file->getSize() / 1024 / 1024, 2),
@@ -50,10 +55,10 @@ abstract class DirectoryProvider extends AbstractStream
                 'group' => function_exists('posix_getgrgid')
                     ? (posix_getgrgid($file->getGroup())['name'] ?? $file->getGroup())
                     : $file->getGroup(),
-                'is_dir' => $file->isDir(),
+                'is_dir' => $isDir,
                 'is_link' => $file->isLink(),
-                'mime_type' => mime_content_type($file->getRealPath()),
-                'hash_md5' => $file->isDir() ? null : md5_file($file->getRealPath()),
+                'mime_type' => $this->resolveMimeType($realPathString, $isFile),
+                'hash_md5' => $this->resolveMd5($realPathString, $isFile),
             ];
         }
     }
@@ -86,5 +91,27 @@ abstract class DirectoryProvider extends AbstractStream
         $info .= ($perms & 0x0001) ? (($perms & 0x0200) ? 't' : 'x') : (($perms & 0x0200) ? 'T' : '-');
 
         return $info;
+    }
+
+    private function resolveMimeType(?string $realPath, bool $isFile): ?string
+    {
+        if (!$isFile || $realPath === null || !is_readable($realPath)) {
+            return null;
+        }
+
+        $mime = @mime_content_type($realPath);
+
+        return is_string($mime) ? $mime : null;
+    }
+
+    private function resolveMd5(?string $realPath, bool $isFile): ?string
+    {
+        if (!$isFile || $realPath === null || !is_readable($realPath)) {
+            return null;
+        }
+
+        $hash = @md5_file($realPath);
+
+        return is_string($hash) ? $hash : null;
     }
 }

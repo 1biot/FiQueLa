@@ -19,6 +19,10 @@
 - Improved interactive header to show detailed runtime mode context (LOCAL/API, file/server info).
 - Removed `guzzlehttp/guzzle` dependency; API communication now uses only native cURL.
 
+### Fixed
+- Fixed directory stream warnings for restricted/unreadable entries (mime_content_type / md5_file now handled safely).
+- Fixed permission test instability in CI environments by hardening chmod/stat cache handling.
+
 ## [2.5.0]
 
 ### Added
