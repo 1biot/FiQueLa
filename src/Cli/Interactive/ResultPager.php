@@ -38,11 +38,7 @@ class ResultPager
 
         // Show highlighted query
         $sqlSection->writeln('');
-        if ($executor instanceof \FQL\Cli\Query\LocalQueryExecutor) {
-            $sqlSection->writeln($executor->highlightQuery($query));
-        } else {
-            $sqlSection->writeln($query);
-        }
+        $sqlSection->writeln($executor->highlightQuery($query));
         $sqlSection->writeln('');
 
         $tableSection->writeln('Loading...');

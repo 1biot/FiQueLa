@@ -110,8 +110,7 @@ class LocalQueryExecutor implements QueryExecutorInterface
     public function highlightQuery(string $query): string
     {
         try {
-            $queryObj = $this->provideQuery($query);
-            return Debugger::highlightSQL((string) $queryObj);
+            return Debugger::highlightSQL($query);
         } catch (\Exception) {
             return $query;
         }

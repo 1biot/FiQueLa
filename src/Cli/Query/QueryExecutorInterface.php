@@ -27,4 +27,9 @@ interface QueryExecutorInterface
      * Get mode name for display in header.
      */
     public function getModeName(): string;
+
+    /**
+     * Highlight query for interactive display.
+     */
+    public function highlightQuery(string $query): string;
 }

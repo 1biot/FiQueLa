@@ -4,6 +4,7 @@ namespace FQL\Cli\Query;
 
 use FQL\Client\FiQueLaClient;
 use FQL\Client\Dto\QueryResult as ApiQueryResult;
+use FQL\Query\Debugger;
 
 class ApiQueryExecutor implements QueryExecutorInterface
 {
@@ -57,6 +58,15 @@ class ApiQueryExecutor implements QueryExecutorInterface
     public function getModeName(): string
     {
         return 'API';
+    }
+
+    public function highlightQuery(string $query): string
+    {
+        try {
+            return Debugger::highlightSQL($query);
+        } catch (\Exception) {
+            return $query;
+        }
     }
 
     public function getServerName(): string

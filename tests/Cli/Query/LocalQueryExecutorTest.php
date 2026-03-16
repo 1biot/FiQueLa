@@ -65,12 +65,14 @@ class LocalQueryExecutorTest extends TestCase
         $this->assertNotSame('', $highlighted);
     }
 
-    public function testHighlightQueryOnFailureReturnsOriginal(): void
+    public function testHighlightQueryReturnsFormattedOutput(): void
     {
         $executor = new LocalQueryExecutor('/nonexistent/file.csv', 'csv', ';', 'utf-8');
 
         $query = 'SELECT * FROM *';
-        $this->assertEquals($query, $executor->highlightQuery($query));
+        $highlighted = $executor->highlightQuery($query);
+        $this->assertIsString($highlighted);
+        $this->assertStringContainsString('SELECT', strtoupper($highlighted));
     }
 
     public function testExecuteWithoutFileUsingFqlProvider(): void

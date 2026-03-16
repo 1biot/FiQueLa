@@ -44,4 +44,9 @@ class FakePagedExecutor implements QueryExecutorInterface
     {
         return 'FAKE';
     }
+
+    public function highlightQuery(string $query): string
+    {
+        return $query;
+    }
 }
