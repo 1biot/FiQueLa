@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.5.1] - Unreleased
+## [2.5.1]
 
 ### Added
 - new method `ARRAY_SEARCH`
@@ -8,6 +8,9 @@
 ### Fixed
 - method `REPLACE` now could replace values for array accessor
 - `IN` operator knows list of values by array accessor - not done yet
+
+### Removed
+- FiQueLa CLi has been moved to own repository at https://github.com/1biot/fiquela-cli
 
 ## [2.5.0]
 

@@ -39,7 +39,6 @@ large datasets or integrating various sources, **F**i**Q**ue**L**a provides a se
   - [File Query Language](docs/file-query-language.md)
   - [Fetching Data](docs/fetching-data.md)
   - [Query Life Cycle](docs/query-life-cycle.md)
-  - [FiQueLa CLI](docs/fiquela-cli.md)
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [Examples](#6-examples)
 - [Knowing issues](#7-knowing-issues)
@@ -88,8 +87,6 @@ composer require tracy/tracy
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
 - **`phpoffice/phpspreadsheet`**: Required for XLS/XLSX file support.
-- **`symfony/console`**: Required for FiQueLa CLI
-- **`guzzlehttp/guzzle`**: FiQueLa CLI requires Guzzle for downloading files from URLs.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -189,7 +186,6 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [File Query Language](docs/file-query-language.md)
 - [Fetching Data](docs/fetching-data.md)
 - [Query Life Cycle](docs/query-life-cycle.md)
-- [FiQueLa CLI](docs/fiquela-cli.md)
 - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 
 

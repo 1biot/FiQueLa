@@ -3,4 +3,3 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     paths:
         - ./src
-        - ./bin
