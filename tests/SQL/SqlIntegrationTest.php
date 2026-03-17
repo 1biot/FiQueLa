@@ -40,6 +40,19 @@ class SqlIntegrationTest extends TestCase
         ], $rows);
     }
 
+    public function testParseWithQueryGroupBySelectFunctionAlias(): void
+    {
+        $sql = 'SELECT UPPER(brand.name) AS brand_name, COUNT(id) AS total FROM data.products GROUP BY brand_name HAVING total > 1 ORDER BY brand_name ASC';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertSame([
+            ['brand_name' => 'BRAND B', 'total' => 2],
+        ], $rows);
+    }
+
     public function testParseWithQueryCaseAndExclude(): void
     {
         $sql = 'SELECT name, CASE WHEN price > 300 THEN "high" ELSE "low" END AS tier, EXCLUDE description FROM data.products WHERE price >= 300 ORDER BY price ASC';

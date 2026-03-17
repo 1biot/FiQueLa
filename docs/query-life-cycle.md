@@ -11,6 +11,7 @@
     - `DISTINCT` is skipped if a `GROUP BY` clause is present, as grouping inherently eliminates duplicates.
 4) **GROUP BY**:
     - Data is grouped based on the columns specified in the `GROUP BY` clause.
+    - If `GROUP BY` uses an alias produced in `SELECT` (for example by a function), that value is evaluated first and then used as the grouping key.
     - This prepares grouped data for aggregate functions like `SUM`, `COUNT`, `AVG`, etc.
 5) **SELECT**:
     - Columns, expressions, and aggregate functions defined in the `SELECT` clause are processed.

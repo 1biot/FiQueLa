@@ -112,4 +112,30 @@ class ExplainTest extends TestCase
         $this->assertNotNull($joinRow);
         $this->assertStringContainsString('[No Condition]', $joinRow['note']);
     }
+
+    public function testExplainAnalyzeSupportsGroupBySelectFunctionAlias(): void
+    {
+        $rows = iterator_to_array($this->products->query()
+            ->upper('brand.name')->as('brandUpper')
+            ->count('id')->as('total')
+            ->from('data.products')
+            ->groupBy('brandUpper')
+            ->orderBy('total')->desc()
+            ->explainAnalyze()
+            ->execute()
+            ->fetchAll());
+
+        $this->assertNotEmpty($rows);
+
+        $groupRow = null;
+        foreach ($rows as $row) {
+            if ($row['phase'] === 'group') {
+                $groupRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($groupRow);
+        $this->assertGreaterThan(0, $groupRow['rows_out']);
+    }
 }

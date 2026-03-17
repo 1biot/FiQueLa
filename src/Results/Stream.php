@@ -577,7 +577,7 @@ class Stream extends ResultsProvider
             $rows[$groupRow]['rows_in']++;
             $startGroup = microtime(true);
             if ($this->hasPhase('group')) {
-                $groupKey = $this->createGroupKey($item);
+                $groupKey = $this->createGroupKey($item, $this->applySelect($item));
             }
 
             if (!isset($groupedData[$groupKey])) {
@@ -1048,7 +1048,7 @@ class Stream extends ResultsProvider
             if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;
             } elseif ($this->hasPhase('group')) {
-                $groupKey = $this->createGroupKey($item);
+                $groupKey = $this->createGroupKey($item, $this->applySelect($item));
             }
 
             if (!isset($groupedData[$groupKey])) {
@@ -1221,13 +1221,16 @@ class Stream extends ResultsProvider
     /**
      * Creates a group key based on GROUP BY fields.
      * @param StreamProviderArrayIteratorValue $item
+     * @param array<int|string, mixed> $selectedItem
      * @return string
      */
-    private function createGroupKey(array $item): string
+    private function createGroupKey(array $item, array $selectedItem): string
     {
         $keyParts = [];
         foreach ($this->groupByFields as $field) {
-            $keyParts[] = $this->accessNestedValue($item, $field, false) ?? '';
+            $keyParts[] = $this->accessNestedValue($item, $field, false)
+                ?? $this->accessNestedValue($selectedItem, $field, false)
+                ?? '';
         }
 
         return implode('|', $keyParts);
