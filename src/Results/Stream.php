@@ -49,6 +49,13 @@ class Stream extends ResultsProvider
 
     private ?int $innerCounter = null;
 
+    /** @var array<string, true> */
+    private array $groupByFieldLookup = [];
+
+    private bool $groupByLookupPrepared = false;
+
+    private ?int $groupBySelectMaxIndex = null;
+
     /**
      * @implements \FQL\Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv>
      * @param array<string, SelectedField> $selectedFields
@@ -577,7 +584,7 @@ class Stream extends ResultsProvider
             $rows[$groupRow]['rows_in']++;
             $startGroup = microtime(true);
             if ($this->hasPhase('group')) {
-                $groupKey = $this->createGroupKey($item, $this->applySelect($item));
+                $groupKey = $this->createGroupKey($item);
             }
 
             if (!isset($groupedData[$groupKey])) {
@@ -934,45 +941,7 @@ class Stream extends ResultsProvider
      */
     private function applySelect(array $item): array
     {
-        $result = [];
-        if ($this->selectedFields === []) {
-            $result = $item;
-        }
-
-        foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = ($this->isQuoted($finalField) || $this->isBacktick($finalField))
-                ? $this->removeQuotes($finalField)
-                : $finalField;
-            if ($fieldName === Query::SELECT_ALL) {
-                $result = array_merge($result, $item);
-                continue;
-            } elseif ($fieldData['function'] instanceof BaseFunction) {
-                $result[$fieldName] = $fieldData['function']($item, $result);
-                continue;
-            } elseif ($fieldData['function'] instanceof BaseFunctionByReference) {
-                $fieldData['function']($item, $result);
-                continue;
-            } elseif ($fieldData['function'] instanceof NoFieldFunction) {
-                $result[$fieldName] = $fieldData['function']();
-                continue;
-            } elseif ($fieldData['function'] instanceof AggregateFunction) {
-                $result[$finalField] = $item[$finalField] ?? null;
-                continue;
-            }
-
-            $result[$fieldName] = $this->accessNestedValue(
-                $item,
-                $fieldData['originField'],
-                false
-            ) ?? $this->accessNestedValue($result, $fieldData['originField'], false)
-                ?? (
-                    $this->isQuoted($fieldData['originField'])
-                        ? Enum\Type::matchByString($this->removeQuotes($fieldData['originField']))
-                        : null
-                );
-        }
-
-        return $result;
+        return $this->buildSelectProjection($item, null, true);
     }
 
     /**
@@ -1048,7 +1017,7 @@ class Stream extends ResultsProvider
             if (!$this->evaluateConditions(Condition::WHERE, $item)) {
                 continue;
             } elseif ($this->hasPhase('group')) {
-                $groupKey = $this->createGroupKey($item, $this->applySelect($item));
+                $groupKey = $this->createGroupKey($item);
             }
 
             if (!isset($groupedData[$groupKey])) {
@@ -1221,19 +1190,126 @@ class Stream extends ResultsProvider
     /**
      * Creates a group key based on GROUP BY fields.
      * @param StreamProviderArrayIteratorValue $item
-     * @param array<int|string, mixed> $selectedItem
+     * @param array<int|string, mixed>|null $selectedItem
      * @return string
      */
-    private function createGroupKey(array $item, array $selectedItem): string
+    private function createGroupKey(array $item, ?array $selectedItem = null): string
     {
         $keyParts = [];
         foreach ($this->groupByFields as $field) {
-            $keyParts[] = $this->accessNestedValue($item, $field, false)
-                ?? $this->accessNestedValue($selectedItem, $field, false)
-                ?? '';
+            $value = $this->accessNestedValue($item, $field, false);
+            if ($value === null) {
+                $selectedItem ??= $this->applySelectForGroupBy($item);
+                $value = $this->accessNestedValue($selectedItem, $field, false);
+            }
+
+            $keyParts[] = $value ?? '';
         }
 
         return implode('|', $keyParts);
+    }
+
+    /**
+     * @param StreamProviderArrayIteratorValue $item
+     * @return array<int|string, mixed>
+     * @throws Exception\InvalidArgumentException
+     */
+    private function applySelectForGroupBy(array $item): array
+    {
+        $maxIndex = $this->resolveGroupBySelectMaxIndex();
+        if ($maxIndex === null) {
+            return [];
+        }
+
+        return $this->buildSelectProjection($item, $maxIndex, false);
+    }
+
+    /**
+     * @param StreamProviderArrayIteratorValue $item
+     * @return array<int|string, mixed>
+     * @throws Exception\InvalidArgumentException
+     */
+    private function buildSelectProjection(
+        array $item,
+        ?int $maxIndex,
+        bool $includeAggregateValues
+    ): array {
+        $result = [];
+        if ($this->selectedFields === []) {
+            return $item;
+        }
+
+        $index = 0;
+        foreach ($this->selectedFields as $finalField => $fieldData) {
+            if ($maxIndex !== null && $index++ > $maxIndex) {
+                break;
+            }
+
+            $fieldName = $this->normalizeFieldReference($finalField);
+            if ($fieldName === Query::SELECT_ALL) {
+                $result = array_merge($result, $item);
+                continue;
+            } elseif ($fieldData['function'] instanceof BaseFunction) {
+                $result[$fieldName] = $fieldData['function']($item, $result);
+                continue;
+            } elseif ($fieldData['function'] instanceof BaseFunctionByReference) {
+                $fieldData['function']($item, $result);
+                continue;
+            } elseif ($fieldData['function'] instanceof NoFieldFunction) {
+                $result[$fieldName] = $fieldData['function']();
+                continue;
+            } elseif ($fieldData['function'] instanceof AggregateFunction) {
+                if ($includeAggregateValues) {
+                    $result[$finalField] = $item[$finalField] ?? null;
+                }
+                continue;
+            }
+
+            $result[$fieldName] = $this->accessNestedValue(
+                $item,
+                $fieldData['originField'],
+                false
+            ) ?? $this->accessNestedValue($result, $fieldData['originField'], false)
+                ?? (
+                    $this->isQuoted($fieldData['originField'])
+                        ? Enum\Type::matchByString($this->removeQuotes($fieldData['originField']))
+                        : null
+                );
+        }
+
+        return $result;
+    }
+
+    private function resolveGroupBySelectMaxIndex(): ?int
+    {
+        if ($this->groupByLookupPrepared) {
+            return $this->groupBySelectMaxIndex;
+        }
+
+        foreach ($this->groupByFields as $field) {
+            $this->groupByFieldLookup[$this->normalizeFieldReference($field)] = true;
+        }
+
+        $index = 0;
+        foreach ($this->selectedFields as $finalField => $fieldData) {
+            $fieldName = $this->normalizeFieldReference($finalField);
+
+            if (isset($this->groupByFieldLookup[$fieldName]) && !($fieldData['function'] instanceof AggregateFunction)) {
+                $this->groupBySelectMaxIndex = $index;
+            }
+
+            $index++;
+        }
+
+        $this->groupByLookupPrepared = true;
+        return $this->groupBySelectMaxIndex;
+    }
+
+    private function normalizeFieldReference(string $field): string
+    {
+        return ($this->isQuoted($field) || $this->isBacktick($field))
+            ? $this->removeQuotes($field)
+            : $field;
     }
 
     private function hasPhase(string $phase): bool
