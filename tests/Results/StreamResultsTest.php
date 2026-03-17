@@ -14,9 +14,9 @@ class StreamResultsTest extends TestCase
     protected function setUp(): void
     {
         $leftData = [
-            ['id' => 1, 'group' => 'A', 'value' => 10, 'created_at' => '2024-01-03'],
-            ['id' => 2, 'group' => 'A', 'value' => 20, 'created_at' => '2024-01-20'],
-            ['id' => 3, 'group' => 'B', 'value' => 50, 'created_at' => '2024-02-11'],
+            ['id' => 1, 'group' => 'A', 'value' => 10],
+            ['id' => 2, 'group' => 'A', 'value' => 20],
+            ['id' => 3, 'group' => 'B', 'value' => 50],
         ];
         $rightData = [
             ['id' => 1, 'label' => 'One'],
@@ -56,22 +56,6 @@ class StreamResultsTest extends TestCase
 
         $this->assertSame([
             ['group' => 'B', 'total' => 50],
-        ], $rows);
-    }
-
-    public function testGroupBySelectFunctionAlias(): void
-    {
-        $query = $this->left->query()
-            ->formatDate('created_at', 'Y-m')->as('year_month')
-            ->count('id')->as('total')
-            ->groupBy('year_month')
-            ->orderBy('year_month')->asc();
-
-        $rows = iterator_to_array($query->execute()->fetchAll());
-
-        $this->assertSame([
-            ['year_month' => '2024-01', 'total' => 2],
-            ['year_month' => '2024-02', 'total' => 1],
         ], $rows);
     }
 

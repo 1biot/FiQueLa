@@ -8,7 +8,6 @@
 ### Fixed
 - method `REPLACE` now could replace values for array accessor
 - `IN` operator knows list of values by array accessor - not done yet
-- `GROUP BY` can now use aliases from `SELECT` functions (for example `DATE_FORMAT(...) AS year_month`).
 
 ### Removed
 - FiQueLa CLi has been moved to own repository at https://github.com/1biot/fiquela-cli
