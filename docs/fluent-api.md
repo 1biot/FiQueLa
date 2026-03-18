@@ -130,40 +130,42 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 
 ### Utils functions
 
-| Function           | Description                                                             |
-|--------------------|-------------------------------------------------------------------------|
-| `arrayCombine`     | Combine two array with keys and array with values into a single array   |
-| `arrayFiler`       | Filter array from empty values                                          |
-| `arrayMerge`       | Merge two arrays into a single array                                    |
-| `colSplit`         | Split array field into columns with optional format and key field       |
-| `cast`             | Cast value to the requested type                                        |
-| `coalesce`         | Coalesce values (first non-null value)                                  |
-| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                  |
-| `formatDate`       | Format date field to string                                             |
-| `fromUnixTime`     | Convert unix timestamp to date or time                                  |
-| `strToDate`        | Parse string to date or time                                            |
-| `dateDiff`         | Calculate difference between two dates                                  |
-| `dateAdd`          | Add interval to date                                                    |
-| `dateSub`          | Subtract interval from date                                             |
-| `year`             | Get year from date                                                      |
-| `month`            | Get month from date                                                     |
-| `day`              | Get day of month from date                                              |
-| `now`              | Get current date and time                                               |
-| `currentTimestamp` | Get current unix timestamp                                              |
-| `currentDate`      | Get current date                                                        |
-| `currentTime`      | Get current time                                                        |
-| `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings  |
-| `randomBytes`      | Generates cryptographically secure random bytes.                        |
-| `if`               | If condition, if true return first value, else second value             |
-| `ifNull`           | If value is null return second value, else first value                  |
-| `isNull`           | Check if value is null                                                  |
-| `case`             | Case statement for multiple conditions                                  |
+| Function           | Description                                                            |
+|--------------------|------------------------------------------------------------------------|
+| `arrayCombine`     | Combine two array with keys and array with values into a single array  |
+| `arrayFiler`       | Filter array from empty values                                         |
+| `arraySearch`      | Search the key for needle in the array                                 |
+| `arrayMerge`       | Merge two arrays into a single array                                   |
+| `colSplit`         | Split array field into columns with optional format and key field      |
+| `cast`             | Cast value to the requested type                                       |
+| `coalesce`         | Coalesce values (first non-null value)                                 |
+| `coalesceNotEmpty` | Coalesce values when not empty (first non-empty value)                 |
+| `formatDate`       | Format date field to string                                            |
+| `fromUnixTime`     | Convert unix timestamp to date or time                                 |
+| `strToDate`        | Parse string to date or time                                           |
+| `dateDiff`         | Calculate difference between two dates                                 |
+| `dateAdd`          | Add interval to date                                                   |
+| `dateSub`          | Subtract interval from date                                            |
+| `year`             | Get year from date                                                     |
+| `month`            | Get month from date                                                    |
+| `day`              | Get day of month from date                                             |
+| `now`              | Get current date and time                                              |
+| `currentTimestamp` | Get current unix timestamp                                             |
+| `currentDate`      | Get current date                                                       |
+| `currentTime`      | Get current time                                                       |
+| `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
+| `randomBytes`      | Generates cryptographically secure random bytes.                       |
+| `if`               | If condition, if true return first value, else second value            |
+| `ifNull`           | If value is null return second value, else first value                 |
+| `isNull`           | Check if value is null                                                 |
+| `case`             | Case statement for multiple conditions                                 |
 
 **Example:**
 
 ```php
 $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_COMBINE')
-    ->arrayFilter('fieldWithArray1')->as('ARRAY_FILTER')
+    ->arrayFilter('fieldWithArray')->as('ARRAY_FILTER')
+    ->arraySearch('fieldWithArray', 'needle')->as('ARRAY_SEARCH')
     ->arrayMerge('fieldWithArray1', 'fieldWithArray2')->as('ARRAY_MERGE')
     ->colSplit('items', 'item_%index', 'id')
     ->case()
