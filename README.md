@@ -7,12 +7,12 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-80.18%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_569-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-80.62%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_585-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
-like **XML**, **XLS**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity,
+like **XML**, **XLS**, **ODS**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity,
 it allows you to filter, join, and aggregate data with a familiar and efficient syntax. Whether you're working with
 large datasets or integrating various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
 
@@ -85,7 +85,7 @@ composer require tracy/tracy
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
-- **`phpoffice/phpspreadsheet`**: Required for XLS/XLSX file support.
+- **`openspout/openspout`**: Required for XLSX and ODS file support.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -95,6 +95,7 @@ composer require tracy/tracy
 | `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              |
 | `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              |
 | `xls`       | XLS/XLSX                | `FQL\Stream\Xls`        | ✅            | ❌              |
+| `ods`       | ODS                     | `FQL\Stream\Ods`        | ✅            | ❌              |
 | `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              |
 | `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              |
 | `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              |

@@ -1,8 +1,19 @@
 # Changelog
 
+## [2.5.3]
+
+### Changed
+- changed library for parsing `XLSX`
+
+### Added
+- Added support for `ODS` files
+
+### Removed
+- dropped support for old `XLS` files
+
 ## [2.5.2]
 
-## Added
+### Added
 - information about method `ARRAY_SEARCH` and `ARRAY_FILTER` into the docs
 
 ### Fixed

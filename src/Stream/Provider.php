@@ -9,7 +9,7 @@ use FQL\Interface;
 final class Provider
 {
     /**
-     * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
+     * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls|Ods>
      * @throws Exception\FileNotFoundException
      * @throws Exception\InvalidFormatException
      */
