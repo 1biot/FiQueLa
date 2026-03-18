@@ -86,4 +86,10 @@ trait StringOperations
         $timestamp = strtotime($value);
         return $timestamp !== false && !ctype_digit($value); // Avoid pure timestamps like "1700000000"
     }
+
+    private function hasSquareBracketsString(string $value): bool
+    {
+        $pattern = '/(?:`[^`]*`|\'[^\']*\'|"[^"]*")(*SKIP)(*F)|[\[\]]/';
+        return (bool) preg_match($pattern, $value);
+    }
 }

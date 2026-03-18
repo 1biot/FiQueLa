@@ -10,6 +10,7 @@ use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
+use FQL\Interface\JoinHashmap;
 use FQL\Interface\Query;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
@@ -19,6 +20,7 @@ use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
+use FQL\Utils\InMemoryHashmap;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -69,8 +71,14 @@ class Stream extends ResultsProvider
         private readonly array $groupByFields,
         private readonly array $orderings,
         private readonly int|null $limit,
-        private readonly int|null $offset
+        private readonly int|null $offset,
+        private JoinHashMap $joinHashMap = new InMemoryHashmap()
     ) {
+    }
+
+    public function setJoinHashMap(JoinHashMap $joinHashMap): void
+    {
+        $this->joinHashMap = $joinHashMap;
     }
 
     /**
@@ -826,23 +834,24 @@ class Stream extends ResultsProvider
         }
 
         // Build a hashmap for the right table
-        $hashmap = [];
         foreach ($rightData as $row) {
             $key = $row[$rightKey] ?? null;
             if (is_int($key) || is_string($key)) {
-                $hashmap[$key][] = $row;
+                $this->joinHashMap->set($key, $row);
             }
         }
 
+        unset($rightData);
+
         // Get the structure of the right table from the hashmap
-        $rightStructure = array_keys(current($hashmap)[0] ?? []);
+        $rightStructure = $this->joinHashMap->getStructure();
         $usedRightKeys = [];
 
         foreach ($leftData as $leftRow) {
             $leftKeyValue = $leftRow[$leftKey] ?? null;
-            if ((is_int($leftKeyValue) || is_string($leftKeyValue)) && isset($hashmap[$leftKeyValue])) {
+            if ((is_int($leftKeyValue) || is_string($leftKeyValue)) && $this->joinHashMap->has($leftKeyValue)) {
                 // Handle matches (n * n)
-                foreach ($hashmap[$leftKeyValue] as $rightRow) {
+                foreach ($this->joinHashMap->get($leftKeyValue) as $rightRow) {
                     /** @var StreamProviderArrayIteratorValue $joinedRow */
                     $joinedRow = $alias
                         ? array_merge($leftRow, [$alias => $rightRow])
@@ -852,11 +861,6 @@ class Stream extends ResultsProvider
                         yield $joinedRow;
                         $usedRightKeys[$leftKeyValue] = true;
                     }
-                }
-
-                // Optimize memory: only if not FULL JOIN
-                if ($type !== Enum\Join::FULL) {
-                    unset($hashmap[$leftKeyValue]);
                 }
             } elseif ($type === Enum\Join::LEFT || $type === Enum\Join::FULL) {
                 // Emit unmatched left row (null right side)
@@ -872,7 +876,7 @@ class Stream extends ResultsProvider
 
         // Emit unmatched right rows (FULL JOIN only)
         if ($type === Enum\Join::FULL) {
-            foreach ($hashmap as $key => $rightRows) {
+            foreach ($this->joinHashMap->getAll() as $key => $rightRows) {
                 if (!isset($usedRightKeys[$key])) {
                     foreach ($rightRows as $rightRow) {
                         $nullRow = array_fill_keys(array_keys($leftRow ?? []), null);

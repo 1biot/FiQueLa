@@ -328,6 +328,7 @@ class Sql extends SqlLexer implements Interface\Parser
             'ARRAY_COMBINE' => $query->arrayCombine((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_MERGE' => $query->arrayMerge((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'ARRAY_FILTER' => $query->arrayFilter((string) ($arguments[0] ?? '')),
+            'ARRAY_SEARCH' => $query->arraySearch((string) ($arguments[0] ?? ''), (string) ($arguments[1] ?? '')),
             'COL_SPLIT' => $query->colSplit(
                 (string) ($arguments[0] ?? ''),
                 array_key_exists(1, $arguments) ? (string) $arguments[1] : null,

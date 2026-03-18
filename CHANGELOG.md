@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.5.1]
+
+### Added
+- new method `ARRAY_SEARCH`
+- `JoinHashmapInterface` with `InMemoryHashmap`
+
+### Fixed
+- method `REPLACE` now could replace values for array accessor
+- `IN` operator knows list of values by array accessor - not done yet
+- removed premature `unset($hashmap[$leftKey])` causing LEFT JOIN to miss duplicate left-side keys
+- release right-side iterator from memory after hashmap is built (`unset($rightData)`)
+
+### Removed
+- FiQueLa CLi has been moved to own repository at https://github.com/1biot/fiquela-cli
+
 ## [2.5.0]
 
 ### Added

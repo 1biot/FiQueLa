@@ -20,7 +20,17 @@ class Replace extends SingleFieldFunction
     public function __invoke(array $item, array $resultItem): mixed
     {
         $value = $this->getFieldValue($this->field, $item, $resultItem);
-        if (!is_scalar($value)) {
+        if (is_array($value)) {
+            $returnValue = [];
+            foreach ($value as $v) {
+                if (is_scalar($v)) {
+                    $returnValue[] = str_replace($this->fromString, $this->newString, (string) $v);
+                } else {
+                    $returnValue[] = null;
+                }
+            }
+            return $returnValue;
+        } elseif (!is_scalar($value)) {
             return null;
         }
 

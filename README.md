@@ -3,14 +3,13 @@
 > _[fi-kju-ela]_
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/fiquela)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/1biot/fiquela/ci.yml)
+[![CI](https://github.com/1biot/fiquela/actions/workflows/ci.yml/badge.svg)](https://github.com/1biot/fiquela/actions/workflows/ci.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-80.01%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_537-lightgreen)
-![PHPUnit Asserts](https://img.shields.io/badge/PHPUnit-asserts%3A_1478-lightgreen)
-![PHPStan](https://img.shields.io/badge/PHPStan_8-OK-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-80.18%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_569-lightgreen)
+![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
 like **XML**, **XLS**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity,
@@ -39,7 +38,6 @@ large datasets or integrating various sources, **F**i**Q**ue**L**a provides a se
   - [File Query Language](docs/file-query-language.md)
   - [Fetching Data](docs/fetching-data.md)
   - [Query Life Cycle](docs/query-life-cycle.md)
-  - [FiQueLa CLI](docs/fiquela-cli.md)
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [Examples](#6-examples)
 - [Knowing issues](#7-knowing-issues)
@@ -88,8 +86,6 @@ composer require tracy/tracy
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
 - **`phpoffice/phpspreadsheet`**: Required for XLS/XLSX file support.
-- **`symfony/console`**: Required for FiQueLa CLI
-- **`guzzlehttp/guzzle`**: FiQueLa CLI requires Guzzle for downloading files from URLs.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -189,7 +185,6 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [File Query Language](docs/file-query-language.md)
 - [Fetching Data](docs/fetching-data.md)
 - [Query Life Cycle](docs/query-life-cycle.md)
-- [FiQueLa CLI](docs/fiquela-cli.md)
 - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 
 

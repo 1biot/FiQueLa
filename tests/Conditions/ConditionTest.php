@@ -150,6 +150,17 @@ class ConditionTest extends TestCase
         $this->assertTrue($condition->evaluate($data, false));
     }
 
+    public function testAccessNestedRightValueInOperator(): void
+    {
+        $condition = new SimpleCondition(LogicalOperator::AND, '"T-Shirt"', Operator::IN, 'categories[]');
+
+        $data = ['categories' => ['T-Shirt', 'Caps']];
+        $this->assertTrue($condition->evaluate($data, true));
+
+        $data = ['categories' => 'T-Shirt'];
+        $this->assertTrue($condition->evaluate($data, true));
+    }
+
     public function testAccessValueWithSpaces(): void
     {
         $condition = new SimpleCondition(LogicalOperator::AND, 'user age', Operator::EQUAL, 'user status');

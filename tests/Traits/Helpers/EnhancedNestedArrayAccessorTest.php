@@ -116,4 +116,15 @@ class EnhancedNestedArrayAccessorTest extends TestCase
 
         $this->accessNestedValue($data, 'a.b');
     }
+
+    public function testValueIntoArray(): void
+    {
+        $data = [
+            'a' => 'value',
+            'b' => null,
+        ];
+        $this->assertSame(['value'], $this->accessNestedValue($data, 'a[]'));
+        $this->assertSame([null], $this->accessNestedValue($data, 'b[]', false));
+        $this->assertNull($this->accessNestedValue($data, 'c[]', false));
+    }
 }

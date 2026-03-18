@@ -33,6 +33,7 @@ use FQL\Functions\String\Upper;
 use FQL\Functions\Utils\ArrayCombine;
 use FQL\Functions\Utils\ArrayFilter;
 use FQL\Functions\Utils\ArrayMerge;
+use FQL\Functions\Utils\ArraySearch;
 use FQL\Functions\Utils\Cast;
 use FQL\Functions\Utils\ColSplit;
 use FQL\Functions\Utils\Coalesce;
@@ -122,6 +123,7 @@ class SqlTest extends TestCase
             'array combine' => ['SELECT ARRAY_COMBINE(keys, values)', 'ARRAY_COMBINE(keys, values)', ArrayCombine::class],
             'array merge' => ['SELECT ARRAY_MERGE(first, second)', 'ARRAY_MERGE(first, second)', ArrayMerge::class],
             'array filter' => ['SELECT ARRAY_FILTER(items)', 'ARRAY_FILTER(items)', ArrayFilter::class],
+            'array search' => ['SELECT ARRAY_SEARCH(items, item)', 'ARRAY_SEARCH(items, "item")', ArraySearch::class],
             'cast' => ['SELECT CAST(price AS DOUBLE)', 'CAST(price AS DOUBLE)', Cast::class],
             'col split' => ['SELECT COL_SPLIT(items, "item_%index", "id")', 'COL_SPLIT(items, "item_%index", "id")', ColSplit::class],
             'current date' => ['SELECT CURDATE(true)', 'CURDATE(true)', CurrentDate::class],

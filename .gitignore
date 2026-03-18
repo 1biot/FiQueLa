@@ -4,7 +4,6 @@
 vendor
 .phpunit.result.cache
 .DS_Store
-.fiquela_history
 **/.DS_Store
 AGENTS.md
 examples/test.php
