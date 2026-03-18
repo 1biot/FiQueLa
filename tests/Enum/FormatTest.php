@@ -68,6 +68,7 @@ class FormatTest extends TestCase
             'neon' => ['neon', Format::NEON],
             'xls' => ['xls', Format::XLS],
             'xlsx' => ['xlsx', Format::XLS],
+            'ods' => ['ods', Format::ODS],
             'dir' => ['dir', Format::DIR],
         ];
     }
@@ -86,6 +87,7 @@ class FormatTest extends TestCase
             'yaml' => [Format::YAML, Stream\Yaml::class],
             'neon' => [Format::NEON, Stream\Neon::class],
             'xls' => [Format::XLS, Stream\Xls::class],
+            'ods' => [Format::ODS, Stream\Ods::class],
             'dir' => [Format::DIR, Stream\Dir::class],
         ];
     }

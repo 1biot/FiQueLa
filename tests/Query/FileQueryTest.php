@@ -35,6 +35,7 @@ class FileQueryTest extends TestCase
             '[yaml](./path/to/file)' => null,
             '[xls](./path/to/file)' => null,
             '[xlsx](./path/to/file)' => '[xls](./path/to/file)',
+            '[ods](./path/to/file)' => null,
             '[csv](./path/to/file).query.path' => null,
         ];
 

@@ -4,11 +4,11 @@ namespace FQL\Stream;
 
 use FQL\Exception;
 use FQL\Interface;
+use OpenSpout\Reader\ODS\Options;
+use OpenSpout\Reader\ODS\Reader;
 use OpenSpout\Reader\ReaderInterface;
-use OpenSpout\Reader\XLSX\Options;
-use OpenSpout\Reader\XLSX\Reader;
 
-class Xls extends SpreadsheetProvider
+class Ods extends SpreadsheetProvider
 {
     /**
      * @throws Exception\FileNotFoundException
@@ -40,6 +40,6 @@ class Xls extends SpreadsheetProvider
 
     protected function formatTag(): string
     {
-        return 'xls';
+        return 'ods';
     }
 }

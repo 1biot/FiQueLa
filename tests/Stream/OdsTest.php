@@ -3,36 +3,36 @@
 namespace Stream;
 
 use FQL\Exception\FileNotFoundException;
-use FQL\Stream\Xls;
+use FQL\Stream\Ods;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
-use OpenSpout\Writer\XLSX\Writer;
+use OpenSpout\Writer\ODS\Writer;
 use PHPUnit\Framework\TestCase;
 
-class XlsTest extends TestCase
+class OdsTest extends TestCase
 {
-    private string $xlsxFile;
+    private string $odsFile;
 
     protected function setUp(): void
     {
-        $baseName = sys_get_temp_dir() . '/fiquela-xls-' . uniqid();
-        $this->xlsxFile = $baseName . '.xlsx';
+        $baseName = sys_get_temp_dir() . '/fiquela-ods-' . uniqid();
+        $this->odsFile = $baseName . '.ods';
 
-        $this->createSpreadsheet($this->xlsxFile);
+        $this->createSpreadsheet($this->odsFile);
     }
 
     protected function tearDown(): void
     {
-        if (file_exists($this->xlsxFile)) {
-            unlink($this->xlsxFile);
+        if (file_exists($this->odsFile)) {
+            unlink($this->odsFile);
         }
     }
 
     public function testOpen(): void
     {
-        $xlsx = Xls::open($this->xlsxFile);
+        $ods = Ods::open($this->odsFile);
 
-        $this->assertInstanceOf(Xls::class, $xlsx);
+        $this->assertInstanceOf(Ods::class, $ods);
     }
 
     public function testOpenFileNotExisted(): void
@@ -40,12 +40,12 @@ class XlsTest extends TestCase
         $this->expectException(FileNotFoundException::class);
         $this->expectExceptionMessage('File not found or not readable.');
 
-        Xls::open('/path/to/file/not/existed.xlsx');
+        Ods::open('/path/to/file/not/existed.ods');
     }
 
     public function testReadFromSheetAndStartCell(): void
     {
-        $stream = Xls::open($this->xlsxFile);
+        $stream = Ods::open($this->odsFile);
         $data = iterator_to_array($stream->getStream('Sheet1.G14'));
 
         $this->assertSame(
@@ -59,7 +59,7 @@ class XlsTest extends TestCase
 
     public function testReadBySheetIndex(): void
     {
-        $stream = Xls::open($this->xlsxFile);
+        $stream = Ods::open($this->odsFile);
         $data = iterator_to_array($stream->getStream('2'));
 
         $this->assertSame(
@@ -72,7 +72,7 @@ class XlsTest extends TestCase
 
     public function testReadBySheetIndexWithCell(): void
     {
-        $stream = Xls::open($this->xlsxFile);
+        $stream = Ods::open($this->odsFile);
         $data = iterator_to_array($stream->getStream('1.G14'));
 
         $this->assertSame(
@@ -86,19 +86,15 @@ class XlsTest extends TestCase
 
     public function testReadDefaultSheet(): void
     {
-        $stream = Xls::open($this->xlsxFile);
+        $stream = Ods::open($this->odsFile);
         $data = iterator_to_array($stream->getStream(null));
 
-        // Default sheet is Sheet1, starting at A1 — columns A-F are empty,
-        // so reading from A1 will find no headers until G14
-        // Actually, reading from A1 will get an empty header row → empty result
-        // The first row (row 1) is entirely empty, so the generator should return nothing
         $this->assertSame([], $data);
     }
 
     public function testSheetNotFound(): void
     {
-        $stream = Xls::open($this->xlsxFile);
+        $stream = Ods::open($this->odsFile);
 
         $this->expectException(\FQL\Exception\UnableOpenFileException::class);
         $this->expectExceptionMessage('Sheet "NonExistent" not found.');
@@ -107,26 +103,22 @@ class XlsTest extends TestCase
 
     public function testStopAtEmptyRow(): void
     {
-        // Create a file with a gap (empty row) in data
-        $file = sys_get_temp_dir() . '/fiquela-xls-gap-' . uniqid() . '.xlsx';
+        $file = sys_get_temp_dir() . '/fiquela-ods-gap-' . uniqid() . '.ods';
         $writer = new Writer();
         $writer->openToFile($file);
 
-        // Sheet 1: header + 2 data rows + empty row + more data
         $writer->addRow(new Row([Cell::fromValue('Col1'), Cell::fromValue('Col2')]));
         $writer->addRow(new Row([Cell::fromValue('a'), Cell::fromValue('b')]));
         $writer->addRow(new Row([Cell::fromValue('c'), Cell::fromValue('d')]));
-        // Empty row — openspout skips empty rows by default, so write a row of empty strings
         $writer->addRow(new Row([Cell::fromValue(''), Cell::fromValue('')]));
         $writer->addRow(new Row([Cell::fromValue('e'), Cell::fromValue('f')]));
 
         $writer->close();
 
         try {
-            $stream = Xls::open($file);
+            $stream = Ods::open($file);
             $data = iterator_to_array($stream->getStream(null));
 
-            // Should stop at the empty row, returning only 2 data rows
             $this->assertSame(
                 [
                     ['Col1' => 'a', 'Col2' => 'b'],
@@ -141,16 +133,24 @@ class XlsTest extends TestCase
         }
     }
 
+    public function testProvideSource(): void
+    {
+        $stream = Ods::open($this->odsFile);
+        $source = $stream->provideSource();
+
+        $this->assertStringContainsString('[ods]', $source);
+        $this->assertStringContainsString('.ods', $source);
+    }
+
     private function createSpreadsheet(string $path): void
     {
         $writer = new Writer();
         $writer->openToFile($path);
 
-        // Sheet1: data at G14:H16 (need to pad rows/columns)
         $sheet1 = $writer->getCurrentSheet();
         $sheet1->setName('Sheet1');
 
-        // Rows 1-13: empty rows (13 rows of padding)
+        // Rows 1-13: empty rows (padding)
         for ($r = 1; $r <= 13; $r++) {
             $writer->addRow(new Row([Cell::fromValue('')]));
         }
