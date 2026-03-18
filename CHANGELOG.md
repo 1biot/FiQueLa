@@ -2,6 +2,9 @@
 
 ## [2.5.2]
 
+## Added
+- information about method `ARRAY_SEARCH` and `ARRAY_FILTER` into the docs
+
 ### Fixed
 - dependency of `symfony/yaml` for php 8.2 compatibility
 

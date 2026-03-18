@@ -215,6 +215,7 @@ ORDER BY _score DESC
 | `ARRAY_COMBINE`     | Combine two array with keys and array with values into a single array  |
 | `ARRAY_FILTER`      | Filter array from empty values                                         |
 | `ARRAY_MERGE`       | Merge two arrays into a single array                                   |
+| `ARRAY_SEARCH`      | Search the key for needle in the array                                 |
 | `COL_SPLIT`         | Split array field into columns (optional format + key field)           |
 | `CAST`              | Cast value to the requested type                                       |
 | `COALESCE`          | Coalesce values (first non-null value)                                 |
@@ -245,6 +246,8 @@ ORDER BY _score DESC
 SELECT
     ARRAY_COMBINE(filedWitArrayKeys, fieldWithArrayValues) AS arrayCombine,
     ARRAY_MERGE(fieldWithArray1, fieldWithArray2) AS arrayMerge,
+    ARRAY_FILTER(fieldWithArray) AS arrayFilter,
+    ARRAY_SEARCH(fieldWithArray, "needle") AS arraySearch,
     COL_SPLIT(items, "item_%index", "id") AS itemColumns,
     CAST(price AS DOUBLE) AS castPrice,
     COALESCE(NULL, 'Hello World') AS coalesce,
