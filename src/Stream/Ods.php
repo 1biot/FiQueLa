@@ -33,9 +33,10 @@ class Ods extends SpreadsheetProvider
     /** @phpstan-ignore missingType.generics, return.type */
     protected function createReader(): ReaderInterface
     {
-        return new Reader(new Options(
-            SHOULD_PRESERVE_EMPTY_ROWS: true,
-        ));
+        $options = new Options();
+        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
+
+        return new Reader($options);
     }
 
     protected function formatTag(): string

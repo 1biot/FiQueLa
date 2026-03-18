@@ -11,7 +11,7 @@
     "ext-xmlreader": "*",
     "ext-simplexml": "*",
     "ext-libxml": "*",
-    "openspout/openspout": "^5.0",
+    "openspout/openspout": "^4.28",
     "halaxa/json-machine": "^1.2",
     "league/csv": "^9.28",
     "symfony/yaml": "^7.0",

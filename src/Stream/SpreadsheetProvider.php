@@ -91,7 +91,7 @@ abstract class SpreadsheetProvider extends AbstractStream
                     continue;
                 }
 
-                $cells = $row->cells;
+                $cells = $row->getCells();
 
                 // Header row
                 if ($headers === null) {
