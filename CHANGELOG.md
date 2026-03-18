@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.2]
+
+### Fixed
+- dependency of `symfony/yaml` for php 8.2 compatibility
+
 ## [2.5.1]
 
 ### Added
