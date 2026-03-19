@@ -9,6 +9,7 @@ groups `WhereConditionGroup` and `HavingConditionGroup` and `IfStatementConditio
 
 ### Added
 - `IF` and `CASE-WHEN` supporting multiple conditions as `WHERE` or `HAVING` do.
+- New operator `REGEXP` and `NOT REGEXP`
 
 ## [2.5.3]
 

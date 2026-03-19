@@ -63,6 +63,28 @@ class SqlIntegrationTest extends TestCase
         $this->assertSame([3, 4, 5], array_column($rows, 'id'));
     }
 
+    public function testParseWithQueryRegexpCondition(): void
+    {
+        $sql = 'SELECT id FROM data.products WHERE name REGEXP "^Product [A-B]$" ORDER BY id ASC';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertSame([1, 2], array_column($rows, 'id'));
+    }
+
+    public function testParseWithQueryNotRegexpCondition(): void
+    {
+        $sql = 'SELECT id FROM data.products WHERE name NOT REGEXP "^Product [A-B]$" ORDER BY id ASC';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertSame([3, 4, 5], array_column($rows, 'id'));
+    }
+
     public function testParseWithQuerySelectAllAndExclude(): void
     {
         $sql = 'SELECT *, EXCLUDE description FROM data.products WHERE id = 1';

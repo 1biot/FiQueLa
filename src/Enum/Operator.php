@@ -25,6 +25,8 @@ enum Operator: string
 
     case LIKE = 'LIKE';
     case NOT_LIKE = 'NOT LIKE';
+    case REGEXP = 'REGEXP';
+    case NOT_REGEXP = 'NOT REGEXP';
 
     case IS = 'IS';
     case NOT_IS = 'IS NOT';
@@ -52,6 +54,8 @@ enum Operator: string
 
             self::LIKE => $this->evaluateLike($left, $right),
             self::NOT_LIKE => !$this->evaluateLike($left, $right),
+            self::REGEXP => $this->evaluateRegexp($left, $right),
+            self::NOT_REGEXP => !$this->evaluateRegexp($left, $right),
 
             self::IS => $this->evaluateIs($left, $right),
             self::NOT_IS => !$this->evaluateIs($left, $right),
@@ -77,7 +81,7 @@ enum Operator: string
                     is_string($right) ? [$right] : $right
                 )
             )),
-            self::LIKE, self::NOT_LIKE => sprintf('%s %s "%s"', $value, $this->value, $right),
+            self::LIKE, self::NOT_LIKE, self::REGEXP, self::NOT_REGEXP => sprintf('%s %s "%s"', $value, $this->value, $right),
             self::BETWEEN, self::NOT_BETWEEN => sprintf('%s %s %s', $value, $this->value, implode(' AND ', $right)),
             default => sprintf(
                 '%s %s %s',
@@ -150,6 +154,24 @@ enum Operator: string
         }
 
         return (bool) preg_match('/' . $pattern . '/i', $left);
+    }
+
+    private function evaluateRegexp(mixed $left, mixed $right): bool
+    {
+        if (!is_string($left) || !is_string($right)) {
+            return false;
+        }
+
+        $pattern = preg_match('/^(.).+\1[imsxuADSUXJu]*$/', $right) === 1
+            ? $right
+            : '/' . str_replace('/', '\/', $right) . '/';
+
+        $result = @preg_match($pattern, $left);
+        if ($result === false) {
+            return false;
+        }
+
+        return $result === 1;
     }
 
     private function evaluateBetween(mixed $left, mixed $right): bool

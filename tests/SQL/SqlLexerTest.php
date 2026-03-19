@@ -79,6 +79,28 @@ class SqlLexerTest extends TestCase
         $this->assertSame(Type::NULL, $value);
     }
 
+    public function testParseSingleConditionRegexp(): void
+    {
+        $lexer = new SqlLexer();
+        $lexer->tokenize('name REGEXP "^Product [A-B]$"');
+
+        [$field, $operator, $value] = $lexer->parseSingleCondition();
+        $this->assertSame('name', $field);
+        $this->assertSame(Operator::REGEXP, $operator);
+        $this->assertSame('^Product [A-B]$', $value);
+    }
+
+    public function testParseSingleConditionNotRegexp(): void
+    {
+        $lexer = new SqlLexer();
+        $lexer->tokenize('name NOT REGEXP "^Product [A-B]$"');
+
+        [$field, $operator, $value] = $lexer->parseSingleCondition();
+        $this->assertSame('name', $field);
+        $this->assertSame(Operator::NOT_REGEXP, $operator);
+        $this->assertSame('^Product [A-B]$', $value);
+    }
+
     public function testParseSingleConditionRejectsBoolean(): void
     {
         $lexer = new SqlLexer();

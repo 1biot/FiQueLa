@@ -212,10 +212,10 @@ class SqlLexer implements \Iterator
         $field = $this->nextToken();
         $operator = $this->nextToken();
         $upperOperator = mb_strtoupper($operator);
-        if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN', 'BETWEEN'])) {
+        if (in_array($upperOperator, ['IS', 'NOT', 'LIKE', 'IN', 'BETWEEN', 'REGEXP'])) {
             $nextToken = $this->nextToken();
             $upperNextToken = mb_strtoupper($nextToken);
-            if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN', 'BETWEEN'])) {
+            if (in_array($upperNextToken, ['NOT', 'LIKE', 'IN', 'BETWEEN', 'REGEXP'])) {
                 $operator = $upperOperator . ' ' . $upperNextToken;
                 $upperOperator .= ' ' . $upperNextToken;
             } else {

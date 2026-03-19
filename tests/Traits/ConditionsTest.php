@@ -149,4 +149,30 @@ class ConditionsTest extends TestCase
             ->having('total', Operator::GREATER_THAN, 0)
             ->addHavingConditions($havingGroup);
     }
+
+    public function testRegexpOperatorConditionApplies(): void
+    {
+        $results = iterator_to_array(
+            $this->json->query()
+                ->from('data.products')
+                ->where('name', Operator::REGEXP, '^Product [A-B]$')
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([1, 2], array_column($results, 'id'));
+    }
+
+    public function testNotRegexpOperatorConditionApplies(): void
+    {
+        $results = iterator_to_array(
+            $this->json->query()
+                ->from('data.products')
+                ->where('name', Operator::NOT_REGEXP, '^Product [A-B]$')
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([3, 4, 5], array_column($results, 'id'));
+    }
 }

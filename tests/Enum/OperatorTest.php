@@ -131,6 +131,18 @@ class OperatorTest extends TestCase
         $this->assertSame(false, Operator::NOT_LIKE->evaluate("string3", "%3"));
     }
 
+    public function testEvaluateRegexp(): void
+    {
+        $this->assertSame(true, Operator::REGEXP->evaluate('Product A', '^Product [A-B]$'));
+        $this->assertSame(false, Operator::REGEXP->evaluate('Product C', '^Product [A-B]$'));
+    }
+
+    public function testEvaluateNotRegexp(): void
+    {
+        $this->assertSame(false, Operator::NOT_REGEXP->evaluate('Product A', '^Product [A-B]$'));
+        $this->assertSame(true, Operator::NOT_REGEXP->evaluate('Product C', '^Product [A-B]$'));
+    }
+
     public function testEvaluateIs(): void
     {
         $this->assertSame(true, Operator::IS->evaluate(null, Type::NULL));

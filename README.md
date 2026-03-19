@@ -7,24 +7,31 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-80.99%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_592-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-81.02%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_600-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
-**F**i**Q**ue**L**a is a powerful PHP library that brings SQL-inspired querying capabilities to structured data formats
-like **XML**, **XLS**, **ODS**, **CSV**, **JSON**, **NDJSON**, **YAML** and **NEON**. Designed for simplicity and modularity,
-it allows you to filter, join, and aggregate data with a familiar and efficient syntax. Whether you're working with
-large datasets or integrating various sources, **F**i**Q**ue**L**a provides a seamless way to manipulate and explore your data.
+**F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
+Filter, join, group, aggregate, and transform data from **XML**, **XLS**, **ODS**, **CSV**, **JSON**, **NDJSON**,
+**YAML**, and **NEON** without setting up a database. It is built for real-world data processing with streaming support,
+explain/debug tooling, and strongly typed operators.
 
 **Features**:
 
 - 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, NEON, and XLS.
-- 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `ORDER BY` and more.
-- ✍️ **Flexible Querying**: Write SQL-like strings or use the fluent API for maximum flexibility.
-- 📊 **Advanced functions**: Access features like `SUM`, `COUNT`, `GROUP_CONCAT`, `ARRAY_MERGE`, `DATE_FORMAT` and many more.
-- 🚀 **Efficient with Large Files**: Optimized for processing JSON, XML, and CSV files with tens of thousands of rows using stream processing.
+- 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY` and more.
+- ✍️ **Flexible querying**: Write SQL-like strings or use the fluent API.
+- 📊 **Powerful expressions and functions**: Use `CASE WHEN`, `IF`, grouped conditions, `XOR`, `REGEXP`, aggregates, and utility functions.
+- 🚀 **Stream-first processing**: Optimized for large JSON, XML, and CSV files with low memory pressure where possible.
 - 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
 - ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
+
+### Why FiQueLa
+
+- Query files with familiar SQL concepts while keeping everything in PHP.
+- Join data across sources and formats in one query.
+- Handle advanced logic with nested condition groups and statement functions.
+- Inspect execution using explain output and debugger tooling.
 
 **Table of Contents**:
 
@@ -40,23 +47,20 @@ large datasets or integrating various sources, **F**i**Q**ue**L**a provides a se
   - [Query Life Cycle](docs/query-life-cycle.md)
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [Examples](#6-examples)
-- [Knowing issues](#7-knowing-issues)
-- [Planning Features](#8-planning-features)
+- [Known issues](#7-known-issues)
+- [Roadmap](#8-roadmap)
 - [Contributions](#9-contributions)
 
 ## 1. Overview
 
-Why limit SQL to databases when it can be just as effective for querying structured data? **F**i**Q**ue**L**a (File Query Language)
-brings the power of SQL to your files. Whether you're working with **XML**, **CSV**, **JSON**, **NDJSON**, **YAML**, **NEON** or **XLS**,
-**F**i**Q**ue**L**a enables you to interact with these formats using familiar SQL syntax.
+Why limit SQL to databases when it can be just as effective for structured files?
+**F**i**Q**ue**L**a brings SQL-like querying to file-based data and keeps your workflow fully in PHP.
 
 Key highlights:
-- **Universal Querying**: Use SQL-like queries to filter, sort, join, and aggregate data across multiple file types.
-- **Data Formats Support**: Seamlessly work with JSON, XML, CSV, XLS, YAML, and more.
-- **Powerful Features**: Access advanced SQL features like `GROUP BY`, `HAVING`, and functions for data transformation directly on your file-based datasets.
-- **Developer-Friendly**: Whether you're a beginner or an experienced developer, FiQueLa offers a simple and consistent API for all your data needs.
-- **Flexible Integration**: Ideal for scenarios where data lives in files rather than traditional databases.
-- **SQL-Like Strings**: Write and execute SQL-like string queries directly, providing an alternative to fluent syntax for greater flexibility and familiarity.
+- **Universal querying**: Filter, sort, join, and aggregate data across multiple file formats.
+- **Real SQL-like behavior**: Use `GROUP BY`, `HAVING`, nested conditions, `CASE WHEN`, `IF`, and many built-in functions.
+- **Flexible integration**: Query through fluent API or SQL-like strings, whichever matches your use case.
+- **Operational tooling**: Use debugger and explain plans to understand performance and execution.
 
 Use **F**i**Q**ue**L**a to:
 - Simplify data extraction and analysis from structured files.
@@ -127,6 +131,8 @@ $results = Query\Provider::fromFileQuery('(./path/to/file.xml).SHOP.SHOPITEM')
 
 print_r(iterator_to_array($results));
 ```
+
+This query returns rows that match either a specific EAN or a price threshold, sorted by price and limited to 10 records.
 
 Or using the FQL syntax:
 
@@ -324,12 +330,12 @@ array (7)
 > Final execution time (µs): 9664740
 ```
 
-## 7. Knowing issues
+## 7. Known issues
 
 - ⚠️ Functions `JOIN`, and `ORDER BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 
-## 8. Planning Features
+## 8. Roadmap
 
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
