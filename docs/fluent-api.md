@@ -341,6 +341,8 @@ use FQL\Enum\Operator;
 | `NOT_IN`                | `NOT IN`      | Same as `IN` operator but with opposite result.                                                             |
 | `LIKE`                  | `LIKE`        | Fully compatible `LIKE` in MYSQL databases. Supports `_` and `%`.                                           |
 | `NOT_LIKE`              | `NOT LIKE`    | Same as `LIKE` operator but with opposite result.                                                           |
+| `REGEXP`                | `REGEXP`      | Compare value with regular expression pattern.                                                              |
+| `NOT_REGEXP`            | `NOT REGEXP`  | Same as `REGEXP` operator but with opposite result.                                                         |
 | `IS`                    | `IS`          | Supported types: `BOOLEAN`, `TRUE`, `FALSE`, `NUMBER`, `INT`, `DOUBLE`, `STRING`, `NULL`, `ARRAY`, `OBJECT` |
 | `NOT_IS`                | `IS NOT`      | Same as `IS` operator but with opposite result.                                                             |
 | `BETWEEN`               | `BETWEEN`     | Compare if field is between two values.                                                                     |

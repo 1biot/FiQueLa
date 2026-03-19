@@ -52,4 +52,24 @@ class SelectCaseTest extends TestCase
 
         $this->assertSame('fallback', $result);
     }
+
+    public function testComplexWhenConditionSupportsGroupingAndXor(): void
+    {
+        $selectCase = new SelectCase();
+        $selectCase->addCondition('(value = case1 OR value2 = case2) XOR flag = on', 'result');
+        $selectCase->addDefault('"fallback"');
+
+        $result = $selectCase([
+            'value' => 'case1',
+            'value2' => 'case0',
+            'flag' => 'off',
+            'result' => 123,
+        ], []);
+
+        $this->assertSame(123, $result);
+        $this->assertSame(
+            "CASE WHEN (value = 'case1' OR value2 = 'case2') XOR flag = 'on' THEN result ELSE \"fallback\" END",
+            (string) $selectCase
+        );
+    }
 }

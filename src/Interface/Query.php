@@ -2,6 +2,8 @@
 
 namespace FQL\Interface;
 
+use FQL\Conditions\HavingConditionGroup;
+use FQL\Conditions\WhereConditionGroup;
 use FQL\Enum\Fulltext;
 use FQL\Enum\LogicalOperator;
 use FQL\Enum\Operator;
@@ -550,8 +552,12 @@ interface Query extends \Stringable
     /** Add a conditional group clause in WHERE context to the query */
     public function whereGroup(): Query;
 
+    public function addWhereConditions(WhereConditionGroup $whereConditionGroup): Query;
+
     /** Add a conditional group clause in HAVING context to the query.*/
     public function havingGroup(): Query;
+
+    public function addHavingConditions(HavingConditionGroup $havingConditionGroup): Query;
 
     public function andGroup(): Query;
     public function orGroup(): Query;

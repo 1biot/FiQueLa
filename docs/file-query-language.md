@@ -387,7 +387,7 @@ field_expr:
     column_name | alias_column_name | array_nested_field
                 
 comparison_operator: = | >= | > | <= | < | <> | != | !== | == | LIKE | NOT LIKE | IS | IS NOT | IN | NOT IN | 
-    BETWEEN | NOT BETWEEN
+    BETWEEN | NOT BETWEEN | REGEXP | NOT REGEXP
 
 value_expr:
     value_type | compare_type_value
@@ -421,6 +421,17 @@ WHERE
     id = 1
     AND name = 'John Doe'
     OR name = 'Jane Doe'
+```
+
+**REGEXP example:**
+
+```sql
+SELECT
+    id,
+    name
+FROM [json](./examples/data/products.tmp).data.products
+WHERE
+    name REGEXP "^Product [A-B]$"
 ```
 
 ## 7. Grouping and Aggregations

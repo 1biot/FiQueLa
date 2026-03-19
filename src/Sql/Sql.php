@@ -2,7 +2,9 @@
 
 namespace FQL\Sql;
 
-use FQL\Conditions\Condition;
+use FQL\Conditions\CaseStatementConditionGroup;
+use FQL\Conditions\HavingConditionGroup;
+use FQL\Conditions\WhereConditionGroup;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Functions;
@@ -118,8 +120,10 @@ class Sql extends SqlLexer implements Interface\Parser
                     break;
 
                 case Interface\Query::HAVING:
+                    $this->parseHavingConditions($query);
+                    break;
                 case Interface\Query::WHERE:
-                    $this->parseConditions($query, strtolower($token));
+                    $this->parseWhereConditions($query);
                     break;
 
                 case 'GROUP':
@@ -165,9 +169,13 @@ class Sql extends SqlLexer implements Interface\Parser
                 $query->case();
                 do {
                     $this->expect(Interface\Query::WHEN);
-                    [$field, $operator, $value] = $this->parseSingleCondition();
+                    $conditionGroup = $this->parseConditionGroup(
+                        new CaseStatementConditionGroup(),
+                        fn (string $token, int $depth): bool => $depth === 0
+                            && strtoupper($token) === Interface\Query::THEN
+                    );
                     $this->expect(Interface\Query::THEN);
-                    $query->whenCase($operator->render($field, $value), $this->nextToken());
+                    $query->whenCase($conditionGroup->render(), $this->nextToken());
                     if (strtoupper($this->nextToken()) !== Interface\Query::ELSE) {
                         $this->rewindToken();
                         continue;
@@ -369,54 +377,20 @@ class Sql extends SqlLexer implements Interface\Parser
         };
     }
 
-    private function parseConditions(Interface\Query $query, string $context): void
+    private function parseWhereConditions(Interface\Query $query): void
     {
-        $logicalOperator = Enum\LogicalOperator::AND;
-        $firstIter = true;
-        while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
-            $token = strtoupper($this->peekToken());
-            if (in_array($token, Enum\LogicalOperator::casesValues(), true) !== false) {
-                $logicalOperator = Enum\LogicalOperator::from($token);
-                $this->nextToken();
-                continue;
-            } elseif ($this->peekToken() === '(') {
-                if ($logicalOperator === Enum\LogicalOperator::AND) {
-                    $query->andGroup();
-                    $this->nextToken();
-                    continue;
-                } elseif ($logicalOperator === Enum\LogicalOperator::OR) {
-                    $query->orGroup();
-                    $this->nextToken();
-                    continue;
-                } else {
-                    throw new Exception\UnexpectedValueException('Unexpected logical group');
-                }
-            } elseif ($this->peekToken() === ')') {
-                $query->endGroup();
-                $this->nextToken();
-                continue;
-            }
+        $query->addWhereConditions($this->parseConditionGroup(
+            new WhereConditionGroup(),
+            fn (string $token, int $depth): bool => $depth === 0 && $this->isNextControlledKeyword()
+        ));
+    }
 
-            // Parse a single condition
-            [$field, $operator, $value] = $this->parseSingleCondition();
-            if ($firstIter && $context === Condition::WHERE && $logicalOperator === Enum\LogicalOperator::AND) {
-                $query->where($field, $operator, $value);
-                $firstIter = false;
-                continue;
-            } elseif ($firstIter && $context === Condition::HAVING && $logicalOperator === Enum\LogicalOperator::AND) {
-                $query->having($field, $operator, $value);
-                $firstIter = false;
-                continue;
-            }
-
-            if ($logicalOperator === Enum\LogicalOperator::AND) {
-                $query->and($field, $operator, $value);
-            } elseif ($logicalOperator === Enum\LogicalOperator::OR) {
-                $query->or($field, $operator, $value);
-            } elseif ($logicalOperator === Enum\LogicalOperator::XOR) {
-                $query->xor($field, $operator, $value);
-            }
-        }
+    private function parseHavingConditions(Interface\Query $query): void
+    {
+        $query->addHavingConditions($this->parseConditionGroup(
+            new HavingConditionGroup(),
+            fn (string $token, int $depth): bool => $depth === 0 && $this->isNextControlledKeyword()
+        ));
     }
 
     private function parseGroupBy(Interface\Query $query): void

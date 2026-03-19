@@ -10,7 +10,7 @@ use FQL\Sql;
 class SelectCase extends Functions\Core\BaseFunction
 {
     /**
-     * @var array<int, array{condition: Conditions\SimpleCondition|null, statement: string}> $conditions
+     * @var array<int, array{condition: Conditions\CaseStatementConditionGroup|null, statement: string}> $conditions
      */
     private array $conditions = [];
 
@@ -18,13 +18,7 @@ class SelectCase extends Functions\Core\BaseFunction
     {
         $fqlTokenizer = new Sql\SqlLexer();
         $fqlTokenizer->tokenize($conditionString);
-        [$field, $operator, $value] = $fqlTokenizer->parseSingleCondition();
-        $condition = new Conditions\SimpleCondition(
-            Enum\LogicalOperator::AND,
-            $field,
-            $operator,
-            $value
-        );
+        $condition = $fqlTokenizer->parseConditionGroup(new Conditions\CaseStatementConditionGroup());
         $this->conditions[] = [
             'condition' => $condition,
             'statement' => $statement,
