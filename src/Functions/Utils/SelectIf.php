@@ -2,15 +2,14 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Conditions\SimpleCondition;
+use FQL\Conditions\IfStatementConditionGroup;
 use FQL\Enum;
-use FQL\Exception;
 use FQL\Functions\Core\MultipleFieldsFunction;
 use FQL\Sql;
 
 class SelectIf extends MultipleFieldsFunction
 {
-    private SimpleCondition $condition;
+    private IfStatementConditionGroup $conditionGroup;
 
     public function __construct(
         string $conditionString,
@@ -19,20 +18,14 @@ class SelectIf extends MultipleFieldsFunction
     ) {
         $fqlTokenizer = new Sql\SqlLexer();
         $fqlTokenizer->tokenize($conditionString);
-        [$field, $operator, $value] = $fqlTokenizer->parseSingleCondition();
-        $this->condition = new SimpleCondition(
-            Enum\LogicalOperator::AND,
-            $field,
-            $operator,
-            $value
-        );
+        $this->conditionGroup = $fqlTokenizer->parseConditionGroup(new IfStatementConditionGroup());
 
         parent::__construct($conditionString, $trueStatement, $falseStatement);
     }
 
     public function __invoke(array $item, array $resultItem): mixed
     {
-        if ($this->condition->evaluate(array_merge($item, $resultItem), true)) {
+        if ($this->conditionGroup->evaluate(array_merge($item, $resultItem), true)) {
             $trueStatement = $this->getFieldValue($this->trueStatement, $item, $resultItem) ?? $this->trueStatement;
             if (is_string($trueStatement)) {
                 $trueStatement = Enum\Type::matchByString($trueStatement);

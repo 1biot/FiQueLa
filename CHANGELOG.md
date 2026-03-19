@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.0]
+
+### Changed
+
+- Refactored `\FQL\Conditions\BaseConditionGroup` and make it abstract and implements concrete condition
+groups `WhereConditionGroup` and `HavingConditionGroup` and `IfStatementConditionGroup` and `CaseStatementConditionGroup`
+
+### Added
+- `IF` and `CASE-WHEN` supporting multiple conditions as `WHERE` or `HAVING` do.
+
 ## [2.5.3]
 
 ### Changed

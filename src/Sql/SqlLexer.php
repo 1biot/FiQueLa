@@ -2,6 +2,7 @@
 
 namespace FQL\Sql;
 
+use FQL\Conditions;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Query\FileQuery;
@@ -250,6 +251,75 @@ class SqlLexer implements \Iterator
         }
 
         return [$field, $operator, $value];
+    }
+
+    /**
+     * @template T of Conditions\BaseConditionGroup
+     * @param T $rootConditionGroup
+     * @param callable(string, int): bool|null $stopParser
+     * @return T
+     */
+    public function parseConditionGroup(
+        Conditions\BaseConditionGroup $rootConditionGroup,
+        ?callable $stopParser = null
+    ): Conditions\BaseConditionGroup {
+        $currentGroup = $rootConditionGroup;
+        $logicalOperator = Enum\LogicalOperator::AND;
+        $depth = 0;
+
+        while (!$this->isEOF()) {
+            $token = $this->peekToken();
+            if ($stopParser !== null && $stopParser($token, $depth)) {
+                break;
+            }
+
+            $upperToken = mb_strtoupper($token);
+            if (in_array($upperToken, Enum\LogicalOperator::casesValues(), true)) {
+                $logicalOperator = Enum\LogicalOperator::from($upperToken);
+                $this->nextToken();
+                continue;
+            }
+
+            if ($token === '(') {
+                $this->nextToken();
+                $group = new Conditions\GroupCondition($logicalOperator, $currentGroup);
+                $currentGroup->addCondition($logicalOperator, $group);
+                $currentGroup = $group;
+                $depth++;
+                $logicalOperator = Enum\LogicalOperator::AND;
+                continue;
+            }
+
+            if ($token === ')') {
+                if ($depth === 0) {
+                    throw new Exception\UnexpectedValueException('Unexpected closing parenthesis in condition group');
+                }
+
+                $this->nextToken();
+                $parent = $currentGroup->getParent();
+                if ($parent === null) {
+                    throw new Exception\UnexpectedValueException('Missing parent condition group');
+                }
+
+                $currentGroup = $parent;
+                $depth--;
+                $logicalOperator = Enum\LogicalOperator::AND;
+                continue;
+            }
+
+            [$field, $operator, $value] = $this->parseSingleCondition();
+            $currentGroup->addCondition(
+                $logicalOperator,
+                new Conditions\SimpleCondition($logicalOperator, $field, $operator, $value)
+            );
+            $logicalOperator = Enum\LogicalOperator::AND;
+        }
+
+        if ($depth !== 0) {
+            throw new Exception\UnexpectedValueException('Unclosed parenthesis in condition group');
+        }
+
+        return $rootConditionGroup;
     }
 
     protected function isFunction(string $token): bool

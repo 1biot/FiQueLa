@@ -3,9 +3,10 @@
 namespace FQL\Traits;
 
 use FQL\Conditions\BaseConditionGroup;
-use FQL\Conditions\Condition;
 use FQL\Conditions\GroupCondition;
+use FQL\Conditions\HavingConditionGroup;
 use FQL\Conditions\SimpleCondition;
+use FQL\Conditions\WhereConditionGroup;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
@@ -22,11 +23,45 @@ trait Conditions
     private function initialize(): Interface\Query
     {
         // Default groups for WHERE and HAVING
-        $this->whereConditions = new BaseConditionGroup(Condition::WHERE);
-        $this->havingConditions = new BaseConditionGroup(Condition::HAVING);
+        $this->whereConditions = new WhereConditionGroup();
+        $this->havingConditions = new HavingConditionGroup();
 
         // Setting the default current group to WHERE
         $this->currentGroup = $this->whereConditions;
+        return $this;
+    }
+
+    public function addWhereConditions(WhereConditionGroup $whereConditionGroup): Interface\Query
+    {
+        if (isset($this->whereConditions) && count($this->whereConditions) > 0) {
+            throw new Exception\UnexpectedValueException(
+                'Cannot override WHERE conditions after conditions have been added'
+            );
+        }
+
+        $isCurrentWhereGroup = isset($this->currentGroup) && $this->currentGroup === $this->whereConditions;
+        $this->whereConditions = $whereConditionGroup;
+        if ($isCurrentWhereGroup) {
+            $this->currentGroup = $this->whereConditions;
+        }
+
+        return $this;
+    }
+
+    public function addHavingConditions(HavingConditionGroup $havingConditionGroup): Interface\Query
+    {
+        if (isset($this->havingConditions) && count($this->havingConditions) > 0) {
+            throw new Exception\UnexpectedValueException(
+                'Cannot override HAVING conditions after conditions have been added'
+            );
+        }
+
+        $isCurrentHavingGroup = isset($this->currentGroup) && $this->currentGroup === $this->havingConditions;
+        $this->havingConditions = $havingConditionGroup;
+        if ($isCurrentHavingGroup) {
+            $this->currentGroup = $this->havingConditions;
+        }
+
         return $this;
     }
 

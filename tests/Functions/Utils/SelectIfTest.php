@@ -30,4 +30,20 @@ class SelectIfTest extends TestCase
         $selectIfEqual = new SelectIf('field1 != 1', 'field2', 'null');
         $this->assertEquals(null, $selectIfEqual(['field1' => 1, 'field2' => 1000], []));
     }
+
+    public function testEvaluateComplexConditionWithGroupingAndXor(): void
+    {
+        $selectIf = new SelectIf('(field1 > 10 AND field2 = active) XOR field3 = 1', 'yes', 'no');
+
+        $this->assertSame('yes', $selectIf([
+            'field1' => 15,
+            'field2' => 'active',
+            'field3' => 0,
+        ], []));
+        $this->assertSame('no', $selectIf([
+            'field1' => 15,
+            'field2' => 'active',
+            'field3' => 1,
+        ], []));
+    }
 }
