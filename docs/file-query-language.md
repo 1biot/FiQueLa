@@ -236,6 +236,7 @@ ORDER BY _score DESC
 | `CURTIME`           | Get current time                                                       |
 | `LENGTH`            | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `RANDOM_BYTES`      | Generates cryptographically secure random bytes.                       |
+| `UUID`              | Generates a random UUID v4.                                            |
 | `IF`                | If condition is true, return first value, otherwise second value.      |
 | `IFNULL`            | If value is null, return second value, otherwise first value.          |
 | `ISNULL`            | Check if value is null.                                                |
@@ -269,7 +270,8 @@ SELECT
     LENGTH(filedWitArrayKeys) AS keysCount,
     LENGTH('Hello World') AS stringLength,
     RANDOM_BYTES(16) AS randomBytes,
-    CASE 
+    UUID() AS uuid,
+    CASE
         WHEN stock > 100 THEN 'more than 100'
         WHEN stock > 50 THEN 'more than 50'
         WHEN stock > 0 THEN 'last stock items'

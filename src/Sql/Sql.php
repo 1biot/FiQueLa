@@ -343,6 +343,7 @@ class Sql extends SqlLexer implements Interface\Parser
                 )
             ),
             'RANDOM_BYTES' => $query->randomBytes((int) ($arguments[0] ?? 10)),
+            'UUID' => $query->uuid(),
             'LPAD' => $query->leftPad(
                 (string) ($arguments[0] ?? ''),
                 (int) ($arguments[1] ?? 0),

@@ -464,6 +464,8 @@ interface Query extends \Stringable
      */
     public function randomBytes(int $length = 10): Query;
 
+    public function uuid(): Query;
+
     /** @param string[] $fields */
     public function fulltext(array $fields, string $searchQuery): Query;
     /** @param string[] $fields */

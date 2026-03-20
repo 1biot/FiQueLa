@@ -4,6 +4,7 @@
 
 ### Added
 - support for `UNION` and `UNION ALL`
+- Added `UUID` function
 
 ## [2.6.0]
 

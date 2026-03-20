@@ -156,6 +156,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `currentTime`      | Get current time                                                       |
 | `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `randomBytes`      | Generates cryptographically secure random bytes.                       |
+| `uuid`             | Generates a random UUID v4.                                            |
 | `if`               | If condition, if true return first value, else second value            |
 | `ifNull`           | If value is null return second value, else first value                 |
 | `isNull`           | Check if value is null                                                 |
@@ -197,7 +198,8 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->now()->as('NOW')
     ->currentTimestamp()->as('CURRENT_TIMESTAMP')
     ->currentDate()->as('CURDATE')
-    ->currentTime()->as('CURTIME');
+    ->currentTime()->as('CURTIME')
+    ->uuid()->as('UUID');
 ```
 
 ### Hashing functions

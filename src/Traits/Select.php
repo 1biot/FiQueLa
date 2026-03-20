@@ -272,6 +272,11 @@ trait Select
         return $this->addFieldFunction(new Functions\Utils\RandomBytes($length));
     }
 
+    public function uuid(): Interface\Query
+    {
+        return $this->addFieldFunction(new Functions\Utils\Uuid());
+    }
+
     public function fromBase64(string $field): Interface\Query
     {
         return $this->addFieldFunction(new Functions\String\Base64Decode($field));
