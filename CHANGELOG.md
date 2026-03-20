@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.1]
+
+### Updated
+- Refactored `EXPLAIN` and `EXPLAIN ANALYZE` methods
+
+### Fixed
+- added support for `UNION` and `UNION ALL`
+
 ## [2.7.0]
 
 ### Added
