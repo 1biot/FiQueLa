@@ -318,12 +318,13 @@ class Stream extends ResultsProvider
     /**
      * Applies all defined joins to the dataset.
      * @param \Traversable<StreamProviderArrayIteratorValue> $data The primary data to join.
+     * @param int[] $joinIndices Pre-allocated collector indices for each join.
      * @return \Traversable<StreamProviderArrayIteratorValue> The joined dataset.
      */
-    private function applyJoins(\Traversable $data): \Traversable
+    private function applyJoins(\Traversable $data, array $joinIndices = []): \Traversable
     {
-        foreach ($this->joins as $join) {
-            $data = $this->applyJoinInstrumented($data, $join);
+        foreach ($this->joins as $i => $join) {
+            $data = $this->applyJoinInstrumented($data, $join, $joinIndices[$i] ?? null);
         }
         return $data;
     }
@@ -332,16 +333,16 @@ class Stream extends ResultsProvider
      * Wraps applyJoin with collector instrumentation.
      * @param \Traversable<StreamProviderArrayIteratorValue> $leftData
      * @param JoinAbleArray $join
+     * @param int|null $joinIdx Pre-allocated collector index for this join phase.
      * @return \Traversable<StreamProviderArrayIteratorValue>
      */
-    private function applyJoinInstrumented(\Traversable $leftData, array $join): \Traversable
+    private function applyJoinInstrumented(\Traversable $leftData, array $join, ?int $joinIdx = null): \Traversable
     {
-        if ($this->collector === null) {
+        if ($this->collector === null || $joinIdx === null) {
             yield from $this->applyJoin($leftData, $join);
             return;
         }
 
-        $joinIdx = $this->collector->addPhase($this->prefixPhase('join'), $this->getJoinNote($join), true);
         $this->collector->startTimer($joinIdx);
 
         // Count input rows
@@ -457,28 +458,71 @@ class Stream extends ResultsProvider
      */
     private function buildStream(): \Traversable
     {
-        $streamIdx = $this->collector?->addPhase($this->prefixPhase('stream'), $this->getStreamNote(), false);
+        $c = $this->collector;
+        $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
+
+        // Pre-register all phases eagerly in logical order
+        $streamIdx = $c?->addPhase($this->prefixPhase('stream'), $this->getStreamNote(), false);
+
+        /** @var int[] $joinIndices */
+        $joinIndices = [];
+        if ($c !== null && $this->hasJoin()) {
+            foreach ($this->joins as $join) {
+                $joinIndices[] = $c->addPhase($this->prefixPhase('join'), $this->getJoinNote($join), true);
+            }
+        }
+
+        $whereIdx = ($c !== null && $this->hasWhereConditions())
+            ? $c->addPhase($this->prefixPhase('where'), $this->getWhereNote(), true)
+            : null;
+
+        $groupIdx = ($c !== null && $this->isGroupable())
+            ? $c->addPhase($this->prefixPhase('group'), $this->getGroupNote(), true)
+            : null;
+
+        $havingIdx = ($c !== null && $this->hasHavingConditions())
+            ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
+            : null;
+
+        $sortIdx = ($c !== null && $this->isSortable())
+            ? $c->addPhase($this->prefixPhase('sort'), $this->getSortNote(), true)
+            : null;
+
+        $limitIdx = ($c !== null && $this->isLimitable())
+            ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote($applyLimitAtStream), true)
+            : null;
+
+        // Build generator chain
         $stream = $this->hasJoin()
-            ? $this->applyJoins($this->applyStreamSource($streamIdx))
+            ? $this->applyJoins($this->applyStreamSource($streamIdx), $joinIndices)
             : $this->applyStreamSource($streamIdx);
 
         if ($this->isGroupable()) {
             if (!$this->isSortable()) {
-                return yield from $this->applyUnions($this->applyGrouping($stream));
+                return yield from $this->applyUnions(
+                    $this->applyGrouping($stream, $whereIdx, $groupIdx, $havingIdx, $limitIdx)
+                );
             }
 
-            $stream = $this->applyGrouping($stream);
+            $stream = $this->applyGrouping($stream, $whereIdx, $groupIdx, $havingIdx, null);
         } else {
-            $stream = $this->applyBaseStream($stream);
+            $stream = $this->applyBaseStream(
+                $stream,
+                $whereIdx,
+                $havingIdx,
+                $applyLimitAtStream ? $limitIdx : null
+            );
         }
 
         if (!$this->isSortable()) {
             return yield from $this->applyUnions($stream);
         } elseif (!$this->isLimitable()) {
-            return yield from $this->applyUnions($this->applySorting($stream));
+            return yield from $this->applyUnions($this->applySorting($stream, $sortIdx));
         }
 
-        return yield from $this->applyUnions($this->applyLimit($this->applySorting($stream)));
+        return yield from $this->applyUnions(
+            $this->applyLimit($this->applySorting($stream, $sortIdx), $limitIdx)
+        );
     }
 
     /**
@@ -642,25 +686,22 @@ class Stream extends ResultsProvider
 
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @param int|null $whereIdx Pre-allocated collector index for where phase.
+     * @param int|null $havingIdx Pre-allocated collector index for having phase.
+     * @param int|null $limitIdx Pre-allocated collector index for limit phase (stream limit).
      * @return \Traversable<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      */
-    private function applyBaseStream(\Traversable $stream): \Traversable
-    {
+    private function applyBaseStream(
+        \Traversable $stream,
+        ?int $whereIdx = null,
+        ?int $havingIdx = null,
+        ?int $limitIdx = null
+    ): \Traversable {
         $count = 0;
         $currentOffset = 0;
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
         $c = $this->collector;
-
-        $whereIdx = $c !== null && $this->hasWhereConditions()
-            ? $c->addPhase($this->prefixPhase('where'), $this->getWhereNote(), true)
-            : null;
-        $havingIdx = $c !== null && $this->hasHavingConditions()
-            ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
-            : null;
-        $limitIdx = $c !== null && $applyLimitAtStream
-            ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
-            : null;
 
         foreach ($stream as $item) {
             if ($c !== null && $whereIdx !== null) {
@@ -733,22 +774,26 @@ class Stream extends ResultsProvider
 
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @param int|null $whereIdx Pre-allocated collector index for where phase.
+     * @param int|null $groupIdx Pre-allocated collector index for group phase.
+     * @param int|null $havingIdx Pre-allocated collector index for having phase.
+     * @param int|null $limitIdx Pre-allocated collector index for limit phase (stream limit).
      * @return \Generator<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      */
-    private function applyGrouping(\Traversable $stream): \Traversable
-    {
+    private function applyGrouping(
+        \Traversable $stream,
+        ?int $whereIdx = null,
+        ?int $groupIdx = null,
+        ?int $havingIdx = null,
+        ?int $limitIdx = null
+    ): \Traversable {
         $groupedData = [];
         $groupKey = Query::SELECT_ALL;
         $aggregateFunctions = $this->getAggregateFunctions();
         $incrementalAggregates = $aggregateFunctions;
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
         $c = $this->collector;
-
-        $whereIdx = $c !== null && $this->hasWhereConditions()
-            ? $c->addPhase($this->prefixPhase('where'), $this->getWhereNote(), true)
-            : null;
-        $groupIdx = $c?->addPhase($this->prefixPhase('group'), $this->getGroupNote(), true);
 
         foreach ($stream as $item) {
             if ($c !== null && $whereIdx !== null) {
@@ -811,10 +856,6 @@ class Stream extends ResultsProvider
 
             $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateFunctions);
 
-            $havingIdx = $c !== null && $this->hasHavingConditions()
-                ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
-                : null;
-
             if ($c !== null && $havingIdx !== null) {
                 $c->incrementIn($havingIdx);
                 $c->startAccumulator($havingIdx);
@@ -830,9 +871,6 @@ class Stream extends ResultsProvider
                 $c->stopAccumulator($havingIdx);
             }
 
-            $limitIdx = $c !== null && $applyLimitAtStream
-                ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
-                : null;
             if ($c !== null && $limitIdx !== null) {
                 $c->incrementIn($limitIdx);
                 $c->incrementOut($limitIdx);
@@ -840,13 +878,6 @@ class Stream extends ResultsProvider
 
             return yield $this->applyExcludeFromSelect($aggregatedItem);
         }
-
-        $havingIdx = $c !== null && $this->hasHavingConditions()
-            ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
-            : null;
-        $limitIdx = $c !== null && $applyLimitAtStream
-            ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
-            : null;
 
         $count = 0;
         $currentOffset = 0;
@@ -953,17 +984,17 @@ class Stream extends ResultsProvider
 
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @param int|null $sortIdx Pre-allocated collector index for sort phase.
      * @return \Traversable<StreamProviderArrayIteratorValue>
      * @throws Exception\SortException
      */
-    private function applySorting(\Traversable $iterator): \Traversable
+    private function applySorting(\Traversable $iterator, ?int $sortIdx = null): \Traversable
     {
         if ($this->orderings === []) {
             return $iterator;
         }
 
         $c = $this->collector;
-        $sortIdx = $c?->addPhase($this->prefixPhase('sort'), $this->getSortNote(), true);
 
         if ($c !== null && $sortIdx !== null) {
             $c->startTimer($sortIdx);
@@ -1013,15 +1044,14 @@ class Stream extends ResultsProvider
 
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $data
+     * @param int|null $limitIdx Pre-allocated collector index for limit phase.
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyLimit(\Traversable $data): \Generator
+    private function applyLimit(\Traversable $data, ?int $limitIdx = null): \Generator
     {
         $count = 0;
         $currentOffset = 0;
         $c = $this->collector;
-
-        $limitIdx = $c?->addPhase($this->prefixPhase('limit'), $this->getLimitNote(false), true);
 
         if ($c !== null && $limitIdx !== null) {
             $c->startTimer($limitIdx);
