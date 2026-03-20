@@ -605,6 +605,9 @@ interface Query extends \Stringable
      */
     public function explainAnalyze(): Query;
 
+    public function union(Query $query): Query;
+    public function unionAll(Query $query): Query;
+
     /**
      * @throws Exception\InvalidFormatException
      */

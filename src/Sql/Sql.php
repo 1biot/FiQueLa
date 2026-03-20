@@ -31,9 +31,14 @@ class Sql extends SqlLexer implements Interface\Parser
      * @throws Exception\FileNotFoundException
      * @throws Exception\InvalidFormatException
      */
-    public function toQuery(): Interface\Query
+    public function toQuery(?int $startPosition = null): Interface\Query
     {
-        $this->rewind();
+        if ($startPosition !== null) {
+            $this->position = $startPosition;
+        } else {
+            $this->rewind();
+        }
+
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             if (strtoupper($token) !== 'FROM') {
@@ -41,7 +46,8 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             $fileQuery = $this->validateFileQueryPath($this->nextToken());
-            return $this->parseWithQuery(Query\Provider::fromFileQuery((string) $fileQuery));
+            $parseStart = $startPosition !== null ? $startPosition : null;
+            return $this->parseWithQuery(Query\Provider::fromFileQuery((string) $fileQuery), $parseStart);
         }
 
         throw new Exception\UnexpectedValueException('Undefined file in query');
@@ -52,9 +58,13 @@ class Sql extends SqlLexer implements Interface\Parser
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
      */
-    public function parseWithQuery(Interface\Query $query): Interface\Query
+    public function parseWithQuery(Interface\Query $query, ?int $startPosition = null): Interface\Query
     {
-        $this->rewind();
+        if ($startPosition !== null) {
+            $this->position = $startPosition;
+        } else {
+            $this->rewind();
+        }
         while (!$this->isEOF()) {
             $token = $this->nextToken();
             switch (strtoupper($token)) {
@@ -145,6 +155,16 @@ class Sql extends SqlLexer implements Interface\Parser
                     $limit = (int) $this->nextToken();
                     $offset = $this->nextToken();
                     $query->limit($limit, $offset === '' ? null : (int) $offset);
+                    break;
+
+                case 'UNION':
+                    $isUnionAll = strtoupper($this->peekToken()) === 'ALL';
+                    if ($isUnionAll) {
+                        $this->nextToken(); // consume ALL
+                    }
+                    $unionStartPosition = $this->position;
+                    $unionQuery = $this->toQuery($unionStartPosition);
+                    $isUnionAll ? $query->unionAll($unionQuery) : $query->union($unionQuery);
                     break;
 
                 default:

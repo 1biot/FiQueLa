@@ -14,6 +14,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _8_ - [Sorting and Filtering](#8-sorting-and-filtering)
 * _9_ - [Pagination and Limits](#9-pagination-and-limits)
 * _10_ - [Explain](#10-explain)
+* _11_ - [Union](#11-union)
 
 ## 1. Interpreted FQL
 
@@ -567,6 +568,53 @@ FROM [json](./examples/data/products.tmp).data.products
 WHERE price > 100
 ORDER BY name DESC
 LIMIT 10
+```
+
+## 11. Union
+
+Use `UNION` to combine results from multiple queries, removing duplicate rows. Use `UNION ALL` to combine results
+keeping all rows including duplicates. The `UNION` clause is placed after all other clauses of each query.
+
+```sql
+select_statement
+UNION [ALL]
+select_statement
+[UNION [ALL]
+select_statement ...]
+```
+
+The number of selected columns must match across all combined queries.
+
+**Example:**
+
+```sql
+SELECT name, price FROM [json](./examples/data/products.json).data.products
+WHERE price <= 100
+UNION
+SELECT name, price FROM [json](./examples/data/products.json).data.products
+WHERE price >= 400
+```
+
+**Example with UNION ALL:**
+
+```sql
+SELECT name, price FROM [json](./examples/data/products.json).data.products
+WHERE price >= 300
+UNION ALL
+SELECT name, price FROM [json](./examples/data/products.json).data.products
+WHERE price >= 300
+```
+
+**Chaining multiple unions:**
+
+```sql
+SELECT name, price FROM [json](./examples/data/feed1.xml).SHOP.ITEM
+WHERE price > 100
+UNION
+SELECT name, price FROM [json](./examples/data/feed2.xml).SHOP.ITEM
+WHERE price > 200
+UNION ALL
+SELECT name, price FROM [json](./examples/data/feed3.xml).SHOP.ITEM
 ```
 
 ## Next steps
