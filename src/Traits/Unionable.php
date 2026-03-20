@@ -25,7 +25,7 @@ trait Unionable
     {
         $sql = '';
         foreach ($this->unions as $union) {
-            $sql .= ' ' . $union['type'] . ' ' . $union['query'];
+            $sql .= PHP_EOL . $union['type'] . PHP_EOL . $union['query'];
         }
         return $sql;
     }
