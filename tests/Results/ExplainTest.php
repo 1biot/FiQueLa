@@ -112,4 +112,135 @@ class ExplainTest extends TestCase
         $this->assertNotNull($joinRow);
         $this->assertStringContainsString('[No Condition]', $joinRow['note']);
     }
+
+    public function testExplainPlanWithUnionShowsUnionPhase(): void
+    {
+        $query1 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $query2 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $rows = iterator_to_array($query1
+            ->union($query2)
+            ->explain()
+            ->execute()
+            ->fetchAll());
+
+        $this->assertNotEmpty($rows);
+
+        $phases = array_column($rows, 'phase');
+        $this->assertContains('stream', $phases);
+        $this->assertContains('union', $phases);
+
+        $unionRow = null;
+        foreach ($rows as $row) {
+            if ($row['phase'] === 'union') {
+                $unionRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($unionRow);
+        $this->assertSame('UNION', $unionRow['note']);
+        $this->assertNull($unionRow['rows_in']);
+        $this->assertNull($unionRow['time_ms']);
+    }
+
+    public function testExplainPlanWithUnionAllShowsPhase(): void
+    {
+        $query1 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $query2 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $rows = iterator_to_array($query1
+            ->unionAll($query2)
+            ->explain()
+            ->execute()
+            ->fetchAll());
+
+        $unionRow = null;
+        foreach ($rows as $row) {
+            if ($row['phase'] === 'union') {
+                $unionRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($unionRow);
+        $this->assertSame('UNION ALL', $unionRow['note']);
+    }
+
+    public function testExplainAnalyzeWithUnionIncludesMetrics(): void
+    {
+        $query1 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $query2 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $rows = iterator_to_array($query1
+            ->union($query2)
+            ->explainAnalyze()
+            ->execute()
+            ->fetchAll());
+
+        $this->assertNotEmpty($rows);
+
+        $phases = array_column($rows, 'phase');
+        $this->assertContains('stream', $phases);
+        $this->assertContains('union', $phases);
+
+        $unionRow = null;
+        foreach ($rows as $row) {
+            if ($row['phase'] === 'union') {
+                $unionRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($unionRow);
+        $this->assertIsInt($unionRow['rows_in']);
+        $this->assertIsInt($unionRow['rows_out']);
+        $this->assertNotNull($unionRow['time_ms']);
+        $this->assertNotNull($unionRow['duration_pct']);
+        $this->assertGreaterThan(0, $unionRow['rows_in']);
+    }
+
+    public function testExplainAnalyzeWithMultipleUnions(): void
+    {
+        $query1 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $query2 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $query3 = $this->products->query()
+            ->select('id')
+            ->from('data.products');
+
+        $rows = iterator_to_array($query1
+            ->union($query2)
+            ->unionAll($query3)
+            ->explainAnalyze()
+            ->execute()
+            ->fetchAll());
+
+        $unionRows = array_filter($rows, fn($r) => $r['phase'] === 'union');
+        $this->assertCount(2, $unionRows);
+
+        $notes = array_column($unionRows, 'note');
+        $this->assertContains('UNION', $notes);
+        $this->assertContains('UNION ALL', $notes);
+    }
 }
