@@ -1,3 +1,4 @@
+.claude
 .idea
 .opencode
 .run
@@ -7,6 +8,3 @@ vendor
 **/.DS_Store
 AGENTS.md
 examples/test.php
-examples/data/ciselnik.csv
-examples/data/produkty.csv
-examples/data/varianty.csv

@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-81.36%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_616-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-82.19%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_620-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -220,12 +220,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.2136 (emalloc)
-> Memory peak usage (MB): 1.6395 (emalloc)
+> Memory usage (MB): 1.315 (emalloc)
+> Memory peak usage (MB): 1.7331 (emalloc)
 ------------------------------
-> Execution time (s): 0.000105
-> Execution time (ms): 0.105
-> Execution time (µs): 105
+> Execution time (s): 8.2E-5
+> Execution time (ms): 0.082
+> Execution time (µs): 82
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -266,13 +266,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.7129 (emalloc)
-> Memory peak usage (MB): 2.8575 (emalloc)
+> Memory usage (MB): 3.1106 (emalloc)
+> Memory peak usage (MB): 3.1917 (emalloc)
 ------------------------------
-> Execution time (s): 0.048545
-> Execution time (ms): 48.545
-> Execution time (µs): 48545
-> Execution memory peak usage (MB): 1.218
+> Execution time (s): 0.040795
+> Execution time (ms): 40.795
+> Execution time (µs): 40795
+> Execution memory peak usage (MB): 1.4586
 ========================
 ### Benchmark Query: ###
 ========================
@@ -294,16 +294,16 @@ array (7)
 =========================
 ### STREAM BENCHMARK: ###
 =========================
-> Size (KB): 2.65
+> Size (KB): 2.73
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.7024 (emalloc)
-> Memory peak usage (MB): 2.8575 (emalloc)
+> Memory usage (MB): 3.1002 (emalloc)
+> Memory peak usage (MB): 3.1917 (emalloc)
 ------------------------------
-> Execution time (s): 9.610945
-> Execution time (ms): 9610.945
-> Execution time (µs): 9610945
+> Execution time (s): 34.916505
+> Execution time (ms): 34916.505
+> Execution time (µs): 34916505
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
@@ -312,22 +312,22 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 2.7129 (emalloc)
-> Memory peak usage (MB): 2.8575 (emalloc)
+> Memory usage (MB): 3.1106 (emalloc)
+> Memory peak usage (MB): 3.1917 (emalloc)
 ------------------------------
-> Execution time (s): 0.005123
-> Execution time (ms): 5.123
-> Execution time (µs): 5123
+> Execution time (s): 0.016342
+> Execution time (ms): 16.342
+> Execution time (µs): 16342
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 2.7021 (emalloc)
-> Memory peak usage (MB): 2.8575 (emalloc)
+> Memory usage (MB): 3.0997 (emalloc)
+> Memory peak usage (MB): 3.1917 (emalloc)
 ------------------------------
-> Final execution time (s): 9.66474
-> Final execution time (ms): 9664.74
-> Final execution time (µs): 9664740
+> Final execution time (s): 34.973789
+> Final execution time (ms): 34973.789
+> Final execution time (µs): 34973789
 ```
 
 ## 7. Known issues
