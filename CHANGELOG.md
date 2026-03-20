@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.7.2]
+
+### Added
+- `mem_peak_kb` column to `EXPLAIN ANALYZE` output — records `memory_get_peak_usage()` at the end of each phase
+- Union sub-phase instrumentation in `EXPLAIN ANALYZE` — each union branch now reports its own phases (`union_1_stream`, `union_1_where`, etc.) followed by a summary row (`union_1`)
+- `setCollector()` method on `Stream` for passing `ExplainCollector` with prefix to union subqueries
+- `recordMemPeak()` and `prefixPhase()` helper methods
+
+### Changed
+- Union phases renamed from `union` to `union_{index}` (e.g. `union_1`, `union_2`) in both `EXPLAIN` and `EXPLAIN ANALYZE`
+- For non-ANALYZE `explain()`, `mem_peak_kb` is always `null`
+
 ## [2.7.1]
 
 ### Updated

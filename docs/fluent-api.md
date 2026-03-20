@@ -488,13 +488,16 @@ Use `explain()` to get a plan-only result and `explainAnalyze()` to execute the 
 timings. The output is always a flat table (Results\InMemory).
 
 Columns:
-- `phase`
-- `rows_in`
-- `rows_out`
-- `filtered`
-- `time_ms`
-- `duration_pct`
-- `note`
+- `phase` — pipeline stage name (`stream`, `join`, `where`, `group`, `having`, `sort`, `limit`, `union`)
+- `rows_in` — number of rows entering the phase (`null` for plan-only)
+- `rows_out` — number of rows leaving the phase (`null` for plan-only)
+- `filtered` — rows removed (`rows_in - rows_out`, `null` for plan-only)
+- `time_ms` — wall-clock time in milliseconds (`null` for plan-only)
+- `duration_pct` — percentage of total query time (`null` for plan-only)
+- `mem_peak_kb` — peak memory usage in KB at end of phase (`null` for plan-only)
+- `note` — human-readable description of the phase configuration
+
+### Plan only (explain)
 
 ```php
 $results = $query
@@ -506,6 +509,8 @@ $results = $query
     ->execute();
 ```
 
+### With analysis (explainAnalyze)
+
 ```php
 $results = $query
     ->from('data.products')
@@ -514,6 +519,32 @@ $results = $query
     ->limit(10)
     ->explainAnalyze()
     ->execute();
+```
+
+### Union sub-phases
+
+When a query includes `UNION` or `UNION ALL`, the explain output includes union phases:
+
+- **Single union**: phases are prefixed with `union_` (e.g. `union_stream`, `union_where`) followed by a summary row `union`.
+- **Multiple unions**: phases are indexed (e.g. `union_1_stream`, `union_1_where`, `union_2_stream`) with summary rows `union_1`, `union_2`.
+
+```php
+$query1 = $stream->query()
+    ->select('id')
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN, 100);
+
+$query2 = $stream->query()
+    ->select('id')
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN, 200);
+
+$results = $query1
+    ->unionAll($query2)
+    ->explainAnalyze()
+    ->execute();
+
+// Phases: stream, union_stream, union_where, union
 ```
 
 ## 9. Union

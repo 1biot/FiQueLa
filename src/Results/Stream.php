@@ -79,6 +79,21 @@ class Stream extends ResultsProvider
     ) {
     }
 
+    private string $collectorPrefix = '';
+
+    public function setCollector(ExplainCollector $collector, string $prefix = ''): void
+    {
+        $this->collector = $collector;
+        $this->collectorPrefix = $prefix;
+    }
+
+    private function prefixPhase(string $phase): string
+    {
+        return $this->collectorPrefix !== ''
+            ? $this->collectorPrefix . '_' . $phase
+            : $phase;
+    }
+
     public function setJoinHashMap(JoinHashMap $joinHashMap): void
     {
         $this->joinHashMap = $joinHashMap;
@@ -326,7 +341,7 @@ class Stream extends ResultsProvider
             return;
         }
 
-        $joinIdx = $this->collector->addPhase('join', $this->getJoinNote($join), true);
+        $joinIdx = $this->collector->addPhase($this->prefixPhase('join'), $this->getJoinNote($join), true);
         $this->collector->startTimer($joinIdx);
 
         // Count input rows
@@ -442,7 +457,7 @@ class Stream extends ResultsProvider
      */
     private function buildStream(): \Traversable
     {
-        $streamIdx = $this->collector?->addPhase('stream', $this->getStreamNote(), false);
+        $streamIdx = $this->collector?->addPhase($this->prefixPhase('stream'), $this->getStreamNote(), false);
         $stream = $this->hasJoin()
             ? $this->applyJoins($this->applyStreamSource($streamIdx))
             : $this->applyStreamSource($streamIdx);
@@ -505,21 +520,50 @@ class Stream extends ResultsProvider
         $hasAnyUnion = !empty(array_filter($this->unions, fn($u) => $u['type'] === 'UNION'));
         yield from $emit($stream, $hasAnyUnion, null);
 
-        foreach ($this->unions as $union) {
-            $unionIdx = $c?->addPhase('union', $union['type'], true);
+        $unionCount = count($this->unions);
+        foreach ($this->unions as $index => $union) {
+            $prefix = $unionCount === 1 ? 'union' : 'union_' . ($index + 1);
+            $unionStart = $c !== null ? microtime(true) : null;
+            $unionRowsIn = 0;
+            $unionRowsOut = 0;
 
-            if ($c !== null && $unionIdx !== null) {
-                $c->startTimer($unionIdx);
+            $unionResult = $union['query']->execute();
+
+            // Pass collector with prefix to union subquery for sub-phase instrumentation
+            if ($c !== null && $unionResult instanceof self) {
+                $unionResult->setCollector($c, $prefix);
             }
 
-            yield from $emit(
-                $union['query']->execute(),
-                $union['type'] === 'UNION',
-                $unionIdx
-            );
+            $deduplicate = $union['type'] === 'UNION';
+            foreach ($unionResult as $row) {
+                $unionRowsIn++;
+                if (!$deduplicate) {
+                    $unionRowsOut++;
+                    yield $row;
+                    continue;
+                }
+                $hash = md5(serialize($row));
+                if (!isset($seen[$hash])) {
+                    $seen[$hash] = true;
+                    $unionRowsOut++;
+                    yield $row;
+                }
+            }
 
-            if ($c !== null && $unionIdx !== null) {
-                $c->stopTimer($unionIdx);
+            // Add summary row AFTER sub-phases so it appears last
+            if ($c !== null) {
+                $summaryIdx = $c->addPhase($prefix, $union['type'], true);
+                if ($unionStart !== null) {
+                    $elapsed = (microtime(true) - $unionStart) * 1000;
+                    $c->addTime($summaryIdx, $elapsed);
+                }
+                for ($i = 0; $i < $unionRowsIn; $i++) {
+                    $c->incrementIn($summaryIdx);
+                }
+                for ($i = 0; $i < $unionRowsOut; $i++) {
+                    $c->incrementOut($summaryIdx);
+                }
+                $c->recordMemPeak($summaryIdx);
             }
         }
     }
@@ -609,13 +653,13 @@ class Stream extends ResultsProvider
         $c = $this->collector;
 
         $whereIdx = $c !== null && $this->hasWhereConditions()
-            ? $c->addPhase('where', $this->getWhereNote(), true)
+            ? $c->addPhase($this->prefixPhase('where'), $this->getWhereNote(), true)
             : null;
         $havingIdx = $c !== null && $this->hasHavingConditions()
-            ? $c->addPhase('having', $this->getHavingNote(), true)
+            ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
             : null;
         $limitIdx = $c !== null && $applyLimitAtStream
-            ? $c->addPhase('limit', $this->getLimitNote(true), true)
+            ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
             : null;
 
         foreach ($stream as $item) {
@@ -702,9 +746,9 @@ class Stream extends ResultsProvider
         $c = $this->collector;
 
         $whereIdx = $c !== null && $this->hasWhereConditions()
-            ? $c->addPhase('where', $this->getWhereNote(), true)
+            ? $c->addPhase($this->prefixPhase('where'), $this->getWhereNote(), true)
             : null;
-        $groupIdx = $c?->addPhase('group', $this->getGroupNote(), true);
+        $groupIdx = $c?->addPhase($this->prefixPhase('group'), $this->getGroupNote(), true);
 
         foreach ($stream as $item) {
             if ($c !== null && $whereIdx !== null) {
@@ -768,7 +812,7 @@ class Stream extends ResultsProvider
             $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateFunctions);
 
             $havingIdx = $c !== null && $this->hasHavingConditions()
-                ? $c->addPhase('having', $this->getHavingNote(), true)
+                ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
                 : null;
 
             if ($c !== null && $havingIdx !== null) {
@@ -787,7 +831,7 @@ class Stream extends ResultsProvider
             }
 
             $limitIdx = $c !== null && $applyLimitAtStream
-                ? $c->addPhase('limit', $this->getLimitNote(true), true)
+                ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
                 : null;
             if ($c !== null && $limitIdx !== null) {
                 $c->incrementIn($limitIdx);
@@ -798,10 +842,10 @@ class Stream extends ResultsProvider
         }
 
         $havingIdx = $c !== null && $this->hasHavingConditions()
-            ? $c->addPhase('having', $this->getHavingNote(), true)
+            ? $c->addPhase($this->prefixPhase('having'), $this->getHavingNote(), true)
             : null;
         $limitIdx = $c !== null && $applyLimitAtStream
-            ? $c->addPhase('limit', $this->getLimitNote(true), true)
+            ? $c->addPhase($this->prefixPhase('limit'), $this->getLimitNote(true), true)
             : null;
 
         $count = 0;
@@ -919,7 +963,7 @@ class Stream extends ResultsProvider
         }
 
         $c = $this->collector;
-        $sortIdx = $c?->addPhase('sort', $this->getSortNote(), true);
+        $sortIdx = $c?->addPhase($this->prefixPhase('sort'), $this->getSortNote(), true);
 
         if ($c !== null && $sortIdx !== null) {
             $c->startTimer($sortIdx);
@@ -977,7 +1021,7 @@ class Stream extends ResultsProvider
         $currentOffset = 0;
         $c = $this->collector;
 
-        $limitIdx = $c?->addPhase('limit', $this->getLimitNote(false), true);
+        $limitIdx = $c?->addPhase($this->prefixPhase('limit'), $this->getLimitNote(false), true);
 
         if ($c !== null && $limitIdx !== null) {
             $c->startTimer($limitIdx);

@@ -25,6 +25,7 @@ class ExplainCollector
             'filtered' => null,
             'time_ms' => 0.0,
             'duration_pct' => null,
+            'mem_peak_kb' => null,
             'note' => $note,
         ];
 
@@ -51,6 +52,7 @@ class ExplainCollector
         if (isset($this->timers[$index])) {
             $elapsed = (microtime(true) - $this->timers[$index]) * 1000;
             $this->rows[$index]['time_ms'] = (float) $this->rows[$index]['time_ms'] + $elapsed;
+            $this->rows[$index]['mem_peak_kb'] = round(memory_get_peak_usage() / 1024, 1);
             unset($this->timers[$index]);
         }
     }
@@ -58,6 +60,11 @@ class ExplainCollector
     public function addTime(int $index, float $ms): void
     {
         $this->rows[$index]['time_ms'] = (float) $this->rows[$index]['time_ms'] + $ms;
+    }
+
+    public function recordMemPeak(int $index): void
+    {
+        $this->rows[$index]['mem_peak_kb'] = round(memory_get_peak_usage() / 1024, 1);
     }
 
     public function startAccumulator(int $index): void
@@ -70,6 +77,7 @@ class ExplainCollector
         if (isset($this->accumulatedTime[$index])) {
             $elapsed = (microtime(true) - $this->accumulatedTime[$index]) * 1000;
             $this->rows[$index]['time_ms'] = (float) $this->rows[$index]['time_ms'] + $elapsed;
+            $this->rows[$index]['mem_peak_kb'] = round(memory_get_peak_usage() / 1024, 1);
             unset($this->accumulatedTime[$index]);
         }
     }
@@ -156,8 +164,10 @@ class ExplainCollector
             $rows[] = $this->createPlanRow('limit', $limitNote);
         }
 
-        foreach ($unions as $union) {
-            $rows[] = $this->createPlanRow('union', $union['type']);
+        $unionCount = count($unions);
+        foreach ($unions as $index => $union) {
+            $prefix = $unionCount === 1 ? 'union' : 'union_' . ($index + 1);
+            $rows[] = $this->createPlanRow($prefix, $union['type']);
         }
 
         return $rows;
@@ -175,6 +185,7 @@ class ExplainCollector
             'filtered' => null,
             'time_ms' => null,
             'duration_pct' => null,
+            'mem_peak_kb' => null,
             'note' => $note,
         ];
     }
