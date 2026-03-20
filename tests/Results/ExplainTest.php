@@ -147,6 +147,7 @@ class ExplainTest extends TestCase
         $this->assertSame('UNION', $unionRow['note']);
         $this->assertNull($unionRow['rows_in']);
         $this->assertNull($unionRow['time_ms']);
+        $this->assertNull($unionRow['mem_peak_kb']);
     }
 
     public function testExplainPlanWithUnionAllShowsPhase(): void
@@ -212,6 +213,7 @@ class ExplainTest extends TestCase
         $this->assertIsInt($unionRow['rows_out']);
         $this->assertNotNull($unionRow['time_ms']);
         $this->assertNotNull($unionRow['duration_pct']);
+        $this->assertNotNull($unionRow['mem_peak_kb']);
         $this->assertGreaterThan(0, $unionRow['rows_in']);
     }
 
@@ -236,11 +238,82 @@ class ExplainTest extends TestCase
             ->execute()
             ->fetchAll());
 
-        $unionRows = array_filter($rows, fn($r) => $r['phase'] === 'union');
+        $unionRows = array_values(array_filter($rows, fn($r) => in_array($r['phase'], ['union_1', 'union_2'])));
         $this->assertCount(2, $unionRows);
 
         $notes = array_column($unionRows, 'note');
         $this->assertContains('UNION', $notes);
         $this->assertContains('UNION ALL', $notes);
+    }
+
+    public function testExplainPlanHasMemPeakKbNull(): void
+    {
+        $rows = iterator_to_array($this->products->query()
+            ->from('data.products')
+            ->explain()
+            ->execute()
+            ->fetchAll());
+
+        foreach ($rows as $row) {
+            $this->assertArrayHasKey('mem_peak_kb', $row);
+            $this->assertNull($row['mem_peak_kb']);
+        }
+    }
+
+    public function testExplainAnalyzeHasMemPeakKb(): void
+    {
+        $rows = iterator_to_array($this->products->query()
+            ->select('id')
+            ->from('data.products')
+            ->where('price', Operator::GREATER_THAN, 100)
+            ->explainAnalyze()
+            ->execute()
+            ->fetchAll());
+
+        $this->assertNotEmpty($rows);
+
+        foreach ($rows as $row) {
+            $this->assertArrayHasKey('mem_peak_kb', $row);
+            if ($row['time_ms'] !== null) {
+                $this->assertIsFloat($row['mem_peak_kb']);
+                $this->assertGreaterThan(0, $row['mem_peak_kb']);
+            }
+        }
+    }
+
+    public function testExplainAnalyzeUnionSubPhases(): void
+    {
+        $query1 = $this->products->query()
+            ->select('id')
+            ->from('data.products')
+            ->where('price', Operator::GREATER_THAN, 100);
+
+        $query2 = $this->products->query()
+            ->select('id')
+            ->from('data.products')
+            ->where('price', Operator::GREATER_THAN, 200);
+
+        $rows = iterator_to_array($query1
+            ->unionAll($query2)
+            ->explainAnalyze()
+            ->execute()
+            ->fetchAll());
+
+        $phases = array_column($rows, 'phase');
+
+        // Main query phases
+        $this->assertContains('stream', $phases);
+
+        // Union sub-phases should be prefixed
+        $this->assertContains('union_stream', $phases);
+        $this->assertContains('union_where', $phases);
+
+        // Union summary row
+        $this->assertContains('union', $phases);
+
+        // Sub-phases appear before the summary row
+        $streamPos = array_search('union_stream', $phases);
+        $summaryPos = array_search('union', $phases);
+        $this->assertLessThan($summaryPos, $streamPos);
     }
 }

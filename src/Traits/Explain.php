@@ -12,6 +12,7 @@ use FQL\Interface;
  *      filtered: int|null,
  *      time_ms: float|null,
  *      duration_pct: float|null,
+ *      mem_peak_kb: float|null,
  *      note: string
  *  }
  */

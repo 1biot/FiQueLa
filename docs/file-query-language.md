@@ -538,15 +538,16 @@ Use `EXPLAIN` to get a flat, human-friendly execution plan. Use `EXPLAIN ANALYZE
 real row counts and timings. The result is always a simple table and suitable for display.
 
 Columns:
-- `phase`
-- `rows_in`
-- `rows_out`
-- `filtered`
-- `time_ms`
-- `duration_pct`
-- `note`
+- `phase` — pipeline stage name (`stream`, `join`, `where`, `group`, `having`, `sort`, `limit`, `union`)
+- `rows_in` — number of rows entering the phase (`null` for plan-only)
+- `rows_out` — number of rows leaving the phase (`null` for plan-only)
+- `filtered` — rows removed (`rows_in - rows_out`, `null` for plan-only)
+- `time_ms` — wall-clock time in milliseconds (`null` for plan-only)
+- `duration_pct` — percentage of total query time (`null` for plan-only)
+- `mem_peak_kb` — peak memory usage in KB at end of phase (`null` for plan-only)
+- `note` — human-readable description of the phase configuration
 
-**Example:**
+**Example (plan only):**
 
 ```sql
 EXPLAIN
@@ -570,6 +571,22 @@ FROM [json](./examples/data/products.tmp).data.products
 WHERE price > 100
 ORDER BY name DESC
 LIMIT 10
+```
+
+### Union sub-phases
+
+When a query includes `UNION` or `UNION ALL`, the explain output includes union phases:
+
+- **Single union**: phases are prefixed with `union_` (e.g. `union_stream`, `union_where`) followed by a summary row `union`.
+- **Multiple unions**: phases are indexed (e.g. `union_1_stream`, `union_1_where`, `union_2_stream`) with summary rows `union_1`, `union_2`.
+
+```sql
+EXPLAIN ANALYZE
+SELECT id FROM [json](./examples/data/products.json).data.products
+WHERE price > 100
+UNION ALL
+SELECT id FROM [json](./examples/data/products.json).data.products
+WHERE price > 200
 ```
 
 ## 11. Union
