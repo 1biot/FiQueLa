@@ -29,6 +29,7 @@ class Query implements Interface\Query
         distinct as private traitDistinct;
     }
     use Traits\Sortable;
+    use Traits\Unionable;
     use Traits\Explain;
 
     /**
@@ -59,6 +60,8 @@ class Query implements Interface\Query
 
     public function execute(?string $resultClass = null): Results\ResultsProvider
     {
+        $this->validateUnionColumns();
+
         $streamResult = new Results\Stream(
             $this->stream,
             $this->distinct,
@@ -71,7 +74,8 @@ class Query implements Interface\Query
             $this->groupByFields,
             $this->orderings,
             $this->limit,
-            $this->offset
+            $this->offset,
+            unions: $this->unions
         );
 
         if ($this->explain) {
@@ -114,7 +118,38 @@ class Query implements Interface\Query
         // LIMIT
         $queryParts[] = $this->limitToString();
 
-        return trim(str_replace("\t", "  ", implode('', $queryParts)));
+        return trim(str_replace("\t", "  ", implode('', $queryParts))) . $this->unionsToString();
+    }
+
+    private function validateUnionColumns(): void
+    {
+        if ($this->unions === []) {
+            return;
+        }
+
+        $mainCount = count($this->selectedFields);
+        if ($mainCount === 0) {
+            return; // SELECT * — skip validation
+        }
+
+        foreach ($this->unions as $i => $union) {
+            /** @var self $unionQuery */
+            $unionQuery = $union['query'];
+            $unionCount = count($unionQuery->selectedFields);
+            if ($unionCount === 0) {
+                continue; // SELECT * — skip validation
+            }
+            if ($unionCount !== $mainCount) {
+                throw new QueryLogicException(
+                    sprintf(
+                        'UNION query #%d has %d columns, but main query has %d columns',
+                        $i + 1,
+                        $unionCount,
+                        $mainCount
+                    )
+                );
+            }
+        }
     }
 
     public function provideFileQuery(): FileQuery

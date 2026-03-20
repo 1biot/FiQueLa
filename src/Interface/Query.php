@@ -464,6 +464,8 @@ interface Query extends \Stringable
      */
     public function randomBytes(int $length = 10): Query;
 
+    public function uuid(): Query;
+
     /** @param string[] $fields */
     public function fulltext(array $fields, string $searchQuery): Query;
     /** @param string[] $fields */
@@ -604,6 +606,9 @@ interface Query extends \Stringable
      * When executed, the results are returned as a flat table (InMemory).
      */
     public function explainAnalyze(): Query;
+
+    public function union(Query $query): Query;
+    public function unionAll(Query $query): Query;
 
     /**
      * @throws Exception\InvalidFormatException

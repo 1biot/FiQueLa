@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.7.0]
+
+### Added
+- support for `UNION` and `UNION ALL`
+- Added `UUID` function
+
 ## [2.6.0]
 
 ### Changed

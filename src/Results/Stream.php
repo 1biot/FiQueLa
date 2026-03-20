@@ -72,7 +72,9 @@ class Stream extends ResultsProvider
         private readonly array $orderings,
         private readonly int|null $limit,
         private readonly int|null $offset,
-        private JoinHashMap $joinHashMap = new InMemoryHashmap()
+        private JoinHashMap $joinHashMap = new InMemoryHashmap(),
+        /** @var array<int, array{type: string, query: Query}> */
+        private readonly array $unions = []
     ) {
     }
 
@@ -904,7 +906,7 @@ class Stream extends ResultsProvider
 
         if ($this->isGroupable()) {
             if (!$this->isSortable()) {
-                return yield from $this->applyGrouping($stream); // apply limit and offset automatically
+                return yield from $this->applyUnions($this->applyGrouping($stream));
             }
 
             $stream = $this->applyGrouping($stream);
@@ -913,12 +915,49 @@ class Stream extends ResultsProvider
         }
 
         if (!$this->isSortable()) {
-            return yield from $stream; // apply limit and offset automatically
+            return yield from $this->applyUnions($stream);
         } elseif (!$this->isLimitable()) {
-            return yield from $this->applySorting($stream);
+            return yield from $this->applyUnions($this->applySorting($stream));
         }
 
-        return yield from $this->applyLimit($this->applySorting($stream));
+        return yield from $this->applyUnions($this->applyLimit($this->applySorting($stream)));
+    }
+
+    /**
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function applyUnions(\Traversable $stream): \Traversable
+    {
+        if ($this->unions === []) {
+            yield from $stream;
+            return;
+        }
+
+        $seen = [];
+        $emit = function (\Traversable $source, bool $deduplicate) use (&$seen): \Generator {
+            foreach ($source as $row) {
+                if (!$deduplicate) {
+                    yield $row;
+                    continue;
+                }
+                $hash = md5(serialize($row));
+                if (!isset($seen[$hash])) {
+                    $seen[$hash] = true;
+                    yield $row;
+                }
+            }
+        };
+
+        $hasAnyUnion = !empty(array_filter($this->unions, fn($u) => $u['type'] === 'UNION'));
+        yield from $emit($stream, $hasAnyUnion);
+
+        foreach ($this->unions as $union) {
+            yield from $emit(
+                $union['query']->execute(),
+                $union['type'] === 'UNION'
+            );
+        }
     }
 
     /**

@@ -12,6 +12,7 @@ Fluent API is a way to build queries in a more readable and maintainable way. It
 * _6_ - [Sorting and Filtering](#vc-sorting-and-filtering)
 * _7_ - [Pagination and Limits](#vd-pagination-and-limits)
 * _8_ - [Explain](#explain)
+* _9_ - [Union](#9-union)
 
 ## 1. Select and Alias Fields
 
@@ -155,6 +156,7 @@ $query->concat('ArticleNr', 'CatalogNr')->as('CONCAT')
 | `currentTime`      | Get current time                                                       |
 | `length`           | Get length of value. Recognizes arrays as count, null as 0 and strings |
 | `randomBytes`      | Generates cryptographically secure random bytes.                       |
+| `uuid`             | Generates a random UUID v4.                                            |
 | `if`               | If condition, if true return first value, else second value            |
 | `ifNull`           | If value is null return second value, else first value                 |
 | `isNull`           | Check if value is null                                                 |
@@ -196,7 +198,8 @@ $query->arrayCombine('fieldWithArrayKeys', 'fieldWithArrayValues')->as('ARRAY_CO
     ->now()->as('NOW')
     ->currentTimestamp()->as('CURRENT_TIMESTAMP')
     ->currentDate()->as('CURDATE')
-    ->currentTime()->as('CURTIME');
+    ->currentTime()->as('CURTIME')
+    ->uuid()->as('UUID');
 ```
 
 ### Hashing functions
@@ -510,6 +513,43 @@ $results = $query
     ->orderBy('name')
     ->limit(10)
     ->explainAnalyze()
+    ->execute();
+```
+
+## 9. Union
+
+Use `union()` to combine results from multiple queries, removing duplicate rows. Use `unionAll()` to combine results
+keeping all rows including duplicates.
+
+The number of selected columns must match across all combined queries, otherwise a `QueryLogicException` is thrown.
+Queries using `SELECT *` skip this validation.
+
+**Example:**
+
+```php
+$query1 = $stream->query()
+    ->select('name', 'price')
+    ->from('data.products')
+    ->where('price', Operator::LESS_THAN_OR_EQUAL, 100);
+
+$query2 = $stream->query()
+    ->select('name', 'price')
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN_OR_EQUAL, 400);
+
+// UNION — removes duplicates
+$results = $query1->union($query2)->execute();
+
+// UNION ALL — keeps duplicates
+$results = $query1->unionAll($query2)->execute();
+```
+
+Chaining multiple unions:
+
+```php
+$results = $query1
+    ->union($query2)
+    ->unionAll($query3)
     ->execute();
 ```
 
