@@ -41,6 +41,11 @@ class FileQueryTest extends TestCase
             'xml(feed.xml, "utf-8").SHOP.ITEM' => 'xml(feed.xml).SHOP.ITEM',
             'xml(feed.xml, "windows-1250").SHOP.ITEM' => null,
             'xml(feed.xml, encoding: "windows-1250").SHOP.ITEM' => 'xml(feed.xml, "windows-1250").SHOP.ITEM',
+            // CSV with useHeader param
+            'csv(data.csv, "utf-8", ",", "0")' => 'csv(data.csv, "utf-8", ",", "0")',
+            'csv(data.csv, "utf-8", ",", "1")' => 'csv(data.csv)',
+            'csv(data.csv, useHeader: "0")' => 'csv(data.csv, "utf-8", ",", "0")',
+            'csv(data.csv, encoding: "windows-1250", useHeader: "0")' => 'csv(data.csv, "windows-1250", ",", "0")',
             // case-insensitive format names — normalized to lowercase
             'CSV(data.csv)' => 'csv(data.csv)',
             'JSON(data.json).data.users' => 'json(data.json).data.users',
@@ -90,6 +95,7 @@ class FileQueryTest extends TestCase
 
         $this->assertSame('windows-1250', $fileQuery->getParam('encoding'));
         $this->assertSame(';', $fileQuery->getParam('delimiter'));
+        $this->assertSame('1', $fileQuery->getParam('useHeader'));
         $this->assertNull($fileQuery->getParam('nonexistent'));
         $this->assertSame('default', $fileQuery->getParam('nonexistent', 'default'));
     }
@@ -99,6 +105,7 @@ class FileQueryTest extends TestCase
         $csv = new FileQuery('csv(data.csv)');
         $this->assertSame('utf-8', $csv->getParam('encoding'));
         $this->assertSame(',', $csv->getParam('delimiter'));
+        $this->assertSame('1', $csv->getParam('useHeader'));
 
         $xml = new FileQuery('xml(feed.xml)');
         $this->assertSame('utf-8', $xml->getParam('encoding'));
@@ -129,5 +136,13 @@ class FileQueryTest extends TestCase
         $this->expectExceptionMessage('CSV delimiter must be a single character');
 
         new FileQuery('csv(data.csv, "utf-8", ";;")');
+    }
+
+    public function testInvalidUseHeader(): void
+    {
+        $this->expectException(Exception\InvalidFormatException::class);
+        $this->expectExceptionMessage('CSV useHeader must be "0" or "1"');
+
+        new FileQuery('csv(data.csv, "utf-8", ",", "yes")');
     }
 }

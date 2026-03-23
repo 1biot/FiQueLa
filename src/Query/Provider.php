@@ -41,6 +41,11 @@ final class Provider
             $stream->setDelimiter($delimiter);
         }
 
+        $useHeader = $queryPath->getParam('useHeader');
+        if ($useHeader !== null && $stream instanceof Stream\Csv) {
+            $stream->useHeader($useHeader === '1');
+        }
+
         if ($queryPath->query === null) {
             return $stream->query();
         }

@@ -87,7 +87,7 @@ enum Format: string
     public function getDefaultParams(): array
     {
         return match ($this) {
-            self::CSV => ['encoding' => 'utf-8', 'delimiter' => ','],
+            self::CSV => ['encoding' => 'utf-8', 'delimiter' => ',', 'useHeader' => '1'],
             self::XML => ['encoding' => 'utf-8'],
             default   => [],
         };
@@ -123,6 +123,7 @@ enum Format: string
                 : [
                     'encoding'  => $positional[0] ?? $defaults['encoding'],
                     'delimiter' => $positional[1] ?? $defaults['delimiter'],
+                    'useHeader' => $positional[2] ?? $defaults['useHeader'],
                 ],
             self::XML => $named !== []
                 ? array_merge($defaults, $named)
@@ -160,6 +161,12 @@ enum Format: string
         if (isset($params['delimiter']) && strlen((string) $params['delimiter']) !== 1) {
             throw new Exception\InvalidFormatException(
                 'CSV delimiter must be a single character'
+            );
+        }
+
+        if (isset($params['useHeader']) && !in_array((string) $params['useHeader'], ['0', '1'], true)) {
+            throw new Exception\InvalidFormatException(
+                'CSV useHeader must be "0" or "1"'
             );
         }
     }

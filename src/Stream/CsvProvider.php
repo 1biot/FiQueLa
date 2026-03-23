@@ -105,8 +105,13 @@ abstract class CsvProvider extends AbstractStream
 
         $hasNonDefaultEncoding = $this->inputEncoding !== null && strtolower($this->inputEncoding) !== 'utf-8';
         $hasNonDefaultDelimiter = $this->delimiter !== ',';
+        $hasNonDefaultHeader = !$this->useHeader;
 
-        if ($hasNonDefaultDelimiter) {
+        if ($hasNonDefaultHeader) {
+            $params[] = sprintf('"%s"', $this->inputEncoding ?? 'utf-8');
+            $params[] = sprintf('"%s"', $this->delimiter);
+            $params[] = '"0"';
+        } elseif ($hasNonDefaultDelimiter) {
             $params[] = sprintf('"%s"', $this->inputEncoding ?? 'utf-8');
             $params[] = sprintf('"%s"', $this->delimiter);
         } elseif ($hasNonDefaultEncoding) {
