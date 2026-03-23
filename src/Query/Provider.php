@@ -30,12 +30,20 @@ final class Provider
     {
         $queryPath = new FileQuery($fileQuery);
         $stream = Stream\Provider::fromFile($queryPath->file ?? '', $queryPath->extension);
-        if ($queryPath->encoding && ($stream instanceof Stream\Xml || $stream instanceof Stream\Csv)) {
-            $stream->setInputEncoding($queryPath->encoding);
+
+        $encoding = $queryPath->getParam('encoding');
+        if ($encoding !== null && ($stream instanceof Stream\Xml || $stream instanceof Stream\Csv)) {
+            $stream->setInputEncoding($encoding);
         }
 
-        if ($queryPath->delimiter && $stream instanceof Stream\Csv) {
-            $stream->setDelimiter($queryPath->delimiter);
+        $delimiter = $queryPath->getParam('delimiter');
+        if ($delimiter !== null && $delimiter !== ',' && $stream instanceof Stream\Csv) {
+            $stream->setDelimiter($delimiter);
+        }
+
+        $useHeader = $queryPath->getParam('useHeader');
+        if ($useHeader !== null && $stream instanceof Stream\Csv) {
+            $stream->useHeader($useHeader === '1');
         }
 
         if ($queryPath->query === null) {

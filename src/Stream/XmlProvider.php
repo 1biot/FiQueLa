@@ -163,10 +163,10 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
             $params[] = basename($this->xmlFilePath);
         }
 
-        if ($this->inputEncoding !== null && $this->inputEncoding !== 'utf-8') {
-            $params[] = $this->inputEncoding;
+        if ($this->inputEncoding !== null && strtolower($this->inputEncoding) !== 'utf-8') {
+            $params[] = sprintf('"%s"', $this->inputEncoding);
         }
 
-        return sprintf('[xml](%s)', implode(',', $params));
+        return sprintf('xml(%s)', implode(', ', $params));
     }
 }

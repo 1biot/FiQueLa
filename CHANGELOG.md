@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.8.0]
+
+### Changed (BREAKING)
+- New FileQuery syntax `format(file, params).query` — square brackets removed
+- Old syntax `[format](file, encoding, delimiter).query` is no longer supported
+- Bare file references `(file.xml).query` without format prefix are no longer supported — format is now required
+- `FileQuery::getRegexp()` no longer accepts `$defaultPosition` parameter
+- `FileQuery` properties `encoding` and `delimiter` replaced by `params` array and `getParam()` method
+- `FileQuery::withExtension()` replaced by `withFormat(?string $format)`
+
+### Added
+- General parameter system for FileQuery — positional `"value"` or named `key: "value"` syntax
+- `Format::getDefaultParams()`, `Format::normalizeParams()`, `Format::validateParams()` methods
+- `FileQuery::getParam()`, `FileQuery::withParam()`, `FileQuery::withFormat()` methods
+- Parameter validation: encoding checked via `iconv`, CSV delimiter must be single character
+
+### Deprecated
+- `FileQuery::withEncoding()` — use `withParam('encoding', ...)` instead
+- `FileQuery::withDelimiter()` — use `withParam('delimiter', ...)` instead
+
 ## [2.7.2]
 
 ### Added

@@ -24,6 +24,6 @@ class ResultStreamProvider extends ArrayStreamProvider
 
     public function provideSource(): string
     {
-        return '[results](memory)';
+        return 'results(memory)';
     }
 }

@@ -179,7 +179,7 @@ abstract class SpreadsheetProvider extends AbstractStream
             $params[] = basename($this->filePath);
         }
 
-        return sprintf('[%s](%s)', $this->formatTag(), implode(',', $params));
+        return sprintf('%s(%s)', $this->formatTag(), implode(', ', $params));
     }
 
     /**

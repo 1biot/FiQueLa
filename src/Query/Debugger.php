@@ -251,15 +251,17 @@ class Debugger
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
         $functionPattern = '(?!_)([A-Z0-9_]{2,})(?<!_)\((.*)?\)';
 
-        // Tokenization with respect to brackets, quotes and multi-line input ((\[([a-z]+:\/\/)?(.*)])(.*))
+        // Tokenization: FileQuery uses known format names, function pattern for everything else
+        $formats = 'xml|json|jsonFile|ndJson|ndjson|csv|tsv|yaml|yml|neon|xls|xlsx|ods|dir';
+        $fileQueryPattern = '(?<fq>(?<fs>(?<t>' . $formats . ')\((?<p>[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))(?<q>\.\*|\.*[\w*.\-\_]{1,})?)';
         $regex = '/
-        \b' . $functionPattern . ' # function
-        | ' . FileQuery::getRegexp(14) . ' # FROM
+        ' . $fileQueryPattern . ' # FROM source (known format names)
+        | \b' . $functionPattern . ' # function
         | (\'[^\']*\' # simple quoted string
         | "[^"]*" # double quotes
         | [(),] # bracket or comma
         | \b(' . implode('|', $keywords) . ')\b # operators
-        | [^\s\'"(),]+ # other than spaces and quoteshe
+        | [^\s\'"(),]+ # other than spaces and quotes
         )/uxi';
 
         // Preserving multi-line structure
@@ -288,12 +290,11 @@ class Debugger
                         return self::echoBlue(self::echoBold($token));
                     }
 
-                    // FROM [].data.item
+                    // FROM format(file, params).query
                     if ($hasStream && preg_match('/^' . FileQuery::getRegexp() . '$/', $token, $matches)) {
                         $ext = $matches['t'] ?? '';
                         $file = $matches['p'] ?? '';
-                        $encoding = $matches['e'] ?? '';
-                        $delimiter = $matches['d'] ?? '';
+                        $argsString = ltrim($matches['a'] ?? '', ', ');
                         $query = $matches['q'] ?? '';
                         if ($file === '' && $query === '') {
                             return '';
@@ -301,22 +302,28 @@ class Debugger
 
                         $highlightedString = '';
                         if ($ext !== '') {
-                            $highlightedString = self::echoMagenta(self::echoBold(sprintf('[%s](', $ext)));
+                            $highlightedString = self::echoMagenta(self::echoBold($ext . '('));
                         }
 
                         $fileParams = [];
                         if ($file !== '') {
-                            $fileParams[] = self::echoLightRed("{$file}");
+                            $fileParams[] = self::echoLightRed($file);
                         }
 
-                        if ($encoding !== '') {
-                            $fileParams[] = self::echoLightRed("{$encoding}");
-                        }
-
-                        if ($delimiter !== '') {
-                            $fileParams[] = self::echoGreen(sprintf('"%s"', $delimiter));
+                        if ($argsString !== '') {
+                            preg_match_all('/(?:(\w+)\s*:\s*)?("[^"]*")/', $argsString, $argMatches, PREG_SET_ORDER);
+                            foreach ($argMatches as $argMatch) {
+                                $key = $argMatch[1];
+                                $value = $argMatch[2];
+                                if ($key !== '') {
+                                    $fileParams[] = $key . ': ' . self::echoGreen($value);
+                                } else {
+                                    $fileParams[] = self::echoGreen($value);
+                                }
+                            }
                         }
                         $highlightedString .= implode(', ', $fileParams);
+
                         if ($ext !== '') {
                             $highlightedString .= self::echoMagenta(self::echoBold(')'));
                         }

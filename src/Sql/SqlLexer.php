@@ -136,7 +136,7 @@ class SqlLexer implements \Iterator
      */
     private function sourceTokenize(string $chunk): array
     {
-        $regex = '/(' . FileQuery::getRegexp(13) . ')/uxi';
+        $regex = '/(' . FileQuery::getRegexp() . ')/uxi';
         preg_match_all($regex, $chunk, $matches);
         return array_values(array_filter(array_map('trim', $matches[0]), fn ($t) => $t !== ''));
     }

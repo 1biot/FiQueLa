@@ -114,7 +114,7 @@ class SqlIntegrationTest extends TestCase
         $ordersPath = realpath(__DIR__ . '/../../examples/data/orders.xml');
 
         $sql = sprintf(
-            'SELECT * FROM [json](%s).data.users INNER JOIN [xml](%s).orders.order AS o ON id = user_id WHERE o.total_price > 200',
+            'SELECT * FROM json(%s).data.users INNER JOIN xml(%s).orders.order AS o ON id = user_id WHERE o.total_price > 200',
             $usersPath,
             $ordersPath
         );
@@ -131,7 +131,7 @@ class SqlIntegrationTest extends TestCase
         $ordersPath = realpath(__DIR__ . '/../../examples/data/orders.xml');
 
         $sql = sprintf(
-            'SELECT * FROM [json](%s).data.users LEFT JOIN [xml](%s).orders.order AS o ON id = user_id',
+            'SELECT * FROM json(%s).data.users LEFT JOIN xml(%s).orders.order AS o ON id = user_id',
             $usersPath,
             $ordersPath
         );
@@ -148,7 +148,7 @@ class SqlIntegrationTest extends TestCase
         $ordersPath = realpath(__DIR__ . '/../../examples/data/orders.xml');
 
         $sql = sprintf(
-            'SELECT * FROM [json](%s).data.users RIGHT JOIN [xml](%s).orders.order AS o ON id = user_id',
+            'SELECT * FROM json(%s).data.users RIGHT JOIN xml(%s).orders.order AS o ON id = user_id',
             $usersPath,
             $ordersPath
         );
@@ -165,7 +165,7 @@ class SqlIntegrationTest extends TestCase
         $ordersPath = realpath(__DIR__ . '/../../examples/data/orders.xml');
 
         $sql = sprintf(
-            'SELECT * FROM [json](%s).data.users FULL JOIN [xml](%s).orders.order AS o ON id = user_id',
+            'SELECT * FROM json(%s).data.users FULL JOIN xml(%s).orders.order AS o ON id = user_id',
             $usersPath,
             $ordersPath
         );

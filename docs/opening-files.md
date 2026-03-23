@@ -47,13 +47,42 @@ Previous `$query` simplified:
 use FQL\Enum;
 use FQL\Query;
 
-$query = Query\Provider::fromFileQuery('(./path/to/file.xml).SHOP.SHOPITEM')
+$query = Query\Provider::fromFileQuery('xml(./path/to/file.xml).SHOP.SHOPITEM')
     ->selectAll()
     ->where('EAN', Enum\Operator::EQUAL, '1234567891011')
     ->or('PRICE', Enum\Operator::LESS_THAN_OR_EQUAL, 200)
     ->orderBy('PRICE')->desc()
     ->limit(10);
 ```
+
+### FileQuery syntax
+
+```
+format(pathToFile[, params]).path.to.data
+```
+
+- `format` — format name directly before parenthesis (`xml`, `json`, `csv`, `yaml`, `neon`, `ods`, `xls`, `dir`)
+- First argument is always the file path (unquoted)
+- Additional arguments are either positional (quoted) or named (`key: "value"`)
+- Positional and named parameters cannot be mixed
+
+**Examples:**
+```
+xml(feed.xml).SHOP.ITEM
+csv(data.csv, "windows-1250", ";").*
+csv(data.csv, encoding: "windows-1250", delimiter: ";").*
+json(data.json).data.users
+```
+
+### Default parameter values
+
+| Format | Parameter | Default |
+|--------|-----------|---------|
+| CSV    | encoding  | utf-8   |
+| CSV    | delimiter | ,       |
+| XML    | encoding  | utf-8   |
+
+Default values are omitted in the serialized output — `csv(data.csv)` instead of `csv(data.csv, "utf-8", ",")`.
 
 ## File Query Language
 
@@ -65,7 +94,7 @@ use FQL\Query;
 
 $query = Query\Provider::fql(<<<SQL
 SELECT *
-FROM [xml](./products_file.tmp).SHOP.SHOPITEM
+FROM xml(./products_file.tmp).SHOP.SHOPITEM
 WHERE EAN = "1234567891011"
     OR PRICE <= 200
 SQL
@@ -85,4 +114,3 @@ More about [File Query Language](file-query-language.md).
 - [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
 
 or go back to [README.md](../README.md).
-

@@ -60,7 +60,7 @@ abstract class DirectoryProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        return sprintf('[dir](%s)', $this->path);
+        return sprintf('dir(%s)', $this->path);
     }
 
     private function getPermissionString(int $perms): string

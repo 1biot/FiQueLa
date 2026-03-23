@@ -7,7 +7,7 @@ use FQL\Stream;
 require __DIR__ . '/bootstrap.php';
 
 try {
-    $query = Query\Provider::fromFileQuery('(./examples/data/products.yaml).data.paginator')
+    $query = Query\Provider::fromFileQuery('yaml(./examples/data/products.yaml).data.paginator')
         ->select('totalCount')->as('totalPages')
         ->select('page')->as('actualPage');
 

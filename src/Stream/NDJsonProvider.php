@@ -43,6 +43,6 @@ abstract class NDJsonProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        return sprintf('[ndjson](%s)', $this->ndJsonFilePath);
+        return sprintf('ndjson(%s)', $this->ndJsonFilePath);
     }
 }

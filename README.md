@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-82.71%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_623-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-82.63%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_629-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -141,7 +141,7 @@ use FQL\Query;
 
 $query = <<<FQL
     SELECT *
-    FROM (./path/to/file.xml).SHOP.SHOPITEM
+    FROM xml(./path/to/file.xml).SHOP.SHOPITEM
     WHERE
         EAN = "1234567891011"
         OR PRICE <= 200
@@ -220,12 +220,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.315 (emalloc)
-> Memory peak usage (MB): 1.7331 (emalloc)
+> Memory usage (MB): 1.3191 (emalloc)
+> Memory peak usage (MB): 1.7326 (emalloc)
 ------------------------------
-> Execution time (s): 8.2E-5
-> Execution time (ms): 0.082
-> Execution time (µs): 82
+> Execution time (s): 8.5E-5
+> Execution time (ms): 0.085
+> Execution time (µs): 85
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -241,7 +241,7 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv, windows-1250, ";").*
+> FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 ================
@@ -266,13 +266,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1106 (emalloc)
-> Memory peak usage (MB): 3.1917 (emalloc)
+> Memory usage (MB): 3.1451 (emalloc)
+> Memory peak usage (MB): 3.2262 (emalloc)
 ------------------------------
-> Execution time (s): 0.040795
-> Execution time (ms): 40.795
-> Execution time (µs): 40795
-> Execution memory peak usage (MB): 1.4586
+> Execution time (s): 0.040016
+> Execution time (ms): 40.016
+> Execution time (µs): 40016
+> Execution memory peak usage (MB): 1.4936
 ========================
 ### Benchmark Query: ###
 ========================
@@ -288,22 +288,22 @@ array (7)
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv, windows-1250, ";").*
+> FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 =========================
 ### STREAM BENCHMARK: ###
 =========================
-> Size (KB): 2.73
+> Size (KB): 2.78
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1002 (emalloc)
-> Memory peak usage (MB): 3.1917 (emalloc)
+> Memory usage (MB): 3.1347 (emalloc)
+> Memory peak usage (MB): 3.2262 (emalloc)
 ------------------------------
-> Execution time (s): 34.916505
-> Execution time (ms): 34916.505
-> Execution time (µs): 34916505
+> Execution time (s): 36.402098
+> Execution time (ms): 36402.098
+> Execution time (µs): 36402098
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
@@ -312,22 +312,22 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1106 (emalloc)
-> Memory peak usage (MB): 3.1917 (emalloc)
+> Memory usage (MB): 3.1451 (emalloc)
+> Memory peak usage (MB): 3.2262 (emalloc)
 ------------------------------
-> Execution time (s): 0.016342
-> Execution time (ms): 16.342
-> Execution time (µs): 16342
+> Execution time (s): 0.01743
+> Execution time (ms): 17.43
+> Execution time (µs): 17430
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 3.0997 (emalloc)
-> Memory peak usage (MB): 3.1917 (emalloc)
+> Memory usage (MB): 3.1343 (emalloc)
+> Memory peak usage (MB): 3.2262 (emalloc)
 ------------------------------
-> Final execution time (s): 34.973789
-> Final execution time (ms): 34973.789
-> Final execution time (µs): 34973789
+> Final execution time (s): 36.459756
+> Final execution time (ms): 36459.756
+> Final execution time (µs): 36459756
 ```
 
 ## 7. Known issues

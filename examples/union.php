@@ -66,7 +66,7 @@ try {
     $jsonPath = realpath(__DIR__ . '/data/products.json');
 
     $fqlUnion = sprintf(
-        'SELECT id, name, price FROM [json](%s).data.products WHERE price <= 100 UNION SELECT id, name, price FROM [json](%s).data.products WHERE price >= 400',
+        'SELECT id, name, price FROM json(%s).data.products WHERE price <= 100 UNION SELECT id, name, price FROM json(%s).data.products WHERE price >= 400',
         $jsonPath,
         $jsonPath
     );
@@ -77,7 +77,7 @@ try {
 
     // --- FQL string: UNION ALL ---
     $fqlUnionAll = sprintf(
-        'SELECT id, name, price FROM [json](%s).data.products WHERE price >= 300 UNION ALL SELECT id, name, price FROM [json](%s).data.products WHERE price >= 300',
+        'SELECT id, name, price FROM json(%s).data.products WHERE price >= 300 UNION ALL SELECT id, name, price FROM json(%s).data.products WHERE price >= 300',
         $jsonPath,
         $jsonPath
     );

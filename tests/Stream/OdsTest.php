@@ -138,7 +138,7 @@ class OdsTest extends TestCase
         $stream = Ods::open($this->odsFile);
         $source = $stream->provideSource();
 
-        $this->assertStringContainsString('[ods]', $source);
+        $this->assertStringContainsString('ods(', $source);
         $this->assertStringContainsString('.ods', $source);
     }
 

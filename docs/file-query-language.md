@@ -27,7 +27,7 @@ debugging and gaining a clear understanding of how queries are constructed and e
 use FQL\Enum\Operator;
 use FQL\Query
 
-$query = Query\Provider::fromFileQuery('[jsonFile](./examples/data/products.tmp).data.products')
+$query = Query\Provider::fromFileQuery('jsonFile(./examples/data/products.tmp).data.products')
     ->select('brand.code')->as('brandCode')
     ->groupConcat('id', '/')->as('products')
     ->sum('price')->as('totalPrice')
@@ -48,7 +48,7 @@ SELECT
   GROUP_CONCAT(id, "/") AS products,
   SUM(price) AS totalPrice,
   COUNT(productId) AS productCount
-FROM [jsonFile](products.tmp).data.products
+FROM jsonFile(products.tmp).data.products
 WHERE
   price < 200
   OR price > 300
@@ -59,24 +59,29 @@ ORDER BY productCount DESC
 ## 2. File Query
 
 File Query is syntax allowing you to load file in FQL string directly without using any file provider.
-It is usable for `FROM` and `JOIN` clause. File Query consists of five parts:
+It is usable for `FROM` and `JOIN` clause. File Query consists of three main parts:
 
-- `format` is using for selecting concrete file format otherwise, it tries to find out from the file extension automatically.
-- `pathToFile` is a relative or absolute path to the file.
-- `encoding` is an optional parameter for specifying the encoding of the file.
-- `delimiter` is an optional parameter for specifying the delimiter of the file.
-- `path.to.data` is a doted path to the data in the file.
+- `format` is the format name written directly before the parenthesis (e.g. `csv`, `json`, `xml`, `jsonFile`). If omitted, the format is detected from the file extension automatically.
+- `pathToFile` is the first argument inside the parenthesis — a relative or absolute path to the file.
+- `params` are optional additional arguments after the file path, separated by commas. Arguments can be positional (`"value"`) or named (`key: "value"`), but you cannot mix positional and named arguments in the same query.
+- `path.to.data` is a dotted path to the data in the file.
 
 ----
 
-* **syntax**: `[format](pathToFile).path.to.data`
-* **regexp**: `/(?<fq>(?<filePart>(\[(?<format>[a-zA-Z]{2,8})])?(\((?<pathToFile>[\w\s\.\-\/]+(\.\w{2,5})?)(?<a>(,\s*(?<encoding>[a-zA-Z0-9\-]+))(,\s*([\'"])(?<delimiter>.)\12)?)?\)))?(?<queryPart>^\*|\.*[\w*\.\-\_]{1,})?)/`
-  * _**\<filePart\>**_: part for file reference
-  * _**\<format\>**_: `[a-zA-Z]{2,8}` - file format extension
-  * _**\<pathToFile\>**_: `[\w\s\.\-\/]+(\.\w{2,5})?` - path to the file, relative or absolute
-  * _**\<encoding\>**_: `[a-zA-Z0-9\-]+` - encoding of the file
-  * _**\<delimiter\>**_: `.` - encoding of the file
-  * _**\<queryPart\>**_: `^\*|\.*[\w*\.\-\_]{1,}` - path to the data in the file
+* **syntax**: `format(pathToFile[, params]).path.to.data`
+* **regexp**: `/(?<fq>(?<fs>(?<t>[a-zA-Z]{2,8})\((?<p>[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))?(?<q>\*|\.*[\w*.\-\_]{1,})?)/`
+  * _**\<t\>**_: `[a-zA-Z]{2,8}` - file format name
+  * _**\<p\>**_: `[\w\s.\-\/]+(?:\.\w{2,5})?` - path to the file, relative or absolute
+  * _**\<a\>**_: `(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*` - optional arguments (positional or named)
+  * _**\<q\>**_: `\*|\.*[\w*.\-\_]{1,}` - path to the data in the file
+
+**Parameter defaults:**
+
+| Format | Parameter   | Default   |
+|--------|-------------|-----------|
+| CSV    | encoding    | `utf-8`   |
+| CSV    | delimiter   | `,`       |
+| XML    | encoding    | `utf-8`   |
 
 **Example:**
 
@@ -89,7 +94,7 @@ SELECT
   GROUP_CONCAT(id, "/") AS products,
   SUM(price) AS totalPrice,
   COUNT(productId) AS productCount
-FROM [csv](./examples/data/products.tmp, utf-8, ";").data.products
+FROM csv(./examples/data/products.tmp, "utf-8", ";").data.products
 SQL
 );
 ```
@@ -117,7 +122,7 @@ SELECT
   SUM(price) AS totalPrice,
   COUNT(productId) AS productCount
 EXCLUDE productCount
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 HAVING productCount > 1
 ```
 
@@ -186,7 +191,7 @@ SELECT
     SUBSTR('Hello World', 1, 5) AS substr,
     LOCATE('World', 'Hello World') AS locate,
     REPLACE('SQL Tutorial', 'SQL', 'HTML') AS replace
-FROM [json](./examples/data/products.tmp).data.products
+FROM json(./examples/data/products.tmp).data.products
 ```
 
 #### Fulltext search
@@ -204,7 +209,7 @@ SELECT
     name,
     description,
     MATCH(name, description) AGAINST('Hello World' IN NATURAL MODE) AS _score
-FROM [json](./examples/data/products.tmp).data.products
+FROM json(./examples/data/products.tmp).data.products
 HAVING _score > 0.5
 ORDER BY _score DESC
 ```
@@ -280,7 +285,7 @@ SELECT
     IF(condition, result1, result2) AS ifResult,
     IFNULL(field, result) AS ifNull,
     ISNULL(field) AS isNull
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 ```
 
 ### Hashing functions
@@ -296,7 +301,7 @@ FROM [jsonFile](./examples/data/products.tmp).data.products
 SELECT
   MD5('Hello World') AS md5,
   SHA1('Hello World') AS sha1
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 ```
 
 ### Math functions
@@ -324,7 +329,7 @@ SELECT
   SUB(10, 2, 3) AS sub,
   MULTIPLY(2, 3, 4) AS multiply,
   DIVIDE(10, 2, 5) AS divide
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 ```
 
 ## 5. Joining Data Sources
@@ -359,9 +364,9 @@ SELECT
     name,
     o.id AS orderId,
     o.total_price AS totalPrice
-FROM [json](./examples/data/users.json).data.users
+FROM json(./examples/data/users.json).data.users
 LEFT JOIN
-    [xml](./examples/data/orders.xml).orders.order AS o
+    xml(./examples/data/orders.xml).orders.order AS o
         ON id = user_id
 ```
 
@@ -419,7 +424,7 @@ SELECT
     name,
     o.id AS orderId,
     o.total_price AS totalPrice
-FROM [json](./examples/data/users.json).data.users
+FROM json(./examples/data/users.json).data.users
 WHERE
     id = 1
     AND name = 'John Doe'
@@ -432,7 +437,7 @@ WHERE
 SELECT
     id,
     name
-FROM [json](./examples/data/products.tmp).data.products
+FROM json(./examples/data/products.tmp).data.products
 WHERE
     name REGEXP "^Product [A-B]$"
 ```
@@ -471,7 +476,7 @@ SELECT
     AVG(price) AS avgPrice,
     MIN(DISTINCT price) AS minPrice,
     MAX(DISTINCT price) AS maxPrice
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 GROUP BY brand.code
 HAVING
     productCount > 10
@@ -504,7 +509,7 @@ SELECT
     GROUP_CONCAT(id, "/") AS products,
     SUM(price) AS totalPrice,
     COUNT(productId) AS productCount
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 ORDER BY
     productCount DESC,
     totalPrice ASC
@@ -527,7 +532,7 @@ SELECT
     GROUP_CONCAT(id, "/") AS products,
     SUM(price) AS totalPrice,
     COUNT(productId) AS productCount
-FROM [jsonFile](./examples/data/products.tmp).data.products
+FROM jsonFile(./examples/data/products.tmp).data.products
 LIMIT 10
 OFFSET 5
 ```
@@ -554,7 +559,7 @@ EXPLAIN
 SELECT
     id,
     name
-FROM [json](./examples/data/products.tmp).data.products
+FROM json(./examples/data/products.tmp).data.products
 WHERE price > 100
 ORDER BY name DESC
 LIMIT 10
@@ -567,7 +572,7 @@ EXPLAIN ANALYZE
 SELECT
     id,
     name
-FROM [json](./examples/data/products.tmp).data.products
+FROM json(./examples/data/products.tmp).data.products
 WHERE price > 100
 ORDER BY name DESC
 LIMIT 10
@@ -582,10 +587,10 @@ When a query includes `UNION` or `UNION ALL`, the explain output includes union 
 
 ```sql
 EXPLAIN ANALYZE
-SELECT id FROM [json](./examples/data/products.json).data.products
+SELECT id FROM json(./examples/data/products.json).data.products
 WHERE price > 100
 UNION ALL
-SELECT id FROM [json](./examples/data/products.json).data.products
+SELECT id FROM json(./examples/data/products.json).data.products
 WHERE price > 200
 ```
 
@@ -607,33 +612,33 @@ The number of selected columns must match across all combined queries.
 **Example:**
 
 ```sql
-SELECT name, price FROM [json](./examples/data/products.json).data.products
+SELECT name, price FROM json(./examples/data/products.json).data.products
 WHERE price <= 100
 UNION
-SELECT name, price FROM [json](./examples/data/products.json).data.products
+SELECT name, price FROM json(./examples/data/products.json).data.products
 WHERE price >= 400
 ```
 
 **Example with UNION ALL:**
 
 ```sql
-SELECT name, price FROM [json](./examples/data/products.json).data.products
+SELECT name, price FROM json(./examples/data/products.json).data.products
 WHERE price >= 300
 UNION ALL
-SELECT name, price FROM [json](./examples/data/products.json).data.products
+SELECT name, price FROM json(./examples/data/products.json).data.products
 WHERE price >= 300
 ```
 
 **Chaining multiple unions:**
 
 ```sql
-SELECT name, price FROM [json](./examples/data/feed1.xml).SHOP.ITEM
+SELECT name, price FROM xml(./examples/data/feed1.xml).SHOP.ITEM
 WHERE price > 100
 UNION
-SELECT name, price FROM [json](./examples/data/feed2.xml).SHOP.ITEM
+SELECT name, price FROM xml(./examples/data/feed2.xml).SHOP.ITEM
 WHERE price > 200
 UNION ALL
-SELECT name, price FROM [json](./examples/data/feed3.xml).SHOP.ITEM
+SELECT name, price FROM xml(./examples/data/feed3.xml).SHOP.ITEM
 ```
 
 ## Next steps

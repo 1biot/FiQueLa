@@ -103,14 +103,21 @@ abstract class CsvProvider extends AbstractStream
             $params[] = basename($this->csvFilePath);
         }
 
-        if ($this->inputEncoding !== null) {
-            $params[] = $this->inputEncoding;
-        }
+        $hasNonDefaultEncoding = $this->inputEncoding !== null && strtolower($this->inputEncoding) !== 'utf-8';
+        $hasNonDefaultDelimiter = $this->delimiter !== ',';
+        $hasNonDefaultHeader = !$this->useHeader;
 
-        if ($this->delimiter !== ',') {
+        if ($hasNonDefaultHeader) {
+            $params[] = sprintf('"%s"', $this->inputEncoding ?? 'utf-8');
             $params[] = sprintf('"%s"', $this->delimiter);
+            $params[] = '"0"';
+        } elseif ($hasNonDefaultDelimiter) {
+            $params[] = sprintf('"%s"', $this->inputEncoding ?? 'utf-8');
+            $params[] = sprintf('"%s"', $this->delimiter);
+        } elseif ($hasNonDefaultEncoding) {
+            $params[] = sprintf('"%s"', $this->inputEncoding);
         }
 
-        return sprintf('[csv](%s)', implode(',', $params));
+        return sprintf('csv(%s)', implode(', ', $params));
     }
 }
