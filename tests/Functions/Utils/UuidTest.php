@@ -48,7 +48,7 @@ class UuidTest extends TestCase
     {
         $jsonFile = realpath(__DIR__ . '/../../../examples/data/products.json');
         $sql = sprintf(
-            'SELECT id, UUID() AS uid FROM [json](%s).data.products LIMIT 1',
+            'SELECT id, UUID() AS uid FROM json(%s).data.products LIMIT 1',
             $jsonFile
         );
 

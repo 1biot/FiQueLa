@@ -43,6 +43,6 @@ class Neon extends ArrayStreamProvider
 
     public function provideSource(): string
     {
-        return '[neon](memory)';
+        return 'neon(memory)';
     }
 }

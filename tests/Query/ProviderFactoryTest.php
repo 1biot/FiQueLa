@@ -12,10 +12,10 @@ class ProviderFactoryTest extends TestCase
         $csvFile = sys_get_temp_dir() . '/fiquela-provider-' . uniqid() . '.csv';
         file_put_contents($csvFile, "name;price\nA;10\n");
 
-        $query = Provider::fromFileQuery(sprintf('[csv](%s, windows-1250, ";")', $csvFile));
+        $query = Provider::fromFileQuery(sprintf('csv(%s, "windows-1250", ";")', $csvFile));
 
         $fileQuery = (string) $query->provideFileQuery();
-        $expected = sprintf('[csv](%s, windows-1250, ";")', basename($csvFile));
+        $expected = sprintf('csv(%s, "windows-1250", ";")', basename($csvFile));
 
         $this->assertSame($expected, $fileQuery);
 
@@ -25,7 +25,7 @@ class ProviderFactoryTest extends TestCase
     public function testFqlCreatesQuery(): void
     {
         $jsonPath = realpath(__DIR__ . '/../../examples/data/products.json');
-        $sql = sprintf('SELECT * FROM [json](%s).data.products', $jsonPath);
+        $sql = sprintf('SELECT * FROM json(%s).data.products', $jsonPath);
 
         $query = Provider::fql($sql);
 

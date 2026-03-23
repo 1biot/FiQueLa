@@ -157,7 +157,7 @@ class SqlTest extends TestCase
     {
         $path = realpath(__DIR__ . '/../../examples/data/products.json');
         $this->assertNotFalse($path);
-        $sql = sprintf('EXPLAIN SELECT id FROM [json](%s).data.products', $path);
+        $sql = sprintf('EXPLAIN SELECT id FROM json(%s).data.products', $path);
 
         $rows = iterator_to_array(Provider::fql($sql)->execute()->fetchAll());
 
@@ -170,7 +170,7 @@ class SqlTest extends TestCase
     {
         $path = realpath(__DIR__ . '/../../examples/data/products.json');
         $this->assertNotFalse($path);
-        $sql = sprintf('EXPLAIN ANALYZE SELECT id FROM [json](%s).data.products', $path);
+        $sql = sprintf('EXPLAIN ANALYZE SELECT id FROM json(%s).data.products', $path);
 
         $rows = iterator_to_array(Provider::fql($sql)->execute()->fetchAll());
 

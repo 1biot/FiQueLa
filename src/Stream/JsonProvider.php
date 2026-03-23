@@ -71,7 +71,7 @@ abstract class JsonProvider extends AbstractStream
     {
         $source = '';
         if ($this->jsonFilePath !== '') {
-            $source = sprintf('[json](%s)', basename($this->jsonFilePath));
+            $source = sprintf('json(%s)', basename($this->jsonFilePath));
         }
         return $source;
     }

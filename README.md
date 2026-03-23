@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-82.71%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_623-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-82.63%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_629-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -141,7 +141,7 @@ use FQL\Query;
 
 $query = <<<FQL
     SELECT *
-    FROM (./path/to/file.xml).SHOP.SHOPITEM
+    FROM xml(./path/to/file.xml).SHOP.SHOPITEM
     WHERE
         EAN = "1234567891011"
         OR PRICE <= 200
@@ -241,7 +241,7 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv, windows-1250, ";").*
+> FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 ================
@@ -288,7 +288,7 @@ array (7)
 >   ROUND(price, 2) AS price_rounded ,
 >   MOD(price, 100) AS modulo_100 ,
 >   MOD(price, 54) AS modulo_54
-> FROM [csv](products-w-1250.csv, windows-1250, ";").*
+> FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
 > ORDER BY defaultCategory DESC
 =========================

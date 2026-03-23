@@ -60,7 +60,7 @@ SELECT
     SUM(sales) AS total_sales,
     ROUND(total_sales, 2) AS rounded_sales
 EXCLUDE total_sales
-FROM (customers.xml).customers.customer
+FROM xml(customers.xml).customers.customer
 WHERE age > 30
 GROUP BY name
 HAVING total_sales > 1000
@@ -71,7 +71,7 @@ SELECT
     name,
     SUM(sales) AS total_sales,
     ROUND(total_sales, 2) AS rounded_sales
-FROM (partners.xml).partners.partner
+FROM xml(partners.xml).partners.partner
 WHERE age > 25
 GROUP BY name;
 ```

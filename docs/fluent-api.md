@@ -289,8 +289,8 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 use FQL\Enum\Operator;
 use FQL\Query;
 
-$innerData = Query\Provider::fromFileQuery('(file.xml).SHOP.SHOPITEM');
-$leftData = Query\Provider::fromFileQuery('[json](file.tmp).data.customers');
+$innerData = Query\Provider::fromFileQuery('xml(file.xml).SHOP.SHOPITEM');
+$leftData = Query\Provider::fromFileQuery('json(file.tmp).data.customers');
 
 $query = Query\Provider::fromFile('./path/to/file.csv')
     ->innerJoin($innerData, 'p')

@@ -43,10 +43,10 @@ enum Format: string
      */
     public static function fromExtension(string $extension): self
     {
-        return match ($extension) {
+        return match (strtolower($extension)) {
             'xml' => self::XML,
-            'json', 'jsonFile' => self::JSON_STREAM,
-            'ndjson', 'ndJson' => self::ND_JSON,
+            'json', 'jsonfile' => self::JSON_STREAM,
+            'ndjson' => self::ND_JSON,
             'csv', 'tsv' => self::CSV,
             'yaml', 'yml' => self::YAML,
             'neon' => self::NEON,
@@ -78,5 +78,98 @@ enum Format: string
             self::NEON => Stream\Neon::string($data),
             default => throw new Exception\InvalidFormatException('Unsupported format'),
         };
+    }
+
+    /**
+     * Returns default values of parameters for concrete format
+     * @return array<string, mixed>
+     */
+    public function getDefaultParams(): array
+    {
+        return match ($this) {
+            self::CSV => ['encoding' => 'utf-8', 'delimiter' => ','],
+            self::XML => ['encoding' => 'utf-8'],
+            default   => [],
+        };
+    }
+
+    /**
+     * Validate parameters - throw InvalidFormatException when are not valid
+     * @param array<string, mixed> $params
+     * @throws Exception\InvalidFormatException
+     */
+    public function validateParams(array $params): void
+    {
+        match ($this) {
+            self::CSV => $this->validateCsvParams($params),
+            self::XML => $this->validateXmlParams($params),
+            default   => null,
+        };
+    }
+
+    /**
+     * Normalizuje parametry — převede poziční na named, doplní výchozí hodnoty
+     * @param array<int, string> $positional
+     * @param array<string, string> $named
+     * @return array<string, mixed>
+     */
+    public function normalizeParams(array $positional, array $named): array
+    {
+        $defaults = $this->getDefaultParams();
+
+        return match ($this) {
+            self::CSV => $named !== []
+                ? array_merge($defaults, $named)
+                : [
+                    'encoding'  => $positional[0] ?? $defaults['encoding'],
+                    'delimiter' => $positional[1] ?? $defaults['delimiter'],
+                ],
+            self::XML => $named !== []
+                ? array_merge($defaults, $named)
+                : ['encoding' => $positional[0] ?? $defaults['encoding']],
+            default => [],
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @throws Exception\InvalidFormatException
+     */
+    private function validateEncoding(array $params): void
+    {
+        if (!isset($params['encoding'])) {
+            return;
+        }
+
+        $encoding = (string) $params['encoding'];
+        if ($encoding === '' || @iconv($encoding, 'UTF-8', '') === false) {
+            throw new Exception\InvalidFormatException(
+                sprintf('Unsupported encoding "%s"', $encoding)
+            );
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @throws Exception\InvalidFormatException
+     */
+    private function validateCsvParams(array $params): void
+    {
+        $this->validateEncoding($params);
+
+        if (isset($params['delimiter']) && strlen((string) $params['delimiter']) !== 1) {
+            throw new Exception\InvalidFormatException(
+                'CSV delimiter must be a single character'
+            );
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @throws Exception\InvalidFormatException
+     */
+    private function validateXmlParams(array $params): void
+    {
+        $this->validateEncoding($params);
     }
 }

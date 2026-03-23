@@ -53,6 +53,6 @@ final class Json extends ArrayStreamProvider
 
     public function provideSource(): string
     {
-        return '[json](memory)';
+        return 'json(memory)';
     }
 }

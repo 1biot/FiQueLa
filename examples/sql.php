@@ -19,7 +19,7 @@ SQL;
 
     $jsonSql = <<<SQL
 SELECT *
-FROM [json](./examples/data/products.json).data.products
+FROM json(./examples/data/products.json).data.products
 WHERE
     brand.code == 'BRAND-A'
     OR name == 'Product C'

@@ -168,7 +168,7 @@ class UnionTest extends TestCase
         $jsonFile = realpath(__DIR__ . '/../../examples/data/products.json');
 
         $sql = sprintf(
-            'SELECT id, name FROM [json](%s).data.products WHERE price <= 100 UNION SELECT id, name FROM [json](%s).data.products WHERE price >= 400',
+            'SELECT id, name FROM json(%s).data.products WHERE price <= 100 UNION SELECT id, name FROM json(%s).data.products WHERE price >= 400',
             $jsonFile,
             $jsonFile
         );
@@ -186,7 +186,7 @@ class UnionTest extends TestCase
         $jsonFile = realpath(__DIR__ . '/../../examples/data/products.json');
 
         $sql = sprintf(
-            'SELECT id, name FROM [json](%s).data.products WHERE price >= 300 UNION ALL SELECT id, name FROM [json](%s).data.products WHERE price >= 300',
+            'SELECT id, name FROM json(%s).data.products WHERE price >= 300 UNION ALL SELECT id, name FROM json(%s).data.products WHERE price >= 300',
             $jsonFile,
             $jsonFile
         );
@@ -203,7 +203,7 @@ class UnionTest extends TestCase
         $jsonFile = realpath(__DIR__ . '/../../examples/data/products.json');
 
         $sql = sprintf(
-            'SELECT id, name FROM [json](%s).data.products WHERE id = 1 UNION SELECT id, name FROM [json](%s).data.products WHERE id = 3 UNION ALL SELECT id, name FROM [json](%s).data.products WHERE id = 5',
+            'SELECT id, name FROM json(%s).data.products WHERE id = 1 UNION SELECT id, name FROM json(%s).data.products WHERE id = 3 UNION ALL SELECT id, name FROM json(%s).data.products WHERE id = 5',
             $jsonFile,
             $jsonFile,
             $jsonFile

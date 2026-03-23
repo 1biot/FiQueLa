@@ -7,7 +7,7 @@ use FQL\Stream;
 require __DIR__ . '/bootstrap.php';
 
 try {
-    $query = Query\Provider::fromFileQuery('(./examples/data/products.neon).data.paginator')
+    $query = Query\Provider::fromFileQuery('neon(./examples/data/products.neon).data.paginator')
         ->select('totalCount')->as('totalPages')
         ->select('page')->as('actualPage')
         ->from('data.paginator');

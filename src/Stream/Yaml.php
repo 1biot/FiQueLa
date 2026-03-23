@@ -49,6 +49,6 @@ class Yaml extends ArrayStreamProvider
 
     public function provideSource(): string
     {
-        return '[yaml](memory)';
+        return 'yaml(memory)';
     }
 }
