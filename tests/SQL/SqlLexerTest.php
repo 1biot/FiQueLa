@@ -35,6 +35,16 @@ class SqlLexerTest extends TestCase
         $this->assertContains('ON', $tokens);
     }
 
+    public function testTokenizeIntoSource(): void
+    {
+        $sql = 'SELECT name FROM json(products.json).data.products INTO csv(output.csv)';
+        $lexer = new SqlLexer();
+        $tokens = $lexer->tokenize($sql);
+
+        $this->assertContains('INTO', $tokens);
+        $this->assertContains('csv(output.csv)', $tokens);
+    }
+
     public function testParseSingleConditionEquality(): void
     {
         $lexer = new SqlLexer();

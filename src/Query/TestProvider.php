@@ -7,6 +7,7 @@ use FQL\Results;
 use FQL\Traits\Conditions;
 use FQL\Traits\From;
 use FQL\Traits\Groupable;
+use FQL\Traits\Into;
 use FQL\Traits\Joinable;
 use FQL\Traits\Limit;
 use FQL\Traits\Select;
@@ -21,6 +22,7 @@ class TestProvider implements Query
 {
     use Select;
     use From;
+    use Into;
     use Groupable;
     use Joinable;
     use Conditions {

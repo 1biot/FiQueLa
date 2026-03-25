@@ -16,7 +16,7 @@ class SqlLexer implements \Iterator
     use Traits\Helpers\StringOperations;
 
     private const CONTROL_KEYWORDS = [
-        'SELECT', 'FROM', 'INNER', 'LEFT', 'JOIN',
+        'SELECT', 'FROM', 'INTO', 'INNER', 'LEFT', 'JOIN',
         'WHERE', 'GROUP', 'HAVING', 'ORDER',
         'LIMIT', 'OFFSET', 'UNION'
     ];
@@ -61,7 +61,7 @@ class SqlLexer implements \Iterator
             $nextStart = isset($matches[0][$i + 1]) ? $matches[0][$i + 1][1] : strlen($sql);
             $chunk = trim(substr($sql, $start + strlen($keyword), $nextStart - $start - strlen($keyword)));
 
-            if ($keyword === 'FROM') {
+            if ($keyword === 'FROM' || $keyword === 'INTO') {
                 $this->tokens = array_merge($this->tokens, $this->sourceTokenize($chunk));
             } elseif ($keyword === 'JOIN') {
                 $joinParts = preg_split('/\b(AS|ON)\b/i', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);

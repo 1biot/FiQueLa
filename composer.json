@@ -85,6 +85,9 @@
     "example:join": [
       "php -f examples/join.php"
     ],
+    "example:into": [
+      "php -f examples/into.php"
+    ],
     "example:json": [
       "php -f examples/json.php"
     ],
@@ -110,6 +113,7 @@
       "@example:csv",
       "@example:neon",
       "@example:join",
+      "@example:into",
       "@example:json",
       "@example:sql",
       "@example:union",

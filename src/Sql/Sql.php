@@ -10,6 +10,7 @@ use FQL\Exception;
 use FQL\Functions;
 use FQL\Interface;
 use FQL\Query;
+use FQL\Utils\FileQueryPathValidator;
 
 class Sql extends SqlLexer implements Interface\Parser
 {
@@ -83,6 +84,10 @@ class Sql extends SqlLexer implements Interface\Parser
                 case Interface\Query::FROM:
                     $fileQuery = $this->validateFileQueryPath($this->nextToken());
                     $query->from($fileQuery->query ?? '');
+                    break;
+                case Interface\Query::INTO:
+                    $intoFileQuery = $this->validateFileQueryPath($this->nextToken(), mustExist: false);
+                    $query->into($intoFileQuery);
                     break;
                 case 'LEFT':
                 case 'RIGHT':
@@ -532,28 +537,13 @@ class Sql extends SqlLexer implements Interface\Parser
     /**
      * @throws Exception\InvalidFormatException
      */
-    private function validateFileQueryPath(string $fileQueryString): Query\FileQuery
+    private function validateFileQueryPath(string $fileQueryString, bool $mustExist = true): Query\FileQuery
     {
         $fileQuery = new Query\FileQuery($fileQueryString);
         if ($this->basePath === null) {
             return $fileQuery;
         }
 
-        if ($fileQuery->file === null) {
-            return $fileQuery;
-        }
-
-        $fileName = $this->basePath . DIRECTORY_SEPARATOR . $fileQuery->file;
-        $fileNameRealPath = realpath($fileName);
-        $basePathRealPath = realpath($this->basePath);
-        if (
-            $fileNameRealPath === false ||
-            $basePathRealPath === false ||
-            !str_starts_with($fileNameRealPath, $basePathRealPath)
-        ) {
-            throw new Exception\InvalidFormatException('Invalid path of file');
-        }
-
-        return $fileQuery->withFile($fileNameRealPath);
+        return FileQueryPathValidator::validate($fileQuery, $this->basePath, $mustExist);
     }
 }

@@ -13,6 +13,7 @@ Fluent API is a way to build queries in a more readable and maintainable way. It
 * _7_ - [Pagination and Limits](#vd-pagination-and-limits)
 * _8_ - [Explain](#explain)
 * _9_ - [Union](#9-union)
+* _10_ - [Into](#10-into)
 
 ## 1. Select and Alias Fields
 
@@ -582,6 +583,29 @@ $results = $query1
     ->union($query2)
     ->unionAll($query3)
     ->execute();
+```
+
+## 10. Into
+
+Use `into()` on executed results to export data into a file.
+
+```php
+use FQL\Query\FileQuery;
+use FQL\Query\Provider;
+
+Provider::fromFile('data.csv')
+    ->select('NAME', 'PRICE')
+    ->execute()
+    ->into(new FileQuery('csv(exports/products.csv)'));
+```
+
+You can also pass a string file query directly:
+
+```php
+Provider::fromFile('data.csv')
+    ->select('NAME', 'PRICE')
+    ->execute()
+    ->into('json(exports/products.json).root.items');
 ```
 
 ## Next steps

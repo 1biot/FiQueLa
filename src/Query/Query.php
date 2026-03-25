@@ -20,6 +20,7 @@ class Query implements Interface\Query
         initialize as initializeConditions;
     }
     use Traits\From;
+    use Traits\Into;
     use Traits\Groupable {
         groupBy as private traitGroupBy;
     }
@@ -75,6 +76,7 @@ class Query implements Interface\Query
             $this->orderings,
             $this->limit,
             $this->offset,
+            $this->getInto(),
             unions: $this->unions
         );
 
@@ -117,6 +119,8 @@ class Query implements Interface\Query
         $queryParts[] = $this->offsetToString();
         // LIMIT
         $queryParts[] = $this->limitToString();
+        // INTO
+        $queryParts[] = $this->intoToString();
 
         return trim(str_replace("\t", "  ", implode('', $queryParts))) . $this->unionsToString();
     }
