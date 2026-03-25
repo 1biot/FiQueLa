@@ -16,9 +16,15 @@ class CsvWriter implements Writer
     public function __construct(private readonly FileQuery $fileQuery)
     {
         $this->writer = Csv\Writer::from($this->fileQuery->file ?? 'php://memory', 'w+');
+
         $delimiter = (string) $this->fileQuery->getParam('delimiter', ',');
         if ($delimiter !== '') {
             $this->writer->setDelimiter($delimiter);
+        }
+
+        $encoding = $this->fileQuery->getParam('encoding');
+        if (is_string($encoding) && $encoding !== '' && strtolower($encoding) !== 'utf-8') {
+            $this->writer->appendStreamFilterOnWrite(sprintf('convert.iconv.UTF-8/%s', $encoding));
         }
     }
 

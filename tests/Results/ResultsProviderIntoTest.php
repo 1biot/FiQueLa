@@ -37,6 +37,28 @@ class ResultsProviderIntoTest extends TestCase
         $this->assertStringContainsString('"Product A",100', $content);
     }
 
+    public function testIntoWritesCsvWithOutputEncoding(): void
+    {
+        $encoding = 'windows-1250';
+        $expectedEncoded = iconv('utf-8', $encoding . '//TRANSLIT', 'Žluťoučký');
+        if ($expectedEncoded === false) {
+            $this->markTestSkipped(sprintf('Encoding "%s" is not supported by iconv in this environment.', $encoding));
+        }
+
+        $results = new InMemory([
+            ['NAME' => 'Žluťoučký'],
+        ]);
+        $target = $this->basePath . '/out/encoded.csv';
+
+        $results->into(sprintf('csv(%s, "%s")', $target, $encoding));
+
+        $this->assertFileExists($target);
+        $content = file_get_contents($target);
+        $this->assertNotFalse($content);
+
+        $this->assertStringContainsString($expectedEncoded, $content);
+    }
+
     public function testIntoWritesNdJson(): void
     {
         $results = $this->createResults();
