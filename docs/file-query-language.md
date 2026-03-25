@@ -15,6 +15,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _9_ - [Pagination and Limits](#9-pagination-and-limits)
 * _10_ - [Explain](#10-explain)
 * _11_ - [Union](#11-union)
+* _12_ - [Into](#12-into)
 
 ## 1. Interpreted FQL
 
@@ -59,7 +60,7 @@ ORDER BY productCount DESC
 ## 2. File Query
 
 File Query is syntax allowing you to load file in FQL string directly without using any file provider.
-It is usable for `FROM` and `JOIN` clause. File Query consists of three main parts:
+It is usable for `FROM`, `JOIN` and `INTO` clause. File Query consists of three main parts:
 
 - `format` is the format name written directly before the parenthesis (e.g. `csv`, `json`, `xml`, `jsonFile`). If omitted, the format is detected from the file extension automatically.
 - `pathToFile` is the first argument inside the parenthesis — a relative or absolute path to the file.
@@ -640,6 +641,38 @@ WHERE price > 200
 UNION ALL
 SELECT name, price FROM xml(./examples/data/feed3.xml).SHOP.ITEM
 ```
+
+## 12. Into
+
+Use `INTO` to export query results into a file.
+
+```sql
+SELECT name, price
+FROM csv(./examples/data/products-utf-8.csv).*
+INTO csv(./exports/products.csv)
+```
+
+`INTO` uses the same file query syntax as `FROM`:
+
+```text
+format(pathToFile[, params]).query
+```
+
+Interpretation of `.query` depends on output format:
+
+| Format   | `.query` meaning                          | Example      |
+|----------|-------------------------------------------|--------------|
+| XML      | `ROOT.ROW` (root element + row element)   | `.SHOP.ITEM` |
+| JSON     | nested key path for resulting array       | `.root.items` |
+| XLSX/ODS | `SheetName.StartCell`                     | `.Sheet1.B4` |
+| CSV      | ignored                                   | —            |
+| NDJSON   | ignored                                   | —            |
+
+Notes:
+
+- Export is performed by result provider method `->execute()->into(...)`.
+- Existing target files are not overwritten (`FileAlreadyExistsException`).
+- Missing output directories are created recursively.
 
 ## Next steps
 - [Opening Files](opening-files.md)

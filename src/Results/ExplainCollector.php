@@ -2,6 +2,8 @@
 
 namespace FQL\Results;
 
+use FQL\Query\FileQuery;
+
 /**
  * @phpstan-import-type ExplainResultArray from \FQL\Traits\Explain
  */
@@ -40,6 +42,16 @@ class ExplainCollector
     public function incrementOut(int $index): void
     {
         $this->rows[$index]['rows_out']++;
+    }
+
+    public function setIncrementIn(int $index, int $value): void
+    {
+        $this->rows[$index]['rows_in'] = $value;
+    }
+
+    public function setIncrementOut(int $index, int $value): void
+    {
+        $this->rows[$index]['rows_out'] = $value;
     }
 
     public function startTimer(int $index): void
@@ -133,7 +145,8 @@ class ExplainCollector
         string $sortNote,
         bool $isLimitable,
         string $limitNote,
-        array $unions
+        array $unions,
+        ?FileQuery $into = null
     ): array {
         $rows = [];
         $rows[] = $this->createPlanRow('stream', $streamNote);
@@ -168,6 +181,10 @@ class ExplainCollector
         foreach ($unions as $index => $union) {
             $prefix = $unionCount === 1 ? 'union' : 'union_' . ($index + 1);
             $rows[] = $this->createPlanRow($prefix, $union['type']);
+        }
+
+        if ($into !== null) {
+            $rows[] = $this->createPlanRow('into', sprintf('write to %s', (string) $into));
         }
 
         return $rows;

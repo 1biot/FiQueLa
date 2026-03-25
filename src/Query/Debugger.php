@@ -245,7 +245,7 @@ class Debugger
             'EXCLUDE', 'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
             'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
-            'UNION', 'ALL'
+            'UNION', 'ALL', 'INTO'
         ];
 
         // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
@@ -284,7 +284,7 @@ class Debugger
 
                     // Keywords
                     if (in_array(strtoupper($token), $keywords)) {
-                        if (in_array(strtoupper($token), ['FROM', 'JOIN'])) {
+                        if (in_array(strtoupper($token), ['FROM', 'JOIN', 'INTO'])) {
                             $hasStream = true;
                         }
                         return self::echoBlue(self::echoBold($token));

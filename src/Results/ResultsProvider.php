@@ -5,6 +5,8 @@ namespace FQL\Results;
 use FQL\Exception\InvalidArgumentException;
 use FQL\Functions;
 use FQL\Interface\Results;
+use FQL\Query\FileQuery;
+use FQL\Stream\Writers\WriterFactory;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
 /**
@@ -14,6 +16,8 @@ use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 abstract class ResultsProvider implements Results, \IteratorAggregate
 {
     use EnhancedNestedArrayAccessor;
+
+    protected int $lastIntoWriteCount = 0;
 
     /**
      * @param class-string|null $dto
@@ -133,6 +137,52 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         }
 
         return $max;
+    }
+
+    /**
+     * @throws \FQL\Exception\FileQueryException
+     * @throws \FQL\Exception\InvalidFormatException
+     */
+    public function into(FileQuery|string $fileQuery): ?string
+    {
+        if (is_string($fileQuery)) {
+            $fileQuery = new FileQuery($fileQuery);
+        }
+
+        $this->lastIntoWriteCount = 0;
+
+        if ($fileQuery->file === null) {
+            throw new InvalidArgumentException('Missing target file in INTO file query.');
+        }
+
+        $dir = dirname($fileQuery->file);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        $writer = WriterFactory::create($fileQuery);
+        try {
+            foreach ($this->getIterator() as $row) {
+                $writerRow = [];
+                foreach ($row as $key => $value) {
+                    if (is_string($key)) {
+                        $writerRow[$key] = $value;
+                    }
+                }
+
+                $writer->write($writerRow);
+                $this->lastIntoWriteCount++;
+            }
+        } finally {
+            $writer->close();
+        }
+
+        return $fileQuery->file;
+    }
+
+    protected function getLastIntoWriteCount(): int
+    {
+        return $this->lastIntoWriteCount;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace Query;
 
 use FQL\Enum\Operator;
+use FQL\Query\FileQuery;
 use FQL\Stream\Json;
 use PHPUnit\Framework\TestCase;
 
@@ -58,5 +59,20 @@ class QueryStringTest extends TestCase
 
         $this->assertStringContainsString('GROUP BY', $sql);
         $this->assertStringContainsString('HAVING', $sql);
+    }
+
+    public function testQueryStringIncludesIntoClause(): void
+    {
+        $stream = Json::string(json_encode([
+            ['id' => 1],
+        ]));
+
+        $query = $stream->query()
+            ->select('id')
+            ->into(new FileQuery('csv(output.csv)'));
+
+        $sql = (string) $query;
+
+        $this->assertStringContainsString('INTO csv(output.csv)', $sql);
     }
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.9.0]
+
+### Added
+- Added `INTO` clause parsing and query metadata support (`into()`, `hasInto()`, `getInto()`) for FQL queries.
+- Added export writers and factory for `csv`, `ndjson`, `json`, `xml`, `xlsx`, `ods`.
+- Added `ResultsProvider::into(FileQuery|string $fileQuery)` for exporting query results.
+- Added `FQL\Interface\Writer` and `FileAlreadyExistsException`.
+
+### Changed
+- Path validation for file queries with base path now supports non-existing target files while preserving directory traversal protection.
+- SQL lexer now recognizes `INTO` as a control keyword.
+
+### Notes
+- Existing target files are never overwritten automatically (throws `FileAlreadyExistsException`).
+- Output directories are created recursively by `ResultsProvider::into()`.
+
 ## [2.8.0]
 
 ### Changed (BREAKING)

@@ -45,6 +45,7 @@ interface Query extends \Stringable
     public const ON = 'ON';
     public const BY = 'BY';
     public const FROM = 'FROM';
+    public const INTO = 'INTO';
     public const WHERE = 'WHERE';
     public const HAVING = 'HAVING';
     public const OFFSET = 'OFFSET';
@@ -525,6 +526,10 @@ interface Query extends \Stringable
      * Use this method to refine your query to a specific part of the data.
      */
     public function from(string $query): Query;
+
+    public function into(FileQuery $fileQuery): static;
+    public function hasInto(): bool;
+    public function getInto(): ?FileQuery;
 
     public function join(Query $query, string $alias): Query;
     public function innerJoin(Query $query, string $alias): Query;

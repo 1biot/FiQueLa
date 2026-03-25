@@ -12,6 +12,7 @@ use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
 use FQL\Interface\JoinHashmap;
 use FQL\Interface\Query;
+use FQL\Query\FileQuery;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
@@ -72,6 +73,7 @@ class Stream extends ResultsProvider
         private readonly array $orderings,
         private readonly int|null $limit,
         private readonly int|null $offset,
+        private readonly ?FileQuery $into = null,
         private JoinHashMap $joinHashMap = new InMemoryHashmap(),
         /** @var array<int, array{type: string, query: Query}> */
         private readonly array $unions = [],
@@ -175,16 +177,98 @@ class Stream extends ResultsProvider
                 sortNote: $this->getSortNote(),
                 isLimitable: $this->isLimitable(),
                 limitNote: $this->getLimitNote($this->isLimitAppliedInStream()),
-                unions: $this->unions
+                unions: $this->unions,
+                into: $this->getInto()
             );
         }
 
         // ANALYZE: set collector, run the stream, collect metrics
         $this->collector = new ExplainCollector();
-        foreach ($this->buildStream() as $_) {
-            // consume all rows so collector can gather metrics
+        if ($this->hasInto()) {
+            $into = $this->getInto();
+            if ($into !== null) {
+                $this->into($into);
+            }
+        } else {
+            foreach ($this->buildStream() as $_) {
+                // consume all rows so collector can gather metrics
+            }
         }
+
+        assert($this->collector !== null);
         return $this->collector->finalize();
+    }
+
+    /**
+     * @throws Exception\FileQueryException
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\InvalidArgumentException
+     */
+    public function into(FileQuery|string $fileQuery): ?string
+    {
+        if ($this->collector === null) {
+            return parent::into($fileQuery);
+        }
+
+        if (is_string($fileQuery)) {
+            $fileQuery = new FileQuery($fileQuery);
+        }
+
+        if ($fileQuery->file === null) {
+            throw new Exception\InvalidArgumentException('Missing target file in INTO file query.');
+        }
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'fql_into_');
+        if ($tempFile === false) {
+            throw new Exception\InvalidArgumentException('Unable to create temporary file for INTO analyze.');
+        }
+
+        if (file_exists($tempFile)) {
+            unlink($tempFile);
+        }
+
+        $targetFileQuery = $fileQuery;
+        $phaseFileQuery = $fileQuery->withFile($tempFile);
+        $startedAt = microtime(true);
+        $writeException = null;
+
+        try {
+            parent::into($phaseFileQuery);
+        } catch (\Throwable $e) {
+            $writeException = $e;
+        } finally {
+            $intoIdx = $this->collector->addPhase(
+                'into',
+                sprintf('write to %s', $targetFileQuery),
+                true
+            );
+
+            $elapsedMs = (microtime(true) - $startedAt) * 1000;
+            $this->collector->addTime($intoIdx, $elapsedMs);
+            $this->collector->setIncrementIn($intoIdx, $this->getLastIntoWriteCount());
+            $this->collector->setIncrementOut($intoIdx, $this->getLastIntoWriteCount());
+            $this->collector->recordMemPeak($intoIdx);
+
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+
+            if ($writeException !== null) {
+                throw $writeException;
+            }
+        }
+
+        return null;
+    }
+
+    private function hasInto(): bool
+    {
+        return $this->into !== null;
+    }
+
+    private function getInto(): ?FileQuery
+    {
+        return $this->into;
     }
 
     /**

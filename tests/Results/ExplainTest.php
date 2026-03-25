@@ -3,6 +3,7 @@
 namespace Results;
 
 use FQL\Enum\Operator;
+use FQL\Query\FileQuery;
 use FQL\Stream\Json;
 use PHPUnit\Framework\TestCase;
 
@@ -315,5 +316,59 @@ class ExplainTest extends TestCase
         $streamPos = array_search('union_stream', $phases);
         $summaryPos = array_search('union', $phases);
         $this->assertLessThan($summaryPos, $streamPos);
+    }
+
+    public function testExplainPlanWithIntoShowsIntoAsLastPhase(): void
+    {
+        $rows = iterator_to_array($this->products->query()
+            ->select('name', 'price')
+            ->from('data.products')
+            ->into(new FileQuery('csv(output.csv)'))
+            ->explain()
+            ->execute()
+            ->fetchAll());
+
+        $this->assertNotEmpty($rows);
+
+        $last = $rows[array_key_last($rows)];
+        $this->assertSame('into', $last['phase']);
+        $this->assertSame('write to csv(output.csv)', $last['note']);
+        $this->assertNull($last['rows_in']);
+        $this->assertNull($last['time_ms']);
+        $this->assertNull($last['mem_peak_kb']);
+    }
+
+    public function testExplainAnalyzeWithIntoUsesTempFileAndKeepsExistingTarget(): void
+    {
+        $target = sys_get_temp_dir() . '/fiquela-explain-into-' . uniqid() . '.csv';
+        file_put_contents($target, "existing\n");
+
+        try {
+            $rows = iterator_to_array($this->products->query()
+                ->select('name', 'price')
+                ->from('data.products')
+                ->where('price', Operator::GREATER_THAN, 100)
+                ->into(new FileQuery(sprintf('csv(%s)', $target)))
+                ->explainAnalyze()
+                ->execute()
+                ->fetchAll());
+
+            $this->assertNotEmpty($rows);
+
+            $last = $rows[array_key_last($rows)];
+            $this->assertSame('into', $last['phase']);
+            $this->assertSame(sprintf('write to csv(%s)', $target), $last['note']);
+            $this->assertIsInt($last['rows_in']);
+            $this->assertIsInt($last['rows_out']);
+            $this->assertNotNull($last['time_ms']);
+            $this->assertNotNull($last['duration_pct']);
+            $this->assertNotNull($last['mem_peak_kb']);
+
+            $this->assertSame("existing\n", file_get_contents($target));
+        } finally {
+            if (file_exists($target)) {
+                unlink($target);
+            }
+        }
     }
 }
