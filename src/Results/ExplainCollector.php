@@ -44,6 +44,16 @@ class ExplainCollector
         $this->rows[$index]['rows_out']++;
     }
 
+    public function setIncrementIn(int $index, int $value): void
+    {
+        $this->rows[$index]['rows_in'] = $value;
+    }
+
+    public function setIncrementOut(int $index, int $value): void
+    {
+        $this->rows[$index]['rows_out'] = $value;
+    }
+
     public function startTimer(int $index): void
     {
         $this->timers[$index] = microtime(true);

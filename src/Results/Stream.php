@@ -17,7 +17,6 @@ use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
 use FQL\Stream\Neon;
-use FQL\Stream\Writers\WriterFactory;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
@@ -230,46 +229,32 @@ class Stream extends ResultsProvider
 
         $targetFileQuery = $fileQuery;
         $phaseFileQuery = $fileQuery->withFile($tempFile);
-
-        $rowsIn = 0;
-        $rowsOut = 0;
         $startedAt = microtime(true);
-        $writer = WriterFactory::create($phaseFileQuery);
+        $writeException = null;
 
         try {
-            foreach ($this->getIterator() as $row) {
-                $writerRow = [];
-                foreach ($row as $key => $value) {
-                    if (is_string($key)) {
-                        $writerRow[$key] = $value;
-                    }
-                }
-
-                $rowsIn++;
-                $writer->write($writerRow);
-                $rowsOut++;
-            }
+            parent::into($phaseFileQuery);
+        } catch (\Throwable $e) {
+            $writeException = $e;
         } finally {
-            $writer->close();
-
             $intoIdx = $this->collector->addPhase(
                 'into',
-                sprintf('write to %s', (string) $targetFileQuery),
+                sprintf('write to %s', $targetFileQuery),
                 true
             );
 
             $elapsedMs = (microtime(true) - $startedAt) * 1000;
             $this->collector->addTime($intoIdx, $elapsedMs);
-            for ($i = 0; $i < $rowsIn; $i++) {
-                $this->collector->incrementIn($intoIdx);
-            }
-            for ($i = 0; $i < $rowsOut; $i++) {
-                $this->collector->incrementOut($intoIdx);
-            }
+            $this->collector->setIncrementIn($intoIdx, $this->getLastIntoWriteCount());
+            $this->collector->setIncrementOut($intoIdx, $this->getLastIntoWriteCount());
             $this->collector->recordMemPeak($intoIdx);
 
             if (file_exists($tempFile)) {
                 unlink($tempFile);
+            }
+
+            if ($writeException !== null) {
+                throw $writeException;
             }
         }
 

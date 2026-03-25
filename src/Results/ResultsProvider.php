@@ -17,6 +17,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
 {
     use EnhancedNestedArrayAccessor;
 
+    protected int $lastIntoWriteCount = 0;
+
     /**
      * @param class-string|null $dto
      * @return \Generator<StreamProviderArrayIteratorValue|object>
@@ -147,6 +149,8 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
             $fileQuery = new FileQuery($fileQuery);
         }
 
+        $this->lastIntoWriteCount = 0;
+
         if ($fileQuery->file === null) {
             throw new InvalidArgumentException('Missing target file in INTO file query.');
         }
@@ -167,12 +171,18 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
                 }
 
                 $writer->write($writerRow);
+                $this->lastIntoWriteCount++;
             }
         } finally {
             $writer->close();
         }
 
         return $fileQuery->file;
+    }
+
+    protected function getLastIntoWriteCount(): int
+    {
+        return $this->lastIntoWriteCount;
     }
 
     /**
