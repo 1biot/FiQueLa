@@ -16,6 +16,7 @@ File Query Language (FQL) is a SQL-like syntax for querying data from files. It 
 * _10_ - [Explain](#10-explain)
 * _11_ - [Union](#11-union)
 * _12_ - [Into](#12-into)
+* _13_ - [Describe](#13-describe)
 
 ## 1. Interpreted FQL
 
@@ -673,6 +674,46 @@ Notes:
 - Export is performed by result provider method `->execute()->into(...)`.
 - Existing target files are not overwritten (`FileAlreadyExistsException`).
 - Missing output directories are created recursively.
+
+## 13. Describe
+
+Use `DESCRIBE` to inspect the schema of a data source. Returns one row per column with type statistics.
+
+```sql
+DESCRIBE file_reference
+```
+
+- _**file_reference**_: is a [FileQuery](#2-file-query).
+
+`DESCRIBE` is a standalone statement — it cannot be combined with `SELECT`, `WHERE`, `GROUP BY`, `ORDER BY`, or `LIMIT`.
+
+**Example:**
+
+```sql
+DESCRIBE json(./examples/data/products.json).data.products
+```
+
+**Example with CSV:**
+
+```sql
+DESCRIBE csv(./examples/data/products.csv).*
+```
+
+### Output columns
+
+| Column         | Type     | Description                                                    |
+|----------------|----------|----------------------------------------------------------------|
+| `column`       | string   | Column name (dot notation for nested objects)                  |
+| `types`        | array    | Map of type name to occurrence count                           |
+| `totalRows`    | int      | Number of non-empty rows for this column                       |
+| `totalTypes`   | int      | Number of distinct types observed                              |
+| `dominant`     | string   | Most frequent type                                             |
+| `suspicious`   | bool     | `true` if column has mixed non-empty types (except int+double) |
+| `confidence`   | float    | Ratio of dominant type occurrences to total (0.0–1.0)          |
+| `completeness` | float    | Ratio of non-empty rows to total rows (0.0–1.0)               |
+| `constant`     | bool     | `true` if all non-empty values are identical                   |
+| `isEnum`       | bool     | `true` if column has 2–5 unique values                         |
+| `isUnique`     | bool     | `true` if all non-empty values are unique                      |
 
 ## Next steps
 - [Opening Files](opening-files.md)

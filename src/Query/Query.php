@@ -2,6 +2,8 @@
 
 namespace FQL\Query;
 
+use FQL\Conditions\HavingConditionGroup;
+use FQL\Conditions\WhereConditionGroup;
 use FQL\Exception\QueryLogicException;
 use FQL\Interface;
 use FQL\Results;
@@ -32,6 +34,7 @@ class Query implements Interface\Query
     use Traits\Sortable;
     use Traits\Unionable;
     use Traits\Explain;
+    use Traits\Describable;
 
     /**
      * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
@@ -59,8 +62,67 @@ class Query implements Interface\Query
         return $this->traitGroupBy(...$fields);
     }
 
+    public function describe(): static
+    {
+        if (!$this->isSelectEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with SELECT');
+        }
+        if (!$this->isConditionsEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with WHERE');
+        }
+        if (!$this->isGroupableEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with GROUP BY');
+        }
+        if (!$this->isSortableEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with ORDER BY');
+        }
+        if (!$this->isLimitableEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with LIMIT');
+        }
+        if (!$this->isJoinableEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with JOIN');
+        }
+        if (!$this->isUnionableEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with UNION');
+        }
+        if (!$this->isExplainEmpty()) {
+            throw new QueryLogicException('DESCRIBE cannot be combined with EXPLAIN');
+        }
+
+        $this->blockSelect();
+        $this->blockConditions();
+        $this->blockGroupable();
+        $this->blockSortable();
+        $this->blockLimitable();
+        $this->blockJoinable();
+        $this->blockUnionable();
+        $this->blockExplain();
+        $this->enableDescribe();
+
+        return $this;
+    }
+
     public function execute(?string $resultClass = null): Results\ResultsProvider
     {
+        if ($this->isDescribeMode()) {
+            return new Results\DescribeResult(
+                (new Results\Stream(
+                    $this->stream,
+                    false,
+                    [],
+                    [],
+                    $this->getFrom(),
+                    new WhereConditionGroup(),
+                    new HavingConditionGroup(),
+                    [],
+                    [],
+                    [],
+                    null,
+                    null,
+                ))->getIterator()
+            );
+        }
+
         $this->validateUnionColumns();
 
         $streamResult = new Results\Stream(
@@ -97,6 +159,13 @@ class Query implements Interface\Query
 
     public function __toString(): string
     {
+        if ($this->isDescribeMode()) {
+            $source = $this->stream->provideSource();
+            $from = $this->getFrom();
+            return Interface\Query::DESCRIBE . ' ' . $source
+                . ($from !== '' ? '.' . $from : '');
+        }
+
         $queryParts = [];
 
         // EXPLAIN

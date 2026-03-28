@@ -10,6 +10,7 @@ use FQL\Functions\Core\AggregateFunction;
 use FQL\Functions\Core\BaseFunction;
 use FQL\Functions\Core\BaseFunctionByReference;
 use FQL\Functions\Core\NoFieldFunction;
+use FQL\Interface\Aggregable;
 use FQL\Interface\JoinHashmap;
 use FQL\Interface\Query;
 use FQL\Query\FileQuery;
@@ -33,7 +34,7 @@ use FQL\Utils\InMemoryHashmap;
  * @phpstan-import-type SelectedField from Traits\Select
  * @phpstan-import-type ExplainResultArray from Traits\Explain
  */
-class Stream extends ResultsProvider
+class Stream extends ResultsProvider implements Aggregable
 {
     use Traits\Helpers\EnhancedNestedArrayAccessor;
     use Traits\Helpers\StringOperations;
@@ -1094,8 +1095,8 @@ class Stream extends ResultsProvider
 
         usort($data, function ($a, $b): int {
             foreach ($this->orderings as $field => $type) {
-                $valA = $a[$field] ?? null;
-                $valB = $b[$field] ?? null;
+                $valA = $this->accessNestedValue($a, $field, false);
+                $valB = $this->accessNestedValue($b, $field, false);
 
                 $cmp = match ($type) {
                     Enum\Sort::ASC => ($valA <=> $valB),

@@ -90,6 +90,105 @@ class StreamResultsTest extends TestCase
         $this->assertContains(4, $ids);
     }
 
+    public function testOrderByNestedFieldAsc(): void
+    {
+        $data = [
+            ['id' => 1, 'meta' => ['priority' => 3]],
+            ['id' => 2, 'meta' => ['priority' => 1]],
+            ['id' => 3, 'meta' => ['priority' => 2]],
+        ];
+
+        $stream = Json::string(json_encode($data));
+        $rows = iterator_to_array(
+            $stream->query()
+                ->orderBy('meta.priority')->asc()
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([2, 3, 1], array_column($rows, 'id'));
+    }
+
+    public function testOrderByNestedFieldDesc(): void
+    {
+        $data = [
+            ['id' => 1, 'brand' => ['name' => 'Charlie']],
+            ['id' => 2, 'brand' => ['name' => 'Alpha']],
+            ['id' => 3, 'brand' => ['name' => 'Bravo']],
+        ];
+
+        $stream = Json::string(json_encode($data));
+        $rows = iterator_to_array(
+            $stream->query()
+                ->orderBy('brand.name')->desc()
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([1, 3, 2], array_column($rows, 'id'));
+    }
+
+    public function testOrderByDeeplyNestedField(): void
+    {
+        $data = [
+            ['id' => 1, 'a' => ['b' => ['c' => 30]]],
+            ['id' => 2, 'a' => ['b' => ['c' => 10]]],
+            ['id' => 3, 'a' => ['b' => ['c' => 20]]],
+        ];
+
+        $stream = Json::string(json_encode($data));
+        $rows = iterator_to_array(
+            $stream->query()
+                ->orderBy('a.b.c')->asc()
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([2, 3, 1], array_column($rows, 'id'));
+    }
+
+    public function testOrderByNestedFieldWithMissingKeys(): void
+    {
+        $data = [
+            ['id' => 1, 'meta' => ['score' => 5]],
+            ['id' => 2],
+            ['id' => 3, 'meta' => ['score' => 2]],
+        ];
+
+        $stream = Json::string(json_encode($data));
+        $rows = iterator_to_array(
+            $stream->query()
+                ->orderBy('meta.score')->asc()
+                ->execute()
+                ->fetchAll()
+        );
+
+        // null sorts first in PHP spaceship operator
+        $this->assertSame(2, $rows[0]['id']);
+        $this->assertSame(3, $rows[1]['id']);
+        $this->assertSame(1, $rows[2]['id']);
+    }
+
+    public function testOrderByNestedFieldWithSelect(): void
+    {
+        $data = [
+            ['id' => 1, 'brand' => ['name' => 'Charlie', 'code' => 'C']],
+            ['id' => 2, 'brand' => ['name' => 'Alpha', 'code' => 'A']],
+            ['id' => 3, 'brand' => ['name' => 'Bravo', 'code' => 'B']],
+        ];
+
+        $stream = Json::string(json_encode($data));
+        $rows = iterator_to_array(
+            $stream->query()
+                ->select('id', 'brand')
+                ->orderBy('brand.name')->asc()
+                ->execute()
+                ->fetchAll()
+        );
+
+        $this->assertSame([2, 3, 1], array_column($rows, 'id'));
+    }
+
     public function testFullJoinIncludesUnmatchedRightRows(): void
     {
         $rightQuery = $this->right->query()->select('id, label');

@@ -2,10 +2,12 @@
 
 namespace FQL\Results;
 
+use FQL\Interface\Aggregable;
+
 /**
  * @phpstan-import-type StreamProviderArrayIteratorValue from Stream
 */
-class InMemory extends ResultsProvider
+class InMemory extends ResultsProvider implements Aggregable
 {
     /**
      * @var \ArrayIterator<int, StreamProviderArrayIteratorValue>

@@ -241,7 +241,7 @@ class Debugger
     public static function highlightSQL(string $sql): string
     {
         $keywords = [
-            'EXPLAIN', 'ANALYZE', 'SELECT', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
+            'EXPLAIN', 'ANALYZE', 'SELECT', 'DESCRIBE', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
             'EXCLUDE', 'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
             'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
             'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
@@ -284,7 +284,7 @@ class Debugger
 
                     // Keywords
                     if (in_array(strtoupper($token), $keywords)) {
-                        if (in_array(strtoupper($token), ['FROM', 'JOIN', 'INTO'])) {
+                        if (in_array(strtoupper($token), ['FROM', 'JOIN', 'INTO', 'DESCRIBE'])) {
                             $hasStream = true;
                         }
                         return self::echoBlue(self::echoBold($token));

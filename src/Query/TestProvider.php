@@ -12,6 +12,7 @@ use FQL\Traits\Joinable;
 use FQL\Traits\Limit;
 use FQL\Traits\Select;
 use FQL\Traits\Sortable;
+use FQL\Traits\Describable;
 use FQL\Traits\Unionable;
 
 /**
@@ -31,6 +32,7 @@ class TestProvider implements Query
     use Sortable;
     use Unionable;
     use Limit;
+    use Describable;
 
     /**
      * @return SelectedFields
@@ -79,6 +81,12 @@ class TestProvider implements Query
 
     public function explainAnalyze(): Query
     {
+        return $this;
+    }
+
+    public function describe(): static
+    {
+        $this->enableDescribe();
         return $this;
     }
 

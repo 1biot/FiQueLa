@@ -2,6 +2,7 @@
 
 namespace FQL\Traits;
 
+use FQL\Exception;
 use FQL\Interface;
 
 /**
@@ -20,9 +21,24 @@ trait Explain
 {
     private bool $explain = false;
     private bool $explainAnalyze = false;
+    private bool $explainBlocked = false;
+
+    public function blockExplain(): void
+    {
+        $this->explainBlocked = true;
+    }
+
+    public function isExplainEmpty(): bool
+    {
+        return !$this->explain;
+    }
 
     public function explain(): Interface\Query
     {
+        if ($this->explainBlocked) {
+            throw new Exception\QueryLogicException('EXPLAIN is not allowed in DESCRIBE mode');
+        }
+
         $this->explain = true;
         $this->explainAnalyze = false;
         return $this;
@@ -30,6 +46,10 @@ trait Explain
 
     public function explainAnalyze(): Interface\Query
     {
+        if ($this->explainBlocked) {
+            throw new Exception\QueryLogicException('EXPLAIN is not allowed in DESCRIBE mode');
+        }
+
         $this->explain = true;
         $this->explainAnalyze = true;
         return $this;
