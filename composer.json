@@ -110,6 +110,9 @@
     "example:yaml": [
       "php -f examples/yaml.php"
     ],
+    "example:describe": [
+      "php -f examples/describe.php"
+    ],
     "examples": [
       "@example:csv",
       "@example:neon",

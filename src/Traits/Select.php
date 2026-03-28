@@ -32,6 +32,18 @@ trait Select
 
     private ?Functions\Utils\SelectCase $case = null;
 
+    private bool $selectBlocked = false;
+
+    public function blockSelect(): void
+    {
+        $this->selectBlocked = true;
+    }
+
+    public function isSelectEmpty(): bool
+    {
+        return $this->selectedFields === [];
+    }
+
     public function selectAll(): Interface\Query
     {
         $this->select(Interface\Query::SELECT_ALL);
@@ -40,6 +52,10 @@ trait Select
 
     public function exclude(string ...$fields): Interface\Query
     {
+        if ($this->selectBlocked) {
+            throw new Exception\QueryLogicException('SELECT is not allowed in DESCRIBE mode');
+        }
+
         $fqlTokenizer = new Sql\SqlLexer();
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         $this->excludedFields = array_filter(array_merge(
@@ -56,6 +72,10 @@ trait Select
      */
     public function select(string ...$fields): Interface\Query
     {
+        if ($this->selectBlocked) {
+            throw new Exception\QueryLogicException('SELECT is not allowed in DESCRIBE mode');
+        }
+
         $fqlTokenizer = new Sql\SqlLexer();
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         foreach ($fields as $field) {
@@ -71,6 +91,10 @@ trait Select
 
     public function distinct(bool $distinct = true): Interface\Query
     {
+        if ($this->selectBlocked) {
+            throw new Exception\QueryLogicException('SELECT is not allowed in DESCRIBE mode');
+        }
+
         $this->distinct = $distinct;
         return $this;
     }

@@ -14,6 +14,7 @@ Fluent API is a way to build queries in a more readable and maintainable way. It
 * _8_ - [Explain](#explain)
 * _9_ - [Union](#9-union)
 * _10_ - [Into](#10-into)
+* _11_ - [Describe](#11-describe)
 
 ## 1. Select and Alias Fields
 
@@ -606,6 +607,76 @@ Provider::fromFile('data.csv')
     ->select('NAME', 'PRICE')
     ->execute()
     ->into('json(exports/products.json).root.items');
+```
+
+## 11. Describe
+
+Use `describe()` to inspect the schema of a data source instead of querying its data. The result is a `DescribeResult`
+containing one row per column with type statistics, completeness, and uniqueness information.
+
+`DESCRIBE` is mutually exclusive with `SELECT`, `WHERE`, `GROUP BY`, `ORDER BY`, and `LIMIT`. Calling any of these
+after `describe()` will throw a `QueryLogicException`.
+
+**Example:**
+
+```php
+use FQL\Query\Provider;
+use FQL\Stream\Json;
+
+$result = Json::open('products.json')->query()
+    ->from('data.products')
+    ->describe()
+    ->execute();
+
+foreach ($result->fetchAll() as $col) {
+    echo $col['column'] . ' => ' . $col['dominant'] . PHP_EOL;
+}
+
+echo 'Source rows: ' . $result->getSourceRowCount();
+```
+
+### Output columns
+
+| Column         | Type     | Description                                                    |
+|----------------|----------|----------------------------------------------------------------|
+| `column`       | string   | Column name (dot notation for nested objects)                  |
+| `types`        | array    | Map of type name to occurrence count                           |
+| `totalRows`    | int      | Number of non-empty rows for this column                       |
+| `totalTypes`   | int      | Number of distinct types observed                              |
+| `dominant`     | string   | Most frequent type                                             |
+| `suspicious`   | bool     | `true` if column has mixed non-empty types (except int+double) |
+| `confidence`   | float    | Ratio of dominant type occurrences to total (0.0–1.0)          |
+| `completeness` | float    | Ratio of non-empty rows to total rows (0.0–1.0)               |
+| `constant`     | bool     | `true` if all non-empty values are identical                   |
+| `isEnum`       | bool     | `true` if column has 2–5 unique values                         |
+| `isUnique`     | bool     | `true` if all non-empty values are unique                      |
+
+### Detected types
+
+| Type            | Description                                              |
+|-----------------|----------------------------------------------------------|
+| `int`           | Integer value                                            |
+| `double`        | Float/double value                                       |
+| `string`        | Non-empty string                                         |
+| `bool`          | Boolean value                                            |
+| `array`         | Indexed array                                            |
+| `null`          | Null value                                               |
+| `empty-string`  | Empty string `""`                                        |
+| `whitespace`    | String containing only whitespace                        |
+| `bool-string`   | String `"yes"` or `"no"`                                 |
+| `date-string`   | ISO 8601 date/datetime string                            |
+
+### Validation
+
+```php
+// DESCRIBE cannot be combined with SELECT
+$query->select('id')->describe(); // throws QueryLogicException
+
+// SELECT is not allowed after describe()
+$query->from('data')->describe()->select('id'); // throws QueryLogicException
+
+// Same for WHERE, GROUP BY, ORDER BY, LIMIT
+$query->from('data')->describe()->where('id', Operator::EQUAL, 1); // throws QueryLogicException
 ```
 
 ## Next steps

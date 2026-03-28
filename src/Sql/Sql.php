@@ -42,13 +42,16 @@ class Sql extends SqlLexer implements Interface\Parser
 
         while (!$this->isEOF()) {
             $token = $this->nextToken();
-            if (strtoupper($token) !== 'FROM') {
+            $upper = strtoupper($token);
+
+            if ($upper !== 'FROM' && $upper !== 'DESCRIBE') {
                 continue;
             }
 
             $fileQuery = $this->validateFileQueryPath($this->nextToken());
+            $query = Query\Provider::fromFileQuery((string) $fileQuery);
             $parseStart = $startPosition !== null ? $startPosition : null;
-            return $this->parseWithQuery(Query\Provider::fromFileQuery((string) $fileQuery), $parseStart);
+            return $this->parseWithQuery($query, $parseStart);
         }
 
         throw new Exception\UnexpectedValueException('Undefined file in query');
@@ -76,6 +79,10 @@ class Sql extends SqlLexer implements Interface\Parser
                     } else {
                         $query->explain();
                     }
+                    break;
+                case Interface\Query::DESCRIBE:
+                    $this->nextToken(); // consume the FileQuery token (already resolved in toQuery)
+                    $query->describe();
                     break;
                 case Interface\Query::SELECT:
                     $this->parseFields($query);

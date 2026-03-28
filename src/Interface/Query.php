@@ -34,6 +34,7 @@ interface Query extends \Stringable
     public const FROM_ALL = self::SELECT_ALL;
 
     public const SELECT = 'SELECT';
+    public const DESCRIBE = 'DESCRIBE';
     public const DISTINCT = 'DISTINCT';
     public const CASE = 'CASE';
     public const WHEN = 'WHEN';
@@ -597,6 +598,12 @@ interface Query extends \Stringable
      * @return ResultsProvider
      */
     public function execute(?string $resultClass = null): Results\ResultsProvider;
+
+    /**
+     * Return schema information about the source file — column names, types, statistics.
+     * Mutually exclusive with SELECT, WHERE, GROUP BY, ORDER BY, LIMIT.
+     */
+    public function describe(): static;
 
     /**
      * Build an explain plan for the query.

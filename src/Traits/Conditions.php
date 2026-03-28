@@ -19,6 +19,17 @@ trait Conditions
     private BaseConditionGroup $whereConditions;
     private BaseConditionGroup $havingConditions;
     private GroupCondition $currentGroup;
+    private bool $conditionsBlocked = false;
+
+    public function blockConditions(): void
+    {
+        $this->conditionsBlocked = true;
+    }
+
+    public function isConditionsEmpty(): bool
+    {
+        return count($this->whereConditions) === 0 && count($this->havingConditions) === 0;
+    }
 
     private function initialize(): Interface\Query
     {
@@ -186,6 +197,10 @@ trait Conditions
         Enum\Operator $operator,
         array|float|int|string|Enum\Type $value
     ): void {
+        if ($this->conditionsBlocked) {
+            throw new Exception\QueryLogicException('WHERE/HAVING is not allowed in DESCRIBE mode');
+        }
+
         $this->currentGroup->addCondition($type, new SimpleCondition($type, $key, $operator, $value));
     }
 

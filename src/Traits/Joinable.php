@@ -27,6 +27,17 @@ trait Joinable
      */
     private array $joins = [];
     private bool $joinApplied = false;
+    private bool $joinableBlocked = false;
+
+    public function blockJoinable(): void
+    {
+        $this->joinableBlocked = true;
+    }
+
+    public function isJoinableEmpty(): bool
+    {
+        return $this->joins === [];
+    }
 
     public function join(Query $query, string $alias): Query
     {
@@ -75,6 +86,10 @@ trait Joinable
 
     private function addJoin(Query $query, Enum\Join $type, string $alias): void
     {
+        if ($this->joinableBlocked) {
+            throw new Exception\QueryLogicException('JOIN is not allowed in DESCRIBE mode');
+        }
+
         if ($alias === '') {
             throw new Exception\JoinException('Set alias for join');
         }

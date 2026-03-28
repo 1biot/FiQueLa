@@ -12,9 +12,24 @@ trait Sortable
      * @var array<string, Enum\Sort> $orderings
      */
     private array $orderings = [];
+    private bool $sortableBlocked = false;
+
+    public function blockSortable(): void
+    {
+        $this->sortableBlocked = true;
+    }
+
+    public function isSortableEmpty(): bool
+    {
+        return $this->orderings === [];
+    }
 
     public function sortBy(string $field, ?Enum\Sort $type = null): Query
     {
+        if ($this->sortableBlocked) {
+            throw new Exception\QueryLogicException('ORDER BY is not allowed in DESCRIBE mode');
+        }
+
         if (isset($this->orderings[$field])) {
             throw new Exception\OrderByException(sprintf('Field "%s" is already used for sorting.', $field));
         }

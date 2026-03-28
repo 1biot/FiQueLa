@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.10.0]
+
+### Added
+- `DESCRIBE` clause for inspecting data source schema — returns column names, types, statistics (confidence, completeness, uniqueness, enum detection).
+- `DescribeResult` class extending `ResultsProvider` with single-pass column analysis.
+- `Describable` trait with `isDescribeMode()`, `isDescribeEmpty()`, and `enableDescribe()`.
+- `AggregableResult` interface extracted from `Results` interface for `sum()`, `avg()`, `min()`, `max()`.
+- Blocking mechanism in traits (`Select`, `Conditions`, `Groupable`, `Sortable`, `Limit`, `Joinable`, `Unionable`, `Explain`) — `DESCRIBE` is mutually exclusive with `SELECT`, `WHERE`, `GROUP BY`, `ORDER BY`, `LIMIT`, `JOIN`, `UNION`, `EXPLAIN`.
+- FQL SQL support: `DESCRIBE json(file.json).data.products`.
+- Debugger highlighting for `DESCRIBE` keyword.
+
+### Fixed
+- `ORDER BY` now supports nested fields via dot notation (e.g. `orderBy('brand.code')`) — previously only flat keys were accessible.
+
+### Changed (BREAKING)
+- `sum()`, `avg()`, `min()`, `max()` removed from `Interface\Results` — moved to new `Interface\AggregableResult`.
+- `Stream` and `InMemory` now implement `AggregableResult` interface explicitly.
+
 ## [2.9.0]
 
 ### Added
