@@ -17,7 +17,7 @@ try {
     Query\Debugger::dump(iterator_to_array($describe->execute()->fetchAll()));
 
     $sql = <<<SQL
-DESCRIBE json(./examples/data/products.json).data.products
+DESCRIBE csv(./examples/data/products-w-1250.csv, encoding: "windows-1250", delimiter: ";")
 SQL;
 
     Query\Debugger::echoSection('DESCRIBE via FQL');

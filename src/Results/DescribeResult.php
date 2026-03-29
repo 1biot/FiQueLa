@@ -3,8 +3,12 @@
 namespace FQL\Results;
 
 use FQL\Enum\Type;
+use FQL\Stream\ArrayStreamProvider;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 
+/**
+ * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
+ */
 class DescribeResult extends ResultsProvider
 {
     use EnhancedNestedArrayAccessor;
@@ -13,11 +17,8 @@ class DescribeResult extends ResultsProvider
 
     private int $sourceRowCount = 0;
 
-    /**
-     * @param \Traversable<array<int|string, mixed>> $source
-     */
     public function __construct(
-        private readonly \Traversable $source
+        private readonly Stream $source
     ) {
     }
 
@@ -39,9 +40,12 @@ class DescribeResult extends ResultsProvider
         /** @var array<string, array<string, true>|null> $uniqueTrackers */
         $uniqueTrackers = [];
 
-        foreach ($this->source as $item) {
+        /** @var array<string, list<string>> $colPaths */
+        $colPaths = [];
+
+        foreach ($this->source->getIterator() as $item) {
             $counter++;
-            /** @var array<string, mixed> $flattenedItem */
+            /** @var array<string, array{value: mixed, path: list<string>}> $flattenedItem */
             $flattenedItem = $this->flattenItem($item);
 
             // track missing fields
@@ -51,15 +55,17 @@ class DescribeResult extends ResultsProvider
                 }
             }
 
-            foreach ($flattenedItem as $key => $value) {
+            foreach ($flattenedItem as $key => $entry) {
                 if (!is_string($key)) {
                     continue;
                 }
 
+                $value = $entry['value'];
                 $typeName = $this->resolveTypeName($value);
 
                 if (!isset($arrayKeys[$key])) {
                     $arrayKeys[$key] = [];
+                    $colPaths[$key] = $entry['path'];
                 }
                 $arrayKeys[$key][$typeName] = ($arrayKeys[$key][$typeName] ?? 0) + 1;
 
@@ -73,6 +79,7 @@ class DescribeResult extends ResultsProvider
         foreach (array_keys($arrayKeys) as $key) {
             yield $this->buildColumnRow(
                 $key,
+                $colPaths[$key] ?? [$key],
                 $arrayKeys[$key],
                 $colEnumCheck,
                 $uniqueTrackers,
@@ -160,6 +167,7 @@ class DescribeResult extends ResultsProvider
     }
 
     /**
+     * @param list<string> $path
      * @param array<string, int> $types
      * @param array<string, array<string, int>|null> $colEnumCheck
      * @param array<string, array<string, true>|null> $uniqueTrackers
@@ -167,6 +175,7 @@ class DescribeResult extends ResultsProvider
      */
     private function buildColumnRow(
         string $key,
+        array $path,
         array $types,
         array $colEnumCheck,
         array $uniqueTrackers,
@@ -225,6 +234,7 @@ class DescribeResult extends ResultsProvider
 
         return [
             'column' => $key,
+            'path' => $path,
             'types' => $types,
             'totalRows' => $filledCount,
             'totalTypes' => count($types),
@@ -241,22 +251,28 @@ class DescribeResult extends ResultsProvider
     /**
      * Recursively flattens nested associative arrays into dot notation keys (up to 3 levels deep)
      *
-     * @param array<int|string, mixed> $item
-     * @return array<string, mixed>
+     * @param StreamProviderArrayIteratorValue|\Generator<StreamProviderArrayIteratorValue>|\Traversable<StreamProviderArrayIteratorValue> $item
+     * @param list<string> $parentPath
+     * @return array<string, array{value: mixed, path: list<string>}>
      */
-    private function flattenItem(array $item, string $prefix = '', int $level = 0): array
-    {
+    private function flattenItem(
+        array|\Generator|\Traversable $item,
+        string $prefix = '',
+        int $level = 0,
+        array $parentPath = []
+    ): array {
         if ($level >= 3) {
             return [];
         }
 
         $flat = [];
         foreach ($item as $key => $value) {
-            $path = $prefix !== '' ? "{$prefix}.{$key}" : (string) $key;
+            $dottedKey = $prefix !== '' ? "{$prefix}.{$key}" : (string) $key;
+            $currentPath = [...$parentPath, (string) $key];
             if (is_array($value) && $this->isAssoc($value)) {
-                $flat += $this->flattenItem($value, $path, $level + 1);
+                $flat += $this->flattenItem($value, $dottedKey, $level + 1, $currentPath);
             } else {
-                $flat[$path] = $value;
+                $flat[$dottedKey] = ['value' => $value, 'path' => $currentPath];
             }
         }
 

@@ -123,7 +123,8 @@
       "@example:union",
       "@example:xml",
       "@example:yaml",
-      "@example:explain"
+      "@example:explain",
+      "@example:describe"
     ]
   }
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.10.1]
+
+### Fixed
+- Fixed issue with streaming `DESCRIBE` results when data source use `\Generator`
+
+### Changed
+- Changed interface `AggregableResult` to `Aggregable` only
+
+### Added
+- Added array path to `DESCRIBE` result for correctly evaluating nested fields (e.g. `Items`.`Item`.`Prod. cena`.`s dph` instead of `Items.Item.Prod. cena.s dph`)
+
 ## [2.10.0]
 
 ### Added
