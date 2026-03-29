@@ -106,7 +106,7 @@ class Query implements Interface\Query
     {
         if ($this->isDescribeMode()) {
             return new Results\DescribeResult(
-                (new Results\Stream(
+                new Results\Stream(
                     $this->stream,
                     false,
                     [],
@@ -119,7 +119,7 @@ class Query implements Interface\Query
                     [],
                     null,
                     null,
-                ))->getIterator()
+                )
             );
         }
 
