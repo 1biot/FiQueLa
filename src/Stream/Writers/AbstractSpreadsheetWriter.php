@@ -69,6 +69,16 @@ abstract class AbstractSpreadsheetWriter implements Writer
         $this->writer->close();
     }
 
+    public function getFileQuery(): FileQuery
+    {
+        if ($this->fileQuery->query !== null) {
+            return $this->fileQuery;
+        }
+
+        $query = $this->sheetName !== '' ? $this->sheetName : null;
+        return $query !== null ? $this->fileQuery->withQuery($query) : $this->fileQuery;
+    }
+
     abstract protected function createWriter(): XlsxFileWriter|OdsFileWriter;
 
     /**
@@ -104,7 +114,7 @@ abstract class AbstractSpreadsheetWriter implements Writer
      */
     private function parseQuery(?string $query): array
     {
-        if ($query === null || $query === '') {
+        if ($query === null || $query === '' || $query === '*') {
             return ['', 'A1'];
         }
 

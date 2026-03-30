@@ -2,6 +2,8 @@
 
 namespace FQL\Interface;
 
+use FQL\Query\FileQuery;
+
 interface Writer
 {
     /**
@@ -15,4 +17,9 @@ interface Writer
      * Finalize and close the file.
      */
     public function close(): void;
+
+    /**
+     * Returns effective FileQuery with default query applied (for reading back the written file).
+     */
+    public function getFileQuery(): FileQuery;
 }

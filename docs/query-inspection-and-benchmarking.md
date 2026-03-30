@@ -74,5 +74,6 @@ For more information about inspecting queries and benchmarking, see the [example
 - [Query Life Cycle](query-life-cycle.md)
 - [FiQueLa CLI](fiquela-cli.md)
 - Query Inspection and Benchmarking
+- [API Reference](api-reference.md)
 
 or go back to [README.md](../README.md).

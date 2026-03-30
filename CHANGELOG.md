@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.10.2]
+
+### Added
+- Complete [API Reference](docs/api-reference.md) documentation covering all enums, exceptions, interfaces, query classes, results, stream providers, writers, SQL parser, conditions, functions, traits, and utilities.
+
+### Changed (BREAKING)
+- `ResultsProvider::into()` now returns `FileQuery` instead of `?string` — the returned FileQuery contains the effective query with defaults applied.
+- `Writer` interface now requires `getFileQuery(): FileQuery` method.
+
+### Fixed
+- Writers now apply default query fallback via `FileQuery::withQuery()` so the returned FileQuery is ready for reading back the written file:
+  - CSV, NDJSON, JSON (without query): defaults to `*`
+  - XML (without query): defaults to `rows.row` (matching the default root/row elements)
+  - XLSX/ODS: preserves sheet name if set
+- JSON writer no longer wraps data in `{"*": [...]}` when query is explicitly `*` — writes flat array instead.
+- XLSX/ODS writer treats `*` query as default (first sheet from A1) instead of parsing `*` as sheet name.
+
 ## [2.10.1]
 
 ### Fixed
