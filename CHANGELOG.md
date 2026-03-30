@@ -9,6 +9,9 @@
 - `ResultsProvider::into()` now returns `?FileQuery` instead of `?string` — the returned FileQuery contains the effective query with defaults applied.
 - `Writer` interface now requires `getFileQuery(): FileQuery` method.
 
+### Changes
+- Added bold style to ODS and XLSX headers
+
 ### Fixed
 - Writers now apply default query fallback via `FileQuery::withQuery()` so the returned FileQuery is ready for reading back the written file:
   - CSV, NDJSON, JSON (without query): defaults to `*`
