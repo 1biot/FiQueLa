@@ -813,9 +813,9 @@ _public_ **fetchNth(**_int|string_ `$n`**,** _?string_ `$dto = null`**):** `\Gen
 
 _public_ **exists():** `bool`
 
-_public_ **into(**_FileQuery|string_ `$fileQuery`**):** `FileQuery`
+_public_ **into(**_FileQuery|string_ `$fileQuery`**):** `?FileQuery`
 
-Exports results to a file. Returns the effective `FileQuery` with defaults applied.
+Exports results to a file. Returns the effective `FileQuery` with defaults applied, or `null`.
 
 _abstract public_ **count():** `int`
 

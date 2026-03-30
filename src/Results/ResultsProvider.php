@@ -143,7 +143,7 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
      * @throws \FQL\Exception\FileQueryException
      * @throws \FQL\Exception\InvalidFormatException
      */
-    public function into(FileQuery|string $fileQuery): FileQuery
+    public function into(FileQuery|string $fileQuery): ?FileQuery
     {
         if (is_string($fileQuery)) {
             $fileQuery = new FileQuery($fileQuery);

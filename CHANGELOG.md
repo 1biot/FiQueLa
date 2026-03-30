@@ -6,7 +6,7 @@
 - Complete [API Reference](docs/api-reference.md) documentation covering all enums, exceptions, interfaces, query classes, results, stream providers, writers, SQL parser, conditions, functions, traits, and utilities.
 
 ### Changed (BREAKING)
-- `ResultsProvider::into()` now returns `FileQuery` instead of `?string` — the returned FileQuery contains the effective query with defaults applied.
+- `ResultsProvider::into()` now returns `?FileQuery` instead of `?string` — the returned FileQuery contains the effective query with defaults applied.
 - `Writer` interface now requires `getFileQuery(): FileQuery` method.
 
 ### Fixed

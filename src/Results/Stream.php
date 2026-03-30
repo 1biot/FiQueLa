@@ -205,7 +205,7 @@ class Stream extends ResultsProvider implements Aggregable
      * @throws Exception\InvalidFormatException
      * @throws Exception\InvalidArgumentException
      */
-    public function into(FileQuery|string $fileQuery): FileQuery
+    public function into(FileQuery|string $fileQuery): ?FileQuery
     {
         if ($this->collector === null) {
             return parent::into($fileQuery);
@@ -259,7 +259,7 @@ class Stream extends ResultsProvider implements Aggregable
             }
         }
 
-        return $targetFileQuery;
+        return null;
     }
 
     private function hasInto(): bool
