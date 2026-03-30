@@ -3,6 +3,7 @@
 namespace Results;
 
 use FQL\Exception\FileAlreadyExistsException;
+use FQL\Query\FileQuery;
 use FQL\Results\InMemory;
 use FQL\Stream\Ods;
 use FQL\Stream\Xls;
@@ -127,6 +128,110 @@ class ResultsProviderIntoTest extends TestCase
 
         $stream = Ods::open($target);
         $rows = iterator_to_array($stream->getStream('Sheet1.B4'));
+
+        $this->assertSame(
+            [
+                ['NAME' => 'Product A', 'PRICE' => 100],
+                ['NAME' => 'Product B', 'PRICE' => 200],
+            ],
+            $rows
+        );
+    }
+
+    public function testIntoJsonWithStarQueryWritesFlatArray(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/star.json';
+
+        $fileQuery = $results->into(sprintf('json(%s).*', $target));
+
+        $decoded = json_decode((string) file_get_contents($target), true);
+        $this->assertIsArray($decoded);
+        $this->assertArrayNotHasKey('*', $decoded);
+        $this->assertSame('Product A', $decoded[0]['NAME']);
+        $this->assertSame('Product B', $decoded[1]['NAME']);
+        $this->assertSame('*', $fileQuery->query);
+    }
+
+    public function testIntoJsonWithoutQueryDefaultsToStar(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/noquery.json';
+
+        $fileQuery = $results->into(sprintf('json(%s)', $target));
+
+        $decoded = json_decode((string) file_get_contents($target), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('Product A', $decoded[0]['NAME']);
+        $this->assertSame('*', $fileQuery->query);
+    }
+
+    public function testIntoCsvWithStarQueryReturnsStarFileQuery(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/star.csv';
+
+        $fileQuery = $results->into(sprintf('csv(%s).*', $target));
+
+        $this->assertFileExists($target);
+        $this->assertSame('*', $fileQuery->query);
+    }
+
+    public function testIntoCsvWithoutQueryDefaultsToStar(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/noquery.csv';
+
+        $fileQuery = $results->into(sprintf('csv(%s)', $target));
+
+        $this->assertFileExists($target);
+        $this->assertSame('*', $fileQuery->query);
+    }
+
+    public function testIntoNdJsonWithStarQueryReturnsStarFileQuery(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/star.ndjson';
+
+        $fileQuery = $results->into(sprintf('ndjson(%s).*', $target));
+
+        $this->assertFileExists($target);
+        $this->assertSame('*', $fileQuery->query);
+        $lines = file($target, FILE_IGNORE_NEW_LINES);
+        $this->assertNotFalse($lines);
+        $this->assertCount(2, $lines);
+    }
+
+    public function testIntoXlsxWithStarQueryUsesDefaultSheetAndCell(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/star.xlsx';
+
+        $fileQuery = $results->into(sprintf('xlsx(%s).*', $target));
+
+        $this->assertFileExists($target);
+        $stream = Xls::open($target);
+        $rows = iterator_to_array($stream->getStream('*'));
+
+        $this->assertSame(
+            [
+                ['NAME' => 'Product A', 'PRICE' => 100],
+                ['NAME' => 'Product B', 'PRICE' => 200],
+            ],
+            $rows
+        );
+    }
+
+    public function testIntoOdsWithStarQueryUsesDefaultSheetAndCell(): void
+    {
+        $results = $this->createResults();
+        $target = $this->basePath . '/out/star.ods';
+
+        $fileQuery = $results->into(sprintf('ods(%s).*', $target));
+
+        $this->assertFileExists($target);
+        $stream = Ods::open($target);
+        $rows = iterator_to_array($stream->getStream('*'));
 
         $this->assertSame(
             [

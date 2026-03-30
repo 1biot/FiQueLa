@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-83.67%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_684-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-83.68%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_691-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -46,6 +46,7 @@ explain/debug tooling, and strongly typed operators.
   - [Fetching Data](docs/fetching-data.md)
   - [Query Life Cycle](docs/query-life-cycle.md)
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
+  - [API Reference](docs/api-reference.md)
 - [Examples](#6-examples)
 - [Known issues](#7-known-issues)
 - [Roadmap](#8-roadmap)

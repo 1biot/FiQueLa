@@ -42,4 +42,11 @@ class NdJsonWriter implements Writer
             $this->handle = null;
         }
     }
+
+    public function getFileQuery(): FileQuery
+    {
+        return $this->fileQuery->query === null
+            ? $this->fileQuery->withQuery('*')
+            : $this->fileQuery;
+    }
 }

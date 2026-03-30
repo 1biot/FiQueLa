@@ -6,6 +6,7 @@ use FQL\Interface\Writer;
 use FQL\Query\FileQuery;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\ODS\Writer as OdsFileWriter;
 use OpenSpout\Writer\XLSX\Writer as XlsxFileWriter;
 
@@ -45,7 +46,8 @@ abstract class AbstractSpreadsheetWriter implements Writer
 
         if ($this->headers === null) {
             $this->headers = array_keys($row);
-            $this->writer->addRow($this->buildRow($this->headers));
+            $headerStyle = new Style();
+            $this->writer->addRow($this->buildRow($this->headers, $headerStyle->setFontBold()));
         }
 
         $ordered = [];
@@ -69,12 +71,22 @@ abstract class AbstractSpreadsheetWriter implements Writer
         $this->writer->close();
     }
 
+    public function getFileQuery(): FileQuery
+    {
+        if ($this->fileQuery->query !== null) {
+            return $this->fileQuery;
+        }
+
+        $query = $this->sheetName !== '' ? $this->sheetName : null;
+        return $query !== null ? $this->fileQuery->withQuery($query) : $this->fileQuery;
+    }
+
     abstract protected function createWriter(): XlsxFileWriter|OdsFileWriter;
 
     /**
      * @param array<int, mixed> $values
      */
-    private function buildRow(array $values): Row
+    private function buildRow(array $values, ?Style $style = null): Row
     {
         $cells = [];
         for ($i = 0; $i < $this->startColumnIndex; $i++) {
@@ -85,7 +97,7 @@ abstract class AbstractSpreadsheetWriter implements Writer
             $cells[] = Cell::fromValue($value);
         }
 
-        return new Row($cells);
+        return new Row($cells, $style);
     }
 
     private function initializeStartPosition(): void
@@ -104,7 +116,7 @@ abstract class AbstractSpreadsheetWriter implements Writer
      */
     private function parseQuery(?string $query): array
     {
-        if ($query === null || $query === '') {
+        if ($query === null || $query === '' || $query === '*') {
             return ['', 'A1'];
         }
 

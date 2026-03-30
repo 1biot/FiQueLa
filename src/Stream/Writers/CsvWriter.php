@@ -50,4 +50,11 @@ class CsvWriter implements Writer
     public function close(): void
     {
     }
+
+    public function getFileQuery(): FileQuery
+    {
+        return $this->fileQuery->query === null
+            ? $this->fileQuery->withQuery('*')
+            : $this->fileQuery;
+    }
 }

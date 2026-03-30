@@ -105,5 +105,6 @@ GROUP BY name;
 - Query Life Cycle
 - [FiQueLa CLI](fiquela-cli.md)
 - [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
+- [API Reference](api-reference.md)
 
 or go back to [README.md](../README.md).

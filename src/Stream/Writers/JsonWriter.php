@@ -25,8 +25,8 @@ class JsonWriter implements Writer
     public function close(): void
     {
         $data = $this->rows;
-        if ($this->fileQuery->query !== null) {
-            $segments = array_values(array_filter(explode('.', $this->fileQuery->query), static fn (string $part) => $part !== ''));
+        if ($this->fileQuery->query !== null && $this->fileQuery->query !== '*') {
+            $segments = array_values(array_filter(explode('.', $this->fileQuery->query), static fn (string $part) => $part !== '' && $part !== '*'));
             for ($i = count($segments) - 1; $i >= 0; $i--) {
                 $data = [$segments[$i] => $data];
             }
@@ -38,5 +38,12 @@ class JsonWriter implements Writer
         }
 
         file_put_contents($this->fileQuery->file, $encoded . PHP_EOL);
+    }
+
+    public function getFileQuery(): FileQuery
+    {
+        return $this->fileQuery->query === null
+            ? $this->fileQuery->withQuery('*')
+            : $this->fileQuery;
     }
 }

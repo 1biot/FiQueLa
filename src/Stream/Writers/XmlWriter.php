@@ -51,6 +51,13 @@ class XmlWriter implements Writer
         $this->writer->flush();
     }
 
+    public function getFileQuery(): FileQuery
+    {
+        return $this->fileQuery->query === null
+            ? $this->fileQuery->withQuery($this->rootElement . '.' . $this->rowElement)
+            : $this->fileQuery;
+    }
+
     /**
      * @return array{0: string, 1: string}
      */
