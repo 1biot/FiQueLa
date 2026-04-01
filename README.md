@@ -48,9 +48,13 @@ explain/debug tooling, and strongly typed operators.
   - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
   - [API Reference](docs/api-reference.md)
 - [Examples](#6-examples)
-- [Known issues](#7-known-issues)
-- [Roadmap](#8-roadmap)
-- [Contributions](#9-contributions)
+- [Ecosystem](#7-ecosystem)
+  - [FiQueLa CLI](#fiquela-cli)
+  - [FiQueLa API](#fiquela-api)
+  - [FiQueLa Studio](#fiquela-studio)
+- [Known issues](#8-known-issues)
+- [Roadmap](#9-roadmap)
+- [Contributions](#10-contributions)
 
 ## 1. Overview
 
@@ -194,7 +198,7 @@ For more details about **F**i**Q**ue**L**a and her capabilities, explore the doc
 - [Fetching Data](docs/fetching-data.md)
 - [Query Life Cycle](docs/query-life-cycle.md)
 - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
-
+- [API Reference](docs/api-reference.md)
 
 ## 6. Examples
 
@@ -331,12 +335,47 @@ array (7)
 > Final execution time (µs): 36459756
 ```
 
-## 7. Known issues
+## 7. Ecosystem
+
+FiQueLa is more than just a PHP library. It comes with a CLI tool, a REST API server, and a web-based query explorer.
+
+### FiQueLa CLI
+
+[**fiquela-cli**](https://github.com/1biot/fiquela-cli) is a command-line tool for querying structured files directly from the terminal. It supports local file querying, remote API connections, and an interactive REPL mode with paginated table output.
+
+```bash
+# Install
+curl -fsSL https://raw.githubusercontent.com/1biot/fiquela-cli/main/install.sh | bash
+
+# Query a local file
+fiquela-cli --file=data.csv "SELECT name, price FROM * WHERE price > 100;"
+
+# Interactive mode
+fiquela-cli --file=data.csv
+```
+
+Requires PHP 8.2+ with readline, curl, and zlib extensions.
+
+### FiQueLa API
+
+[**fiquela-api**](https://github.com/1biot/fiquela-api) is a RESTful server for querying structured files over HTTP. It provides file management, query execution, result export (CSV, TSV, JSON), and query history tracking with JWT authentication.
+
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/1biot/fiquela-api/tree/main?refcode=92025543cb9f)
+
+Requires credentials configuration via environment variables. Optionally enable S3 backup (Cloudflare R2) for file storage. For more information visit the [repository](https://github.com/1biot/fiquela-api?tab=readme-ov-file#-credentials).
+
+Key endpoints: `POST /api/auth/login` for JWT authentication, `POST /api/v1/query` for executing queries, `GET /api/v1/files` for file management, `GET /api/v1/export/{hash}` for downloading results. All endpoints except login require `Authorization: Bearer <token>`.
+
+### FiQueLa Studio
+
+[**studio.fiquela.io**](https://studio.fiquela.io) is a web-based visual query explorer for building and running FQL queries interactively. Requires a running [FiQueLa API](#fiquela-api) instance to connect to.
+
+## 8. Known issues
 
 - ⚠️ Functions `JOIN`, and `ORDER BY` are not memory efficient, because joining data or sorting data requires 
 to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
 
-## 8. Roadmap
+## 9. Roadmap
 
 - [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
 - [x] ~~**XLS/XLSX**: Add Excel file support.~~
@@ -353,7 +392,7 @@ for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` cl
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 
 
-## 9. Contributions
+## 10. Contributions
 
 If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
 
