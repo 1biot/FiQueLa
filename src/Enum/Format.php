@@ -5,6 +5,7 @@ namespace FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
 use FQL\Stream;
+use FQL\Stream\AccessLog\LogFormat;
 
 enum Format: string
 {
@@ -18,9 +19,10 @@ enum Format: string
     case XLS = 'xls';
     case ODS = 'ods';
     case DIR = 'dir';
+    case LOG = 'log';
 
     /**
-     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson|Stream\Xls|Stream\Ods|Stream\Dir>
+     * @return class-string<Stream\Csv|Stream\Json|Stream\JsonStream|Stream\Xml|Stream\Neon|Stream\Yaml|Stream\NDJson|Stream\Xls|Stream\Ods|Stream\Dir|Stream\AccessLog>
      */
     public function getFormatProviderClass(): string
     {
@@ -35,6 +37,7 @@ enum Format: string
             self::XLS => Stream\Xls::class,
             self::ODS => Stream\Ods::class,
             self::DIR => Stream\Dir::class,
+            self::LOG => Stream\AccessLog::class,
         };
     }
 
@@ -53,6 +56,7 @@ enum Format: string
             'xls', 'xlsx' => self::XLS,
             'ods' => self::ODS,
             'dir' => self::DIR,
+            'log' => self::LOG,
             default => throw new Exception\InvalidFormatException(sprintf('Unsupported file format "%s"', $extension)),
         };
     }
@@ -89,6 +93,7 @@ enum Format: string
         return match ($this) {
             self::CSV => ['encoding' => 'utf-8', 'delimiter' => ',', 'useHeader' => '1'],
             self::XML => ['encoding' => 'utf-8'],
+            self::LOG => ['format' => 'nginx_combined'],
             default   => [],
         };
     }
@@ -103,6 +108,7 @@ enum Format: string
         match ($this) {
             self::CSV => $this->validateCsvParams($params),
             self::XML => $this->validateXmlParams($params),
+            self::LOG => $this->validateLogParams($params),
             default   => null,
         };
     }
@@ -128,6 +134,9 @@ enum Format: string
             self::XML => $named !== []
                 ? array_merge($defaults, $named)
                 : ['encoding' => $positional[0] ?? $defaults['encoding']],
+            self::LOG => $named !== []
+                ? array_merge($defaults, $named)
+                : ['format' => $positional[0] ?? $defaults['format']],
             default => [],
         };
     }
@@ -178,5 +187,33 @@ enum Format: string
     private function validateXmlParams(array $params): void
     {
         $this->validateEncoding($params);
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @throws Exception\InvalidFormatException
+     */
+    private function validateLogParams(array $params): void
+    {
+        $format = isset($params['format']) ? (string) $params['format'] : 'nginx_combined';
+        $pattern = isset($params['pattern']) ? (string) $params['pattern'] : null;
+
+        if ($pattern !== null) {
+            if (trim($pattern) === '') {
+                throw new Exception\InvalidFormatException('Log custom pattern must not be empty');
+            }
+            LogFormat::logFormatToRegex($pattern);
+            return;
+        }
+
+        if (!LogFormat::hasProfile($format)) {
+            throw new Exception\InvalidFormatException(
+                sprintf(
+                    'Unknown log format profile "%s". Available: %s',
+                    $format,
+                    implode(', ', LogFormat::getAvailableProfiles())
+                )
+            );
+        }
     }
 }

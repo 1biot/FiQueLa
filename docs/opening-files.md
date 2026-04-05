@@ -61,7 +61,7 @@ $query = Query\Provider::fromFileQuery('xml(./path/to/file.xml).SHOP.SHOPITEM')
 format(pathToFile[, params]).path.to.data
 ```
 
-- `format` — format name directly before parenthesis (`xml`, `json`, `csv`, `yaml`, `neon`, `ods`, `xls`, `dir`)
+- `format` — format name directly before parenthesis (`xml`, `json`, `csv`, `yaml`, `neon`, `ods`, `xls`, `log`, `dir`)
 - First argument is always the file path (unquoted)
 - Additional arguments are either positional (quoted) or named (`key: "value"`)
 - Positional and named parameters cannot be mixed
@@ -72,15 +72,19 @@ xml(feed.xml).SHOP.ITEM
 csv(data.csv, "windows-1250", ";").*
 csv(data.csv, encoding: "windows-1250", delimiter: ";").*
 json(data.json).data.users
+log(access.log).*
+log(access.log, "apache_common").*
+log(access.log, format: "custom", pattern: "%h %l %u [%t] \"%r\" %>s %b").*
 ```
 
 ### Default parameter values
 
-| Format | Parameter | Default |
-|--------|-----------|---------|
-| CSV    | encoding  | utf-8   |
-| CSV    | delimiter | ,       |
-| XML    | encoding  | utf-8   |
+| Format | Parameter | Default          |
+|--------|-----------|------------------|
+| CSV    | encoding  | utf-8            |
+| CSV    | delimiter | ,                |
+| XML    | encoding  | utf-8            |
+| LOG    | format    | nginx_combined   |
 
 Default values are omitted in the serialized output — `csv(data.csv)` instead of `csv(data.csv, "utf-8", ",")`.
 

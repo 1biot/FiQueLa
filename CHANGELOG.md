@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.11.0]
+
+### Added
+- HTTP access log stream provider (`log` format) for querying Apache/Nginx access logs
+- Predefined log format profiles: `nginx_combined` (default), `nginx_main`, `apache_combined`, `apache_common`
+- Custom log format patterns via Apache log_format tokens (`%h`, `%r`, `%>s`, `%{Referer}i`, etc.)
+- Automatic value normalization for access logs (status→int, time→Y-m-d H:i:s, %D μs→ms, %r→method/path/protocol split)
+- Graceful error handling: malformed lines yield error rows (`_error` field) instead of throwing
+- FQL syntax: `FROM log(file).*`, `FROM log(file, "profile").*`, `FROM log(file, format: "profile").*`
+
 ## [2.10.2]
 
 ### Added

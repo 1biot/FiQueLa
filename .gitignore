@@ -3,6 +3,8 @@
 .opencode
 .run
 vendor
+.mcp.json
+CLAUDE.md
 .phpunit.result.cache
 .DS_Store
 **/.DS_Store

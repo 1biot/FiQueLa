@@ -46,6 +46,16 @@ final class Provider
             $stream->useHeader($useHeader === '1');
         }
 
+        $logFormat = $queryPath->getParam('format');
+        if ($logFormat !== null && $stream instanceof Stream\AccessLog) {
+            $stream->setFormat($logFormat);
+        }
+
+        $logPattern = $queryPath->getParam('pattern');
+        if ($logPattern !== null && $stream instanceof Stream\AccessLog) {
+            $stream->setPattern($logPattern);
+        }
+
         if ($queryPath->query === null) {
             return $stream->query();
         }
