@@ -2,9 +2,9 @@
 .idea
 .opencode
 .run
+vendor
 .mcp.json
 CLAUDE.md
-vendor
 .phpunit.result.cache
 .DS_Store
 **/.DS_Store
