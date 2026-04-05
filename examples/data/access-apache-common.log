@@ -1,0 +1,4 @@
+127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] "GET /index.html HTTP/1.0" 200 2326
+192.168.1.50 frank admin [25/Dec/2024:23:59:59 +0000] "POST /login HTTP/1.1" 302 0
+10.0.0.1 - - [01/Jan/2025:00:00:01 +0000] "GET /favicon.ico HTTP/1.1" 404 -
+172.16.0.10 - user1 [15/Mar/2024:12:00:00 +0100] "GET /path/to/resource HTTP/2.0" 200 4096

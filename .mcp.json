@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fiquela-docs": {
+      "type": "http",
+      "url": "https://docs.fiquela.io/mcp"
+    }
+  }
+}

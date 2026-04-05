@@ -113,6 +113,9 @@
     "example:describe": [
       "php -f examples/describe.php"
     ],
+    "example:logFormat": [
+      "php -f examples/logFormat.php"
+    ],
     "examples": [
       "@example:csv",
       "@example:neon",
@@ -123,6 +126,7 @@
       "@example:union",
       "@example:xml",
       "@example:yaml",
+      "@example:logFormat",
       "@example:explain",
       "@example:describe"
     ]

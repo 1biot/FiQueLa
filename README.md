@@ -7,18 +7,18 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-83.68%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_691-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-83.62%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_745-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
 Filter, join, group, aggregate, and transform data from **XML**, **XLS**, **ODS**, **CSV**, **JSON**, **NDJSON**,
-**YAML**, and **NEON** without setting up a database. It is built for real-world data processing with streaming support,
-explain/debug tooling, and strongly typed operators.
+**YAML**, **NEON**, and **HTTP access logs** without setting up a database. It is built for real-world data processing
+with streaming support, explain/debug tooling, and strongly typed operators.
 
 **Features**:
 
-- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, NEON, and XLS.
+- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, NEON, XLS, and HTTP access logs.
 - 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY` and more.
 - ✍️ **Flexible querying**: Write SQL-like strings or use the fluent API.
 - 📊 **Powerful expressions and functions**: Use `CASE WHEN`, `IF`, grouped conditions, `XOR`, `REGEXP`, aggregates, and utility functions.
@@ -110,6 +110,7 @@ composer require tracy/tracy
 | `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              |
 | `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              |
 | `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              |
+| `log`       | HTTP Access Log         | `FQL\Stream\AccessLog`  | ✅            | ❌              |
 
 
 ### Directory provider

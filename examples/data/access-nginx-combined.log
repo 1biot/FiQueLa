@@ -1,0 +1,5 @@
+192.168.1.1 - frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.example.com/start.html" "Mozilla/4.08 (Macintosh; I; PPC)"
+172.16.0.5 - - [15/Mar/2024:08:12:44 +0100] "POST /api/users HTTP/1.1" 201 512 "http://example.org/form" "curl/7.68.0"
+10.0.0.1 - admin [01/Jan/2025:00:00:01 +0000] "GET / HTTP/2.0" 301 0 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+192.168.1.100 - - [20/Feb/2025:14:30:22 +0000] "DELETE /api/resource/42 HTTP/1.1" 204 - "-" "PostmanRuntime/7.26.8"
+10.10.10.10 - john [05/Apr/2026:10:15:30 +0200] "PUT /api/data HTTP/1.1" 200 1024 "http://localhost:3000" "Mozilla/5.0 (X11; Linux x86_64)"

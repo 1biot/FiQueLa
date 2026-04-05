@@ -63,7 +63,7 @@ ORDER BY productCount DESC
 File Query is syntax allowing you to load file in FQL string directly without using any file provider.
 It is usable for `FROM`, `JOIN` and `INTO` clause. File Query consists of three main parts:
 
-- `format` is the format name written directly before the parenthesis (e.g. `csv`, `json`, `xml`, `jsonFile`). If omitted, the format is detected from the file extension automatically.
+- `format` is the format name written directly before the parenthesis (e.g. `csv`, `json`, `xml`, `jsonFile`, `log`). If omitted, the format is detected from the file extension automatically.
 - `pathToFile` is the first argument inside the parenthesis — a relative or absolute path to the file.
 - `params` are optional additional arguments after the file path, separated by commas. Arguments can be positional (`"value"`) or named (`key: "value"`), but you cannot mix positional and named arguments in the same query.
 - `path.to.data` is a dotted path to the data in the file.
@@ -79,11 +79,12 @@ It is usable for `FROM`, `JOIN` and `INTO` clause. File Query consists of three 
 
 **Parameter defaults:**
 
-| Format | Parameter   | Default   |
-|--------|-------------|-----------|
-| CSV    | encoding    | `utf-8`   |
-| CSV    | delimiter   | `,`       |
-| XML    | encoding    | `utf-8`   |
+| Format | Parameter   | Default          |
+|--------|-------------|------------------|
+| CSV    | encoding    | `utf-8`          |
+| CSV    | delimiter   | `,`              |
+| XML    | encoding    | `utf-8`          |
+| LOG    | format      | `nginx_combined` |
 
 **Example:**
 

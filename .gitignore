@@ -2,6 +2,8 @@
 .idea
 .opencode
 .run
+.mcp.json
+CLAUDE.md
 vendor
 .phpunit.result.cache
 .DS_Store

@@ -46,6 +46,7 @@
   - [Neon](#neon)
   - [Xls](#xls)
   - [Ods](#ods)
+  - [AccessLog](#accesslog)
   - [Dir](#dir)
 - [Writers](#writers)
   - [WriterFactory](#writerfactory)
@@ -108,6 +109,7 @@
 | **YAML** | `yaml` |
 | **XLS** | `xlsx` |
 | **ODS** | `ods` |
+| **LOG** | `log` |
 | **DIR** | `dir` |
 
 _public_ **getFormatProviderClass():** `class-string`
@@ -1039,6 +1041,41 @@ Reads ODS spreadsheet files using `openspout/openspout`. Query: `SheetName.Start
 _public static_ **open(**_string_ `$path`**):** `self`
 
 _public static_ **string(**_string_ `$data`**):** `self`
+
+### AccessLog
+
+`FQL\Stream\AccessLog` _extends_ `AbstractStream`
+
+Reads HTTP server access log files. Parses each line according to a predefined profile or a custom Apache
+`log_format` pattern. File query format name: `log`.
+
+_public static_ **open(**_string_ `$path`**):** `self`
+
+_public_ **setFormat(**_string_ `$format`**):** `void`
+
+Sets the active log profile. Accepts one of the predefined profile names (`nginx_combined`, `nginx_main`,
+`apache_combined`, `apache_common`) or `"custom"` (requires a subsequent `setPattern()` call).
+Default: `"nginx_combined"`.
+
+_public_ **setPattern(**_string_ `$pattern`**):** `void`
+
+Sets a custom Apache `log_format` pattern string. Only effective when the format is `"custom"`.
+
+**Predefined profiles:**
+
+| Profile name      | Pattern                                                                 |
+|-------------------|-------------------------------------------------------------------------|
+| `nginx_combined`  | `%h - %u [%t] "%r" %>s %b "%{Referer}i" "%{User-Agent}i"` _(default)_ |
+| `nginx_main`      | `%h - %u [%t] "%r" %>s %b`                                             |
+| `apache_combined` | `%h %l %u [%t] "%r" %>s %b "%{Referer}i" "%{User-Agent}i"`             |
+| `apache_common`   | `%h %l %u [%t] "%r" %>s %b`                                            |
+
+**Special fields in every row:**
+
+| Field    | Type          | Description                                      |
+|----------|---------------|--------------------------------------------------|
+| `_raw`   | string        | Original unparsed log line                       |
+| `_error` | string\|null  | `null` on success, error message on parse failure |
 
 ### Dir
 

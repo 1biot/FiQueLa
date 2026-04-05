@@ -1,0 +1,6 @@
+192.168.1.1 - frank [10/Oct/2000:13:55:36 -0700] "GET /good HTTP/1.0" 200 2326 "http://example.com" "Mozilla/5.0"
+this is not a valid log line
+172.16.0.5 - - [15/Mar/2024:08:12:44 +0100] "POST /api HTTP/1.1" 201 512 "http://example.org" "curl/7.68.0"
+
+another invalid line here!!!
+10.0.0.1 - admin [01/Jan/2025:00:00:01 +0000] "GET / HTTP/2.0" 301 0 "-" "Mozilla/5.0"
