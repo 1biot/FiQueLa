@@ -529,15 +529,15 @@ _public_ **getInto():** `?FileQuery`
 
 #### Joins
 
-_public_ **join(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **join(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **innerJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **innerJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **leftJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **leftJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **rightJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **rightJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **fullJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **fullJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
 _public_ **on(**_string_ `$leftKey`**,** _Operator_ `$operator`**,** _string_ `$rightKey`**):** `Query`
 
@@ -1396,7 +1396,7 @@ _public_ **distinct(**_bool_ `$distinct = true`**):** `Interface\Query`
 
 _public_ **exclude(**_string_ `...$fields`**):** `Interface\Query`
 
-_public_ **as(**_string_ `$alias`**):** `Interface\Query`
+_public_ **as(**_string_ `$alias`**):** `Interface\Query` — context-aware alias: after `select()`/function → aliases last field, after `from()` → aliases FROM source, after `join()` → aliases last join.
 
 _public_ **custom(**_SingleFieldFunction|MultipleFieldsFunction|NoFieldFunction_ `$function`**):** `Interface\Query`
 
@@ -1440,7 +1440,7 @@ _public_ **addHavingConditions(**_HavingConditionGroup_ `$group`**):** `Interfac
 
 `FQL\Traits\From`
 
-_public_ **from(**_string_ `$query`**):** `Query` — sets the data path within the file (e.g. `data.products`).
+_public_ **from(**_string_ `$query`**):** `Query` — sets the data path within the file (e.g. `data.products`). Use `->as('alias')` after `from()` to alias the source for field access (e.g. `alias.field`, `alias.*`).
 
 ### Into
 
@@ -1460,15 +1460,17 @@ _public_ **blockJoinable():** `void`
 
 _public_ **isJoinableEmpty():** `bool`
 
-_public_ **join(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **join(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **innerJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **innerJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **leftJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **leftJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **rightJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **rightJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
 
-_public_ **fullJoin(**_Query_ `$query`**,** _string_ `$alias`**):** `Query`
+_public_ **fullJoin(**_Query_ `$query`**,** _string_ `$alias = ''`**):** `Query`
+
+> Alias can be passed as a parameter or set fluently via `->as('alias')` after the join call. Alias is required — omitting it throws `JoinException` at query build time.
 
 _public_ **on(**_string_ `$leftKey`**,** _Operator_ `$operator`**,** _string_ `$rightKey`**):** `Query`
 

@@ -61,7 +61,21 @@ class SqlLexer implements \Iterator
             $nextStart = isset($matches[0][$i + 1]) ? $matches[0][$i + 1][1] : strlen($sql);
             $chunk = trim(substr($sql, $start + strlen($keyword), $nextStart - $start - strlen($keyword)));
 
-            if ($keyword === 'FROM' || $keyword === 'INTO' || $keyword === 'DESCRIBE') {
+            if ($keyword === 'FROM') {
+                $fromParts = preg_split('/\b(AS)\b/i', $chunk, 2, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+                if ($fromParts !== false) {
+                    $this->tokens = array_merge($this->tokens, $this->sourceTokenize(trim($fromParts[0])));
+                    for ($j = 1; $j < count($fromParts); $j++) {
+                        $part = trim($fromParts[$j]);
+                        $upper = strtoupper($part);
+                        if ($upper === 'AS') {
+                            $this->tokens[] = $upper;
+                        } else {
+                            $this->tokens = array_merge($this->tokens, $this->defaultTokenize($part));
+                        }
+                    }
+                }
+            } elseif ($keyword === 'INTO' || $keyword === 'DESCRIBE') {
                 $this->tokens = array_merge($this->tokens, $this->sourceTokenize($chunk));
             } elseif ($keyword === 'JOIN') {
                 $joinParts = preg_split('/\b(AS|ON)\b/i', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);

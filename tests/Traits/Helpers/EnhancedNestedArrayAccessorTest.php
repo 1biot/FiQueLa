@@ -81,6 +81,42 @@ class EnhancedNestedArrayAccessorTest extends TestCase
         $this->assertArrayNotHasKey('d', $data['a']);
     }
 
+    public function testRemoveNestedValueWithNullValue(): void
+    {
+        $data = [
+            'name' => 'test',
+            '_raw' => 'raw line',
+            '_error' => null,
+        ];
+
+        $this->removeNestedValue($data, '_raw');
+        $this->assertArrayNotHasKey('_raw', $data);
+
+        $this->removeNestedValue($data, '_error');
+        $this->assertArrayNotHasKey('_error', $data);
+
+        $this->assertArrayHasKey('name', $data);
+    }
+
+    public function testRemoveMultipleFieldsIncludingNull(): void
+    {
+        $data = [
+            'id' => 1,
+            'value' => 'hello',
+            'nullable' => null,
+            'zero' => 0,
+            'empty' => '',
+            'false' => false,
+        ];
+
+        $fieldsToRemove = ['nullable', 'zero', 'empty', 'false'];
+        foreach ($fieldsToRemove as $field) {
+            $this->removeNestedValue($data, $field);
+        }
+
+        $this->assertSame(['id', 'value'], array_keys($data));
+    }
+
     public function testInvalidIterationPathThrows(): void
     {
         $this->expectException(\FQL\Exception\InvalidArgumentException::class);

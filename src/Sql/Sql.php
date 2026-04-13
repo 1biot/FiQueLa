@@ -91,6 +91,10 @@ class Sql extends SqlLexer implements Interface\Parser
                 case Interface\Query::FROM:
                     $fileQuery = $this->validateFileQueryPath($this->nextToken());
                     $query->from($fileQuery->query ?? '');
+                    if (strtoupper($this->peekToken()) === Interface\Query::AS) {
+                        $this->nextToken(); // consume AS
+                        $query->as($this->nextToken());
+                    }
                     break;
                 case Interface\Query::INTO:
                     $intoFileQuery = $this->validateFileQueryPath($this->nextToken(), mustExist: false);

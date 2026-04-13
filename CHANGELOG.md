@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.12.0]
+
+### Added
+- **FROM aliasing**: `FROM source AS alias` in FQL and `->from('source')->as('alias')` in fluent API. Aliased fields accessible via `alias.field` dot notation.
+- **Fluent JOIN aliasing**: `->join($query)->as('alias')->on(...)` as alternative to passing alias as parameter. Backward-compatible — `->join($query, 'alias')` still works.
+- **Aliased wildcard `alias.*`**: select all fields from an aliased source (FROM or JOIN) using `alias.*` in SELECT.
+- **Wildcard `*` support in `EnhancedNestedArrayAccessor`**: path traversal now supports `*` token to expand all keys of an associative array.
+- **Context-aware `as()` method**: `as()` in `Query` now detects context — aliases SELECT field, FROM source, or JOIN depending on what was called before it.
+- `LastClause` enum (`FQL\Enum\LastClause`) for internal context tracking.
+
+### Changed
+- `as()` moved from `Select` trait to `Query` class as a unified context-aware method. Internally delegates to `asSelect()`, `asFrom()`, or `asJoin()`.
+- JOIN methods (`join`, `innerJoin`, `leftJoin`, `rightJoin`, `fullJoin`) now accept alias as optional parameter (`string $alias = ''`). Alias is still required but can be set via `->as()` fluently.
+- `EnhancedNestedArrayAccessor::parsePath()` token type extended with `wildcard` flag.
+
 ## [2.11.0]
 
 ### Added

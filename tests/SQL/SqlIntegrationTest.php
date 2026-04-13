@@ -97,6 +97,20 @@ class SqlIntegrationTest extends TestCase
         $this->assertArrayNotHasKey('description', $rows[0]);
     }
 
+    public function testParseWithQuerySelectAllAndExcludeMultipleFields(): void
+    {
+        $sql = 'SELECT *, EXCLUDE description, price FROM data.products WHERE id = 1';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertSame(1, $rows[0]['id']);
+        $this->assertArrayHasKey('name', $rows[0]);
+        $this->assertArrayNotHasKey('description', $rows[0]);
+        $this->assertArrayNotHasKey('price', $rows[0]);
+    }
+
     public function testParseWithQueryOffsetClause(): void
     {
         $sql = 'SELECT id FROM data.products ORDER BY id ASC OFFSET 2';

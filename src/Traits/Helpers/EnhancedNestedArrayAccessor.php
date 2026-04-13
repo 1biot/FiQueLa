@@ -7,12 +7,13 @@ use FQL\Exception\InvalidArgumentException;
 trait EnhancedNestedArrayAccessor
 {
     /**
-     * Access a nested value using dot notation, `escaped.keys` and array iteration with [].
+     * Access a nested value using dot notation, `escaped.keys`, array iteration with [] and wildcard *.
      *
      * Supports:
      * - Standard access: a.b.c
      * - Indexed access: a.b.0.c
      * - Iterated access: a.b[].c.d
+     * - Wildcard access: a.b.* (expands all keys of associative array)
      * - Escaped keys: `key.with.dot`, `key with space`
      *   > Note: keys with spaces work also without backticks
      * - Indexed access into scalar via [index] if scalar is wrapped (e.g., x[0])
@@ -44,16 +45,16 @@ trait EnhancedNestedArrayAccessor
         $last = array_pop($tokens);
         $ref = &$this->resolveReference($data, $tokens);
 
-        if (is_array($ref) && isset($ref[$last['key']])) {
+        if (is_array($ref) && array_key_exists($last['key'], $ref)) {
             unset($ref[$last['key']]);
         }
     }
 
     /**
-     * Tokenizes path with support for escaped keys (`key.with.dot`) and iteration ([])
+     * Tokenizes path with support for escaped keys (`key.with.dot`), iteration ([]) and wildcard (*)
      * Also supports keys with spaces without backticks.
      * @param string $path
-     * @return array<int, array{key: string, iterate: bool}>
+     * @return array<int, array{key: string, iterate: bool, wildcard: bool}>
      */
     private function parsePath(string $path): array
     {
@@ -71,11 +72,18 @@ trait EnhancedNestedArrayAccessor
                     throw new InvalidArgumentException("Invalid path: [] cannot be at the start");
                 }
                 $tokens[count($tokens) - 1]['iterate'] = true;
+            } elseif ($part === '*') {
+                $tokens[] = [
+                    'key' => '*',
+                    'iterate' => false,
+                    'wildcard' => true,
+                ];
             } else {
                 $key = trim($part, '`');
                 $tokens[] = [
                     'key' => $key,
-                    'iterate' => false
+                    'iterate' => false,
+                    'wildcard' => false,
                 ];
             }
         }
@@ -87,7 +95,7 @@ trait EnhancedNestedArrayAccessor
      * Traverses array structure using parsed tokens.
      *
      * @param mixed $current
-     * @param array<int, array{key: string, iterate: bool}> $tokens
+     * @param array<int, array{key: string, iterate: bool, wildcard: bool}> $tokens
      * @param bool $throwOnMissing
      * @return mixed
      */
@@ -98,6 +106,28 @@ trait EnhancedNestedArrayAccessor
         }
 
         $token = array_shift($tokens);
+
+        // Wildcard: expand all keys of current array
+        if ($token['wildcard']) {
+            if (!is_array($current)) {
+                if ($throwOnMissing) {
+                    throw new InvalidArgumentException("Expected array for wildcard *, got " . gettype($current));
+                }
+                return null;
+            }
+
+            if (empty($tokens)) {
+                return $current;
+            }
+
+            $result = [];
+            foreach ($current as $key => $value) {
+                $resolved = $this->resolvePath($value, $tokens, $throwOnMissing);
+                $result[$key] = $resolved;
+            }
+            return $result;
+        }
+
         $key = $token['key'];
 
         if (!is_array($current)) {
@@ -138,7 +168,7 @@ trait EnhancedNestedArrayAccessor
      * Returns a reference to a nested value for modification.
      *
      * @param array<string|int, mixed> $data
-     * @param array<int, array{key: string, iterate: bool}> $tokens
+     * @param array<int, array{key: string, iterate: bool, wildcard: bool}> $tokens
      * @return mixed
      */
     private function &resolveReference(array &$data, array $tokens): mixed

@@ -101,10 +101,9 @@ trait Select
 
     /**
      * @param string $alias
-     * @return Interface\Query
      * @throws Exception\AliasException
      */
-    public function as(string $alias): Interface\Query
+    private function asSelect(string $alias): void
     {
         if ($alias === '') {
             throw new Exception\AliasException('Alias cannot be empty');
@@ -127,7 +126,6 @@ trait Select
         unset($this->selectedFields[$select]);
 
         $this->addField($select, $alias, $function);
-        return $this;
     }
 
     public function custom(
