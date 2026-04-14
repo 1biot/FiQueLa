@@ -189,4 +189,54 @@ class SqlIntegrationTest extends TestCase
 
         $this->assertNotEmpty($rows);
     }
+
+    public function testMissingCommaInSelectThrows(): void
+    {
+        $sql = 'SELECT id name FROM data.products';
+        $parser = new Sql($sql);
+
+        $this->expectException(\FQL\Exception\UnexpectedValueException::class);
+        $this->expectExceptionMessage('Expected comma between SELECT expressions');
+
+        $parser->parseWithQuery($this->json->query());
+    }
+
+    public function testMissingCommaInGroupByThrows(): void
+    {
+        $sql = 'SELECT brand.name, COUNT(id) AS total FROM data.products GROUP BY brand.name brand.code';
+        $parser = new Sql($sql);
+
+        $this->expectException(\FQL\Exception\UnexpectedValueException::class);
+        $this->expectExceptionMessage('Expected comma between GROUP BY fields');
+
+        $parser->parseWithQuery($this->json->query());
+    }
+
+    public function testCommasInSelectAreRequired(): void
+    {
+        $sql = 'SELECT id, name, price FROM data.products LIMIT 2';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertCount(2, $rows);
+        $this->assertArrayHasKey('id', $rows[0]);
+        $this->assertArrayHasKey('name', $rows[0]);
+        $this->assertArrayHasKey('price', $rows[0]);
+    }
+
+    public function testCommasWithFunctionsAndAliases(): void
+    {
+        $sql = 'SELECT id, ROUND(price, 2) AS rounded, name FROM data.products LIMIT 1';
+        $parser = new Sql($sql);
+        $query = $parser->parseWithQuery($this->json->query());
+
+        $rows = iterator_to_array($query->execute()->fetchAll());
+
+        $this->assertCount(1, $rows);
+        $this->assertArrayHasKey('id', $rows[0]);
+        $this->assertArrayHasKey('rounded', $rows[0]);
+        $this->assertArrayHasKey('name', $rows[0]);
+    }
 }

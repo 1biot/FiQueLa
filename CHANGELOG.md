@@ -13,15 +13,17 @@
 - `Query::isSimpleQuery()` method to detect queries without any clauses (SELECT * FROM source only).
 - `Query::provideFileQuery(bool $withQuery = false)` parameter to include FROM path in the returned FileQuery.
 
+### Changed (BREAKING)
+- **Commas are now mandatory** between expressions in SELECT, GROUP BY, and ORDER BY clauses in FQL strings. `SELECT id, name, price` is valid; `SELECT id name price` throws `UnexpectedValueException`. Fluent API (`->select('id, name')`) is unaffected.
+
 ### Changed
 - `as()` moved from `Select` trait to `Query` class as a unified context-aware method. Internally delegates to `asSelect()`, `asFrom()`, or `asJoin()`.
 - JOIN methods (`join`, `innerJoin`, `leftJoin`, `rightJoin`, `fullJoin`) now accept alias as optional parameter (`string $alias = ''`). Alias is still required but can be set via `->as()` fluently.
 - JOIN `__toString()` renders simple joins as direct source references instead of subqueries.
 - `EnhancedNestedArrayAccessor::parsePath()` token type extended with `wildcard` flag.
 - JOIN `ON` conditions now resolve dot-notation keys via `accessNestedValue()`, supporting aliased field paths (e.g. `ON u.id = c.id`).
-
-### Changed
 - `SqlLexer` tokenizer now respects parenthesis depth — control keywords inside `(...)` are not treated as block delimiters.
+- `SqlLexer::defaultTokenize()` now emits commas as separate tokens instead of stripping them.
 
 ### Fixed
 - FQL parser: `LIMIT` before `UNION` no longer consumes the `UNION` token as offset.

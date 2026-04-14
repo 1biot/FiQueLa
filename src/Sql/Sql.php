@@ -226,11 +226,29 @@ class Sql extends SqlLexer implements Interface\Parser
     private function parseFields(Interface\Query $query): void
     {
         $mode = 'selectIn';
+        $expectComma = false;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
+            $peek = $this->peekToken();
+
+            // After a field expression, expect comma or end
+            if ($expectComma) {
+                if ($peek === ',') {
+                    $this->nextToken(); // consume comma
+                    $expectComma = false;
+                    continue;
+                } elseif (strtoupper($peek) === Interface\Query::EXCLUDE) {
+                    // EXCLUDE switches mode without comma
+                    $expectComma = false;
+                    // fall through to process EXCLUDE below
+                } else {
+                    throw new Exception\UnexpectedValueException(
+                        sprintf('Expected comma between SELECT expressions, got "%s"', $peek)
+                    );
+                }
+            }
+
             $field = $this->nextToken();
-            if ($field === ',') {
-                continue;
-            } elseif (strtoupper($field) === Interface\Query::DISTINCT) {
+            if (strtoupper($field) === Interface\Query::DISTINCT) {
                 $query->distinct();
                 continue;
             } elseif (strtoupper($field) === Interface\Query::CASE) {
@@ -253,14 +271,15 @@ class Sql extends SqlLexer implements Interface\Parser
                 } while ($this->peekToken() !== Interface\Query::END);
                 $this->expect(Interface\Query::END);
                 $query->endCase();
-                if (strtoupper($this->nextToken()) === Interface\Query::AS) {
+                if (strtoupper($this->peekToken()) === Interface\Query::AS) {
+                    $this->nextToken();
                     $query->as($this->nextToken());
-                } else {
-                    $this->rewindToken();
                 }
+                $expectComma = true;
                 continue;
             } elseif (strtoupper($field) === Interface\Query::EXCLUDE) {
                 $mode = 'selectOut';
+                $expectComma = false;
                 continue;
             }
 
@@ -279,6 +298,7 @@ class Sql extends SqlLexer implements Interface\Parser
                     $query->as($alias);
                 }
             }
+            $expectComma = true;
         }
     }
 
@@ -466,33 +486,50 @@ class Sql extends SqlLexer implements Interface\Parser
 
     private function parseGroupBy(Interface\Query $query): void
     {
+        $expectComma = false;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
-            $field = $this->nextToken();
-            if ($field === ',') {
-                continue;
+            if ($expectComma) {
+                if ($this->peekToken() === ',') {
+                    $this->nextToken();
+                    $expectComma = false;
+                    continue;
+                }
+                throw new Exception\UnexpectedValueException(
+                    sprintf('Expected comma between GROUP BY fields, got "%s"', $this->peekToken())
+                );
             }
 
-            $query->groupBy($field);
+            $query->groupBy($this->nextToken());
+            $expectComma = true;
         }
     }
 
     private function parseSort(Interface\Query $query): void
     {
+        $expectComma = false;
         while (!$this->isEOF() && !$this->isNextControlledKeyword()) {
-            $field = $this->nextToken();
-            if ($field === ',') {
-                continue;
+            if ($expectComma) {
+                if ($this->peekToken() === ',') {
+                    $this->nextToken();
+                    $expectComma = false;
+                    continue;
+                }
+                throw new Exception\UnexpectedValueException(
+                    sprintf('Expected comma between ORDER BY fields, got "%s"', $this->peekToken())
+                );
             }
 
-            $directionString = strtoupper($this->nextToken());
+            $field = $this->nextToken();
+            $directionString = strtoupper($this->peekToken());
             $direction = match ($directionString) {
                 'ASC' => Enum\Sort::ASC,
                 'DESC' => Enum\Sort::DESC,
-                default => false,
+                default => null,
             };
-            if ($direction === false) {
+            if ($direction !== null) {
+                $this->nextToken(); // consume direction
+            } else {
                 $direction = Enum\Sort::ASC;
-                $this->rewindToken();
             }
 
             if ($this->isBacktick($field)) {
@@ -500,6 +537,7 @@ class Sql extends SqlLexer implements Interface\Parser
             }
 
             $query->orderBy($field, $direction);
+            $expectComma = true;
         }
     }
 

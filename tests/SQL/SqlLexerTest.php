@@ -121,4 +121,24 @@ class SqlLexerTest extends TestCase
 
         $lexer->parseSingleCondition();
     }
+
+    public function testCommaIsToken(): void
+    {
+        $lexer = new SqlLexer();
+        $tokens = $lexer->tokenize('SELECT id, name, price FROM data');
+
+        $this->assertContains(',', $tokens);
+        $this->assertSame(['SELECT', 'id', ',', 'name', ',', 'price', 'FROM', 'data'], $tokens);
+    }
+
+    public function testCommaInsideFunctionIsPreserved(): void
+    {
+        $lexer = new SqlLexer();
+        $tokens = $lexer->tokenize('SELECT ROUND(price, 2) FROM data');
+
+        // Function is one token, internal comma is part of the function string
+        $this->assertContains('ROUND(price, 2)', $tokens);
+        // Only the function token, no stray comma tokens from inside
+        $this->assertSame(['SELECT', 'ROUND(price, 2)', 'FROM', 'data'], $tokens);
+    }
 }

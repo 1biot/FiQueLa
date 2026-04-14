@@ -257,7 +257,7 @@ class SqlLexer implements \Iterator
             \b(?!_)[A-Z0-9_]{2,}(?<!_)\((?:[^()`\'"]+|`[^`]*`|\'[^\']*\'|"[^"]*")*\)  # function calls
             | \'[^\']*\' | \"[^\"]*\"                                                 # string literals
             | (?:`[^`]+`|[^\s`,()])+                                                  # data accessor - dot chains
-            | \(|\)                                                                   # parentheses
+            | \(|\)|,                                                                  # parentheses and comma
             | [^\s(),]+                                                               # all other non-whitespace tokens
         )/uxi';
 
@@ -363,6 +363,10 @@ class SqlLexer implements \Iterator
             $this->expect('(');
             $value = [];
             while ($this->peekToken() !== ')') {
+                if ($this->peekToken() === ',') {
+                    $this->nextToken();
+                    continue;
+                }
                 $value[] = Enum\Type::matchByString($this->peekToken());
                 $this->nextToken();
             }

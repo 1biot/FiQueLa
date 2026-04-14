@@ -107,7 +107,7 @@ SQL
 ```sql
 SELECT
     [DISTINCT]
-    select_expr [AS select_alias |, select_expr ] ...
+    select_expr [AS select_alias] [, select_expr [AS select_alias]] ...
     [EXCLUDE excl_expr [, excl_expr] ...]
 ```
 

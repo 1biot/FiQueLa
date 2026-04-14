@@ -60,7 +60,7 @@ trait Select
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         $this->excludedFields = array_filter(array_merge(
             $this->excludedFields,
-            array_filter(array_map('trim', $fields))
+            array_filter(array_map('trim', $fields), fn (string $f) => $f !== ',')
         ));
         return $this;
     }
@@ -79,6 +79,10 @@ trait Select
         $fqlTokenizer = new Sql\SqlLexer();
         $fields = $fqlTokenizer->tokenize(implode(',', $fields));
         foreach ($fields as $field) {
+            if ($field === ',') {
+                continue;
+            }
+
             if (isset($this->selectedFields[$field])) {
                 throw new Exception\SelectException(sprintf('Field "%s" already defined', $field));
             }
