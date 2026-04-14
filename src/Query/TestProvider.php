@@ -188,8 +188,19 @@ class TestProvider implements Query
         return '';
     }
 
-    public function provideFileQuery(): FileQuery
+    public function provideFileQuery(bool $withQuery = false): FileQuery
     {
         return new FileQuery($this->getFromSource());
+    }
+
+    public function isSimpleQuery(): bool
+    {
+        return $this->isSelectEmpty()
+            && $this->isConditionsEmpty()
+            && $this->isGroupableEmpty()
+            && $this->isSortableEmpty()
+            && $this->isLimitableEmpty()
+            && $this->isJoinableEmpty()
+            && $this->isUnionableEmpty();
     }
 }

@@ -344,13 +344,14 @@ data sources, you must specify alias `AS` and `ON` condition. Multiple using of 
 FROM file_reference [AS from_alias]
 [
     {[INNER] JOIN | {LEFT|RIGHT|FULL} [OUTER] JOIN}
-    file_reference
+    {file_reference | (subquery)}
     AS alias_reference
     ON where_condition
 ]
 ```
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
+- _**subquery**_: a nested SELECT statement in parentheses, e.g. `(SELECT id, name FROM ... WHERE ...)`.
 - _**from_alias**_: optional alias for the FROM source. When set, fields can be accessed as `from_alias.field_name` and `from_alias.*` selects all fields.
 
 | Join type | Description      |
@@ -383,6 +384,20 @@ FROM json(./examples/data/users.json).data.users AS u
 LEFT JOIN
     xml(./examples/data/orders.xml).orders.order AS o
         ON u.id = o.user_id
+```
+
+**Example with subquery JOIN:**
+
+```sql
+SELECT
+    u.name,
+    o.id AS orderId,
+    o.total_price AS totalPrice
+FROM json(./examples/data/users.json).data.users AS u
+LEFT JOIN
+    (SELECT id, user_id, total_price FROM xml(./examples/data/orders.xml).orders.order WHERE total_price > 100) AS o
+        ON u.id = o.user_id
+ORDER BY o.total_price DESC
 ```
 
 ## 6. Conditions

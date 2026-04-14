@@ -5,6 +5,7 @@ namespace FQL\Query;
 use FQL\Conditions\HavingConditionGroup;
 use FQL\Conditions\WhereConditionGroup;
 use FQL\Enum;
+use FQL\Exception\InvalidFormatException;
 use FQL\Exception\QueryLogicException;
 use FQL\Functions;
 use FQL\Interface;
@@ -258,7 +259,11 @@ class Query implements Interface\Query
         // FROM
         $queryParts[] = $this->fromToString($this->stream->provideSource());
         // JOIN
-        $queryParts[] = $this->joinsToString();
+        try {
+            $queryParts[] = $this->joinsToString();
+        } catch (InvalidFormatException $e) {
+            $queryParts[] = '[invalid join format]';
+        }
         // WHERE
         $queryParts[] = $this->conditionsToString($this->whereConditions);
         // GROUP BY
@@ -308,8 +313,23 @@ class Query implements Interface\Query
         }
     }
 
-    public function provideFileQuery(): FileQuery
+    public function provideFileQuery(bool $withQuery = false): FileQuery
     {
-        return new FileQuery($this->stream->provideSource());
+        $fileQuery = new FileQuery($this->stream->provideSource());
+        if ($withQuery) {
+            return $fileQuery->withQuery($this->getFrom());
+        }
+        return $fileQuery;
+    }
+
+    public function isSimpleQuery(): bool
+    {
+        return $this->isSelectEmpty()
+            && $this->isConditionsEmpty()
+            && $this->isGroupableEmpty()
+            && $this->isSortableEmpty()
+            && $this->isLimitableEmpty()
+            && $this->isJoinableEmpty()
+            && $this->isUnionableEmpty();
     }
 }

@@ -37,6 +37,9 @@ class SqlLexer implements \Iterator
         $pattern = '/(?<=^|\s)(' . implode('|', self::CONTROL_KEYWORDS) . ')\b/i';
         preg_match_all($pattern, $sql, $matches, PREG_OFFSET_CAPTURE);
 
+        // Filter out control keywords that are inside parentheses (subqueries)
+        $matches = $this->filterKeywordsInsideParentheses($sql, $matches);
+
         if (empty($matches[0])) {
             $this->tokens = $this->defaultTokenize($sql);
             return $this->tokens;
@@ -78,21 +81,56 @@ class SqlLexer implements \Iterator
             } elseif ($keyword === 'INTO' || $keyword === 'DESCRIBE') {
                 $this->tokens = array_merge($this->tokens, $this->sourceTokenize($chunk));
             } elseif ($keyword === 'JOIN') {
-                $joinParts = preg_split('/\b(AS|ON)\b/i', $chunk, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-                $partCount = count($joinParts !== false ? $joinParts : []);
-
-                for ($j = 0; $j < $partCount; $j++) {
-                    $part = trim($joinParts[$j] ?? '');
-                    $upper = strtoupper($part);
-
-                    if ($upper === 'AS' || $upper === 'ON') {
-                        $this->tokens[] = $upper;
-                        $j++;
-                        if (isset($joinParts[$j])) {
-                            $this->tokens = array_merge($this->tokens, $this->defaultTokenize(trim($joinParts[$j])));
+                $chunk = trim($chunk);
+                if (str_starts_with($chunk, '(')) {
+                    // Subquery join: extract balanced parens, tokenize inner as full SQL
+                    [$inner, $remaining] = $this->extractBalancedParens($chunk);
+                    $this->tokens[] = '(';
+                    $subLexer = new self();
+                    $this->tokens = array_merge($this->tokens, $subLexer->tokenize($inner));
+                    $this->tokens[] = ')';
+                    // Remaining: " AS alias ON condition"
+                    $remainParts = preg_split(
+                        '/\b(AS|ON)\b/i',
+                        $remaining,
+                        -1,
+                        PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
+                    );
+                    foreach ($remainParts !== false ? $remainParts : [] as $part) {
+                        $part = trim($part);
+                        $upper = strtoupper($part);
+                        if ($upper === 'AS' || $upper === 'ON') {
+                            $this->tokens[] = $upper;
+                        } elseif ($part !== '') {
+                            $this->tokens = array_merge($this->tokens, $this->defaultTokenize($part));
                         }
-                    } else {
-                        $this->tokens = array_merge($this->tokens, $this->sourceTokenize($part));
+                    }
+                } else {
+                    // FileQuery join: existing logic
+                    $joinParts = preg_split(
+                        '/\b(AS|ON)\b/i',
+                        $chunk,
+                        -1,
+                        PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
+                    );
+                    $partCount = count($joinParts !== false ? $joinParts : []);
+
+                    for ($j = 0; $j < $partCount; $j++) {
+                        $part = trim($joinParts[$j] ?? '');
+                        $upper = strtoupper($part);
+
+                        if ($upper === 'AS' || $upper === 'ON') {
+                            $this->tokens[] = $upper;
+                            $j++;
+                            if (isset($joinParts[$j])) {
+                                $this->tokens = array_merge(
+                                    $this->tokens,
+                                    $this->defaultTokenize(trim($joinParts[$j]))
+                                );
+                            }
+                        } else {
+                            $this->tokens = array_merge($this->tokens, $this->sourceTokenize($part));
+                        }
                     }
                 }
             } else {
@@ -109,6 +147,88 @@ class SqlLexer implements \Iterator
         }
 
         return $this->tokens;
+    }
+
+    /**
+     * Filters out keyword matches that are inside parentheses (subqueries).
+     * @param string $sql
+     * @param array<int, array<int, array{0: string, 1: int}>> $matches
+     * @return array<int, array<int, array{0: string, 1: int}>>
+     */
+    private function filterKeywordsInsideParentheses(string $sql, array $matches): array
+    {
+        if (empty($matches[0])) {
+            return $matches;
+        }
+
+        // Build a depth map: for each position in $sql, compute parenthesis depth
+        $depth = 0;
+        $depthAtPos = [];
+        $inQuote = null;
+        for ($i = 0, $len = strlen($sql); $i < $len; $i++) {
+            $char = $sql[$i];
+            if ($inQuote !== null) {
+                if ($char === $inQuote) {
+                    $inQuote = null;
+                }
+                $depthAtPos[$i] = $depth;
+                continue;
+            }
+            if ($char === '"' || $char === '\'' || $char === '`') {
+                $inQuote = $char;
+            } elseif ($char === '(') {
+                $depth++;
+            } elseif ($char === ')') {
+                $depth = max(0, $depth - 1);
+            }
+            $depthAtPos[$i] = $depth;
+        }
+
+        // Filter: keep only matches at depth 0
+        $filtered = [[], []];
+        foreach ($matches[0] as $idx => $match) {
+            $pos = $match[1];
+            if (($depthAtPos[$pos] ?? 0) === 0) {
+                $filtered[0][] = $match;
+                $filtered[1][] = $matches[1][$idx];
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Extracts content inside balanced parentheses from the beginning of a string.
+     * @return array{0: string, 1: string} [innerContent, remaining]
+     */
+    private function extractBalancedParens(string $chunk): array
+    {
+        $depth = 0;
+        $inQuote = null;
+        for ($i = 0, $len = strlen($chunk); $i < $len; $i++) {
+            $char = $chunk[$i];
+            if ($inQuote !== null) {
+                if ($char === $inQuote) {
+                    $inQuote = null;
+                }
+                continue;
+            }
+            if ($char === '"' || $char === '\'' || $char === '`') {
+                $inQuote = $char;
+            } elseif ($char === '(') {
+                $depth++;
+            } elseif ($char === ')') {
+                $depth--;
+                if ($depth === 0) {
+                    $inner = substr($chunk, 1, $i - 1);
+                    $remaining = trim(substr($chunk, $i + 1));
+                    return [$inner, $remaining];
+                }
+            }
+        }
+
+        // Unbalanced — return everything as inner
+        return [substr($chunk, 1), ''];
     }
 
     private function removeComments(string $sql): string

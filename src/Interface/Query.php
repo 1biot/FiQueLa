@@ -629,7 +629,13 @@ interface Query extends \Stringable
     public function unionAll(Query $query): Query;
 
     /**
+     * @param bool $withQuery When true, includes the FROM path in the FileQuery (e.g. "json(file.json).data.products").
      * @throws Exception\InvalidFormatException
      */
-    public function provideFileQuery(): FileQuery;
+    public function provideFileQuery(bool $withQuery = false): FileQuery;
+
+    /**
+     * Returns true when the query is a simple SELECT * FROM source with no clauses.
+     */
+    public function isSimpleQuery(): bool;
 }

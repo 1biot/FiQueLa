@@ -329,6 +329,20 @@ $query = Query\Provider::fromFile('./path/to/file.csv')
         ->on('rightId', Operator::EQUAL, 'c.leftId');
 ```
 
+The join source can be any `Query` object, including one with its own SELECT, WHERE, or other clauses (subquery join):
+
+```php
+$filteredOrders = Query\Provider::fromFileQuery('xml(orders.xml).orders.order')
+    ->select('id', 'user_id', 'total_price')
+    ->where('total_price', Operator::GREATER_THAN, 100);
+
+$query = Query\Provider::fromFileQuery('json(users.json).data.users')
+    ->select('name')
+    ->select('o.total_price')->as('totalPrice')
+    ->leftJoin($filteredOrders)->as('o')
+        ->on('id', Operator::EQUAL, 'user_id');
+```
+
 ## 4. Conditions
 
 Use the `where()` method to filter the data in your query results before any aggregation. You can use the `and()` and `or()` methods to combine

@@ -619,7 +619,7 @@ _public_ **unionAll(**_Query_ `$query`**):** `Query`
 
 #### Metadata
 
-_public_ **provideFileQuery():** `FileQuery`
+_public_ **provideFileQuery(**_bool_ `$withQuery = false`**):** `FileQuery`
 
 ### Results
 

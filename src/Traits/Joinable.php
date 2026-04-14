@@ -4,6 +4,7 @@ namespace FQL\Traits;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Exception\InvalidFormatException;
 use FQL\Interface\Query;
 use FQL\Stream\ArrayStreamProvider;
 
@@ -117,21 +118,29 @@ trait Joinable
     /**
      * Generates a SQL-like string for all defined joins.
      * @return string The SQL-like representation of joins.
+     * @throws InvalidFormatException
      */
     private function joinsToString(): string
     {
         $joinStrings = [];
         foreach ($this->joins as $join) {
+            /** @var Query $table */
+            $table = $join['table'];
             if ($join['alias'] === '') {
                 throw new Exception\JoinException(
                     'Join alias is required. Use ->as(\'alias\') or pass alias as second parameter to join()'
                 );
             }
 
-            $tableString = PHP_EOL . sprintf(
-                '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
-                str_replace(PHP_EOL, PHP_EOL . "\t", (string) $join['table'])
-            );
+            if ($table->isSimpleQuery()) {
+                $tableString = PHP_EOL . "\t" . $table->provideFileQuery(true);
+            } else {
+                $tableString = PHP_EOL . sprintf(
+                    '(' . PHP_EOL . "\t%s" . PHP_EOL . ')',
+                    str_replace(PHP_EOL, PHP_EOL . "\t", (string) $table)
+                );
+            }
+
             $alias = ' AS ' . $join['alias'];
             $condition = $join['leftKey'] && $join['rightKey']
                 ? sprintf('%s %s %s', $join['leftKey'], $join['operator']->value ?? '', $join['rightKey'])
