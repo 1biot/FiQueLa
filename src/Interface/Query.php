@@ -118,21 +118,27 @@ interface Query extends \Stringable
      * It supports dot notation for selecting nested fields. The alias will be used
      * as the key in the result array.
      *
-     * Example with simple fields:
+     * Context-aware alias method. Works after:
+     * - select(): aliases the last selected field
+     * - from(): aliases the FROM source
+     * - join()/innerJoin()/leftJoin()/rightJoin()/fullJoin(): aliases the last join
      *
+     * Example with SELECT:
      * ```
      * $query->select('user_id')->as('userId');
      * // Result: SELECT user_id AS userId
      * ```
      *
-     * Example with nested fields:
-     *
+     * Example with FROM:
      * ```
-     * $query->select('user.profile.email')->as('email');
-     * // Result: SELECT user.profile.email AS email
+     * $query->from('data.products')->as('p');
+     * // Result: FROM data.products AS p
      * ```
      *
-     * Use this method to customize the field names in your query results.
+     * Example with JOIN:
+     * ```
+     * $query->join($ordersQuery)->as('o')->on('id', Operator::EQUAL, 'o.userId');
+     * ```
      */
     public function as(string $alias): Query;
 
@@ -532,11 +538,11 @@ interface Query extends \Stringable
     public function hasInto(): bool;
     public function getInto(): ?FileQuery;
 
-    public function join(Query $query, string $alias): Query;
-    public function innerJoin(Query $query, string $alias): Query;
-    public function leftJoin(Query $query, string $alias): Query;
-    public function rightJoin(Query $query, string $alias): Query;
-    public function fullJoin(Query $query, string $alias): Query;
+    public function join(Query $query, string $alias = ''): Query;
+    public function innerJoin(Query $query, string $alias = ''): Query;
+    public function leftJoin(Query $query, string $alias = ''): Query;
+    public function rightJoin(Query $query, string $alias = ''): Query;
+    public function fullJoin(Query $query, string $alias = ''): Query;
     public function on(string $leftKey, Operator $operator, string $rightKey): Query;
 
     /**
@@ -623,7 +629,13 @@ interface Query extends \Stringable
     public function unionAll(Query $query): Query;
 
     /**
+     * @param bool $withQuery When true, includes the FROM path in the FileQuery (e.g. "json(file.json).data.products").
      * @throws Exception\InvalidFormatException
      */
-    public function provideFileQuery(): FileQuery;
+    public function provideFileQuery(bool $withQuery = false): FileQuery;
+
+    /**
+     * Returns true when the query is a simple SELECT * FROM source with no clauses.
+     */
+    public function isSimpleQuery(): bool;
 }

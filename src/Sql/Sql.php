@@ -32,7 +32,7 @@ class Sql extends SqlLexer implements Interface\Parser
      * @throws Exception\FileNotFoundException
      * @throws Exception\InvalidFormatException
      */
-    public function toQuery(?int $startPosition = null): Interface\Query
+    public function toQuery(?int $startPosition = null, bool $isSubquery = false): Interface\Query
     {
         if ($startPosition !== null) {
             $this->position = $startPosition;
@@ -41,6 +41,10 @@ class Sql extends SqlLexer implements Interface\Parser
         }
 
         while (!$this->isEOF()) {
+            if ($isSubquery && $this->peekToken() === ')') {
+                break;
+            }
+
             $token = $this->nextToken();
             $upper = strtoupper($token);
 
@@ -51,7 +55,7 @@ class Sql extends SqlLexer implements Interface\Parser
             $fileQuery = $this->validateFileQueryPath($this->nextToken());
             $query = Query\Provider::fromFileQuery((string) $fileQuery);
             $parseStart = $startPosition !== null ? $startPosition : null;
-            return $this->parseWithQuery($query, $parseStart);
+            return $this->parseWithQuery($query, $parseStart, $isSubquery);
         }
 
         throw new Exception\UnexpectedValueException('Undefined file in query');
@@ -62,14 +66,21 @@ class Sql extends SqlLexer implements Interface\Parser
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
      */
-    public function parseWithQuery(Interface\Query $query, ?int $startPosition = null): Interface\Query
-    {
+    public function parseWithQuery(
+        Interface\Query $query,
+        ?int $startPosition = null,
+        bool $isSubquery = false
+    ): Interface\Query {
         if ($startPosition !== null) {
             $this->position = $startPosition;
         } else {
             $this->rewind();
         }
         while (!$this->isEOF()) {
+            // Stop at closing paren when parsing a subquery
+            if ($isSubquery && $this->peekToken() === ')') {
+                break;
+            }
             $token = $this->nextToken();
             switch (strtoupper($token)) {
                 case Interface\Query::EXPLAIN:
@@ -91,6 +102,10 @@ class Sql extends SqlLexer implements Interface\Parser
                 case Interface\Query::FROM:
                     $fileQuery = $this->validateFileQueryPath($this->nextToken());
                     $query->from($fileQuery->query ?? '');
+                    if (strtoupper($this->peekToken()) === Interface\Query::AS) {
+                        $this->nextToken(); // consume AS
+                        $query->as($this->nextToken());
+                    }
                     break;
                 case Interface\Query::INTO:
                     $intoFileQuery = $this->validateFileQueryPath($this->nextToken(), mustExist: false);
@@ -103,16 +118,16 @@ class Sql extends SqlLexer implements Interface\Parser
                         $this->nextToken(); // Consume "JOIN"
                     }
 
-                    $joinQuery = $this->validateFileQueryPath($this->nextToken());
+                    $joinSource = $this->parseJoinSource();
                     $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
                     if (strtolower($token) === 'left') {
-                        $query->leftJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                        $query->leftJoin($joinSource, $alias);
                     } elseif (strtolower($token) === 'right') {
-                        $query->rightJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                        $query->rightJoin($joinSource, $alias);
                     } elseif (strtolower($token) === 'full') {
-                        $query->fullJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                        $query->fullJoin($joinSource, $alias);
                     }
 
                     $this->expect(Interface\Query::ON);
@@ -127,11 +142,12 @@ class Sql extends SqlLexer implements Interface\Parser
                     if (strtoupper($token) === 'INNER') {
                         $this->nextToken(); // Consume "JOIN"
                     }
-                    $joinQuery = $this->validateFileQueryPath($this->nextToken());
+
+                    $joinSource = $this->parseJoinSource();
                     $this->expect(Interface\Query::AS);
                     $alias = $this->nextToken();
 
-                    $query->innerJoin(Query\Provider::fromFileQuery((string) $joinQuery), $alias);
+                    $query->innerJoin($joinSource, $alias);
                     $this->expect(Interface\Query::ON);
 
                     $field = $this->nextToken();
@@ -165,8 +181,12 @@ class Sql extends SqlLexer implements Interface\Parser
 
                 case Interface\Query::LIMIT:
                     $limit = (int) $this->nextToken();
-                    $offset = $this->nextToken();
-                    $query->limit($limit, $offset === '' ? null : (int) $offset);
+                    if (ctype_digit($this->peekToken())) {
+                        $offset = $this->nextToken();
+                        $query->limit($limit, (int) $offset);
+                    } else {
+                        $query->limit($limit);
+                    }
                     break;
 
                 case 'UNION':
@@ -185,6 +205,22 @@ class Sql extends SqlLexer implements Interface\Parser
         }
 
         return $query;
+    }
+
+    /**
+     * Parses a JOIN source — either a subquery in parentheses or a FileQuery reference.
+     */
+    private function parseJoinSource(): Interface\Query
+    {
+        if ($this->peekToken() === '(') {
+            $this->nextToken(); // consume '('
+            $subQuery = $this->toQuery($this->position, true);
+            $this->expect(')');
+            return $subQuery;
+        }
+
+        $joinQuery = $this->validateFileQueryPath($this->nextToken());
+        return Query\Provider::fromFileQuery((string) $joinQuery);
     }
 
     private function parseFields(Interface\Query $query): void
@@ -414,7 +450,8 @@ class Sql extends SqlLexer implements Interface\Parser
     {
         $query->addWhereConditions($this->parseConditionGroup(
             new WhereConditionGroup(),
-            fn (string $token, int $depth): bool => $depth === 0 && $this->isNextControlledKeyword()
+            fn (string $token, int $depth): bool => $depth === 0
+                && ($this->isNextControlledKeyword() || $token === ')')
         ));
     }
 
@@ -422,7 +459,8 @@ class Sql extends SqlLexer implements Interface\Parser
     {
         $query->addHavingConditions($this->parseConditionGroup(
             new HavingConditionGroup(),
-            fn (string $token, int $depth): bool => $depth === 0 && $this->isNextControlledKeyword()
+            fn (string $token, int $depth): bool => $depth === 0
+                && ($this->isNextControlledKeyword() || $token === ')')
         ));
     }
 

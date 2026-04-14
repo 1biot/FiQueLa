@@ -40,8 +40,10 @@ $query->select('id', 'name')
     ->select('address.city', 'address.state');
 ```
 
-You can combine the `select()` method with the `as()` method to alias fields in the query results.
-There is the limitation that you can only alias tha last selected field.
+The `as()` method is context-aware — it aliases the last operation depending on what was called before it:
+- After `select()` or a function method: aliases the last selected field
+- After `from()`: aliases the FROM source
+- After `join()`/`innerJoin()`/`leftJoin()`/`rightJoin()`/`fullJoin()`: aliases the last join
 
 ```php
 $query->select('id')->as('clientId');
@@ -58,6 +60,22 @@ $query->select('id', 'name')->distinct();
 ```php
 $query->selectAll()
     ->select('totalPrice');
+```
+
+### FROM Alias
+
+You can alias the `FROM` source to create a namespace for field access. This is useful when combining with JOINs to disambiguate fields.
+
+```php
+$query->from('data.products')->as('p')
+    ->select('p.name', 'p.price');
+```
+
+Use `p.*` to select all fields from the aliased source:
+
+```php
+$query->from('data.products')->as('p')
+    ->select('p.*');
 ```
 
 Using `EXCLUDE` will remove the selected fields from the query results. It's useful when you're applying functions
@@ -285,7 +303,7 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 | `RIGHT`   | Right outer join |
 | `FULL`    | Full outer join  |
 
-**Example:**
+**Example (fluent alias with `as()`):**
 
 ```php
 use FQL\Enum\Operator;
@@ -295,10 +313,34 @@ $innerData = Query\Provider::fromFileQuery('xml(file.xml).SHOP.SHOPITEM');
 $leftData = Query\Provider::fromFileQuery('json(file.tmp).data.customers');
 
 $query = Query\Provider::fromFile('./path/to/file.csv')
+    ->innerJoin($innerData)->as('p')
+        ->on('rightId', Operator::EQUAL, 'p.leftId')
+    ->leftJoin($leftData)->as('c')
+        ->on('rightId', Operator::EQUAL, 'c.leftId');
+```
+
+Alias can also be passed as the second parameter (backward-compatible):
+
+```php
+$query = Query\Provider::fromFile('./path/to/file.csv')
     ->innerJoin($innerData, 'p')
-        ->on('rightId', Operator::EQUAL, 'leftId')
+        ->on('rightId', Operator::EQUAL, 'p.leftId')
     ->leftJoin($leftData, 'c')
-        ->on('rightId', Operator::EQUAL, 'leftId');
+        ->on('rightId', Operator::EQUAL, 'c.leftId');
+```
+
+The join source can be any `Query` object, including one with its own SELECT, WHERE, or other clauses (subquery join):
+
+```php
+$filteredOrders = Query\Provider::fromFileQuery('xml(orders.xml).orders.order')
+    ->select('id', 'user_id', 'total_price')
+    ->where('total_price', Operator::GREATER_THAN, 100);
+
+$query = Query\Provider::fromFileQuery('json(users.json).data.users')
+    ->select('name')
+    ->select('o.total_price')->as('totalPrice')
+    ->leftJoin($filteredOrders)->as('o')
+        ->on('id', Operator::EQUAL, 'user_id');
 ```
 
 ## 4. Conditions

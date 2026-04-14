@@ -4,7 +4,10 @@ namespace FQL\Query;
 
 use FQL\Conditions\HavingConditionGroup;
 use FQL\Conditions\WhereConditionGroup;
+use FQL\Enum;
+use FQL\Exception\InvalidFormatException;
 use FQL\Exception\QueryLogicException;
+use FQL\Functions;
 use FQL\Interface;
 use FQL\Results;
 use FQL\Stream\Csv;
@@ -21,20 +24,35 @@ class Query implements Interface\Query
     use Traits\Conditions {
         initialize as initializeConditions;
     }
-    use Traits\From;
+    use Traits\From {
+        from as private traitFrom;
+        asFrom as private traitAsFrom;
+    }
     use Traits\Into;
     use Traits\Groupable {
         groupBy as private traitGroupBy;
     }
-    use Traits\Joinable;
+    use Traits\Joinable {
+        join as private traitJoin;
+        innerJoin as private traitInnerJoin;
+        leftJoin as private traitLeftJoin;
+        rightJoin as private traitRightJoin;
+        fullJoin as private traitFullJoin;
+        asJoin as private traitAsJoin;
+    }
     use Traits\Limit;
     use Traits\Select {
         distinct as private traitDistinct;
+        asSelect as private traitAsSelect;
+        select as private traitSelect;
+        addFieldFunction as private traitAddFieldFunction;
     }
     use Traits\Sortable;
     use Traits\Unionable;
     use Traits\Explain;
     use Traits\Describable;
+
+    private ?Enum\LastClause $lastClause = null;
 
     /**
      * @implements Interface\Stream<Xml|Json|JsonStream|Yaml|Neon|Csv|Xls>
@@ -42,6 +60,71 @@ class Query implements Interface\Query
     public function __construct(private readonly Interface\Stream $stream)
     {
         $this->initializeConditions();
+    }
+
+    public function from(string $query): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::FROM;
+        return $this->traitFrom($query);
+    }
+
+    public function join(Interface\Query $query, string $alias = ''): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitJoin($query, $alias);
+    }
+
+    public function innerJoin(Interface\Query $query, string $alias = ''): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitInnerJoin($query, $alias);
+    }
+
+    public function leftJoin(Interface\Query $query, string $alias = ''): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitLeftJoin($query, $alias);
+    }
+
+    public function rightJoin(Interface\Query $query, string $alias = ''): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitRightJoin($query, $alias);
+    }
+
+    public function fullJoin(Interface\Query $query, string $alias = ''): Interface\Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitFullJoin($query, $alias);
+    }
+
+    public function select(string ...$fields): Interface\Query
+    {
+        $this->lastClause = null;
+        return $this->traitSelect(...$fields);
+    }
+
+    /**
+     * @param Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
+     */
+    private function addFieldFunction(
+        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
+    ): Interface\Query {
+        $this->lastClause = null;
+        return $this->traitAddFieldFunction($function);
+    }
+
+    public function as(string $alias): Interface\Query
+    {
+        if ($this->lastClause === Enum\LastClause::FROM) {
+            $this->traitAsFrom($alias);
+        } elseif ($this->lastClause === Enum\LastClause::JOIN) {
+            $this->traitAsJoin($alias);
+        } else {
+            $this->traitAsSelect($alias);
+        }
+        $this->lastClause = null;
+        return $this;
     }
 
     public function distinct(bool $distinct = true): Interface\Query
@@ -139,7 +222,8 @@ class Query implements Interface\Query
             $this->limit,
             $this->offset,
             $this->getInto(),
-            unions: $this->unions
+            unions: $this->unions,
+            fromAlias: $this->getFromAlias()
         );
 
         if ($this->explain) {
@@ -175,7 +259,11 @@ class Query implements Interface\Query
         // FROM
         $queryParts[] = $this->fromToString($this->stream->provideSource());
         // JOIN
-        $queryParts[] = $this->joinsToString();
+        try {
+            $queryParts[] = $this->joinsToString();
+        } catch (InvalidFormatException $e) {
+            $queryParts[] = '[invalid join format]';
+        }
         // WHERE
         $queryParts[] = $this->conditionsToString($this->whereConditions);
         // GROUP BY
@@ -225,8 +313,23 @@ class Query implements Interface\Query
         }
     }
 
-    public function provideFileQuery(): FileQuery
+    public function provideFileQuery(bool $withQuery = false): FileQuery
     {
-        return new FileQuery($this->stream->provideSource());
+        $fileQuery = new FileQuery($this->stream->provideSource());
+        if ($withQuery) {
+            return $fileQuery->withQuery($this->getFrom());
+        }
+        return $fileQuery;
+    }
+
+    public function isSimpleQuery(): bool
+    {
+        return $this->isSelectEmpty()
+            && $this->isConditionsEmpty()
+            && $this->isGroupableEmpty()
+            && $this->isSortableEmpty()
+            && $this->isLimitableEmpty()
+            && $this->isJoinableEmpty()
+            && $this->isUnionableEmpty();
     }
 }

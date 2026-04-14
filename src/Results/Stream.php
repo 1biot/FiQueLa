@@ -78,7 +78,8 @@ class Stream extends ResultsProvider implements Aggregable
         private JoinHashMap $joinHashMap = new InMemoryHashmap(),
         /** @var array<int, array{type: string, query: Query}> */
         private readonly array $unions = [],
-        private ?ExplainCollector $collector = null
+        private ?ExplainCollector $collector = null,
+        private readonly ?string $fromAlias = null
     ) {
     }
 
@@ -282,7 +283,7 @@ class Stream extends ResultsProvider implements Aggregable
             : $this->from;
 
         if ($streamIdx === null) {
-            return $this->stream->getStreamGenerator($streamSource);
+            return $this->wrapWithFromAlias($this->stream->getStreamGenerator($streamSource));
         }
 
         return $this->applyStreamSourceInstrumented($streamSource, $streamIdx);
@@ -296,12 +297,32 @@ class Stream extends ResultsProvider implements Aggregable
         assert($this->collector !== null);
         $this->collector->startTimer($streamIdx);
 
-        foreach ($this->stream->getStreamGenerator($streamSource) as $item) {
+        foreach ($this->wrapWithFromAlias($this->stream->getStreamGenerator($streamSource)) as $item) {
             $this->collector->incrementOut($streamIdx);
             yield $item;
         }
 
         $this->collector->stopTimer($streamIdx);
+    }
+
+    /**
+     * Wraps stream items with FROM alias namespace when alias is set.
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Traversable<StreamProviderArrayIteratorValue>
+     */
+    private function wrapWithFromAlias(\Traversable $stream): \Traversable
+    {
+        if ($this->fromAlias === null) {
+            return $stream;
+        }
+
+        return (function () use ($stream) {
+            foreach ($stream as $item) {
+                /** @var StreamProviderArrayIteratorValue $wrapped */
+                $wrapped = [$this->fromAlias => $item] + $item;
+                yield $wrapped;
+            }
+        })();
     }
 
 
@@ -478,9 +499,17 @@ class Stream extends ResultsProvider implements Aggregable
             $type = Enum\Join::LEFT; // treat as LEFT join from swapped view
         }
 
+        // Strip join alias prefix from keys when accessing raw (unaliased) table data
+        $rawRightKey = ($alias !== '' && str_starts_with($rightKey, $alias . '.'))
+            ? substr($rightKey, strlen($alias) + 1)
+            : $rightKey;
+        $rawLeftKey = ($alias !== '' && str_starts_with($leftKey, $alias . '.'))
+            ? substr($leftKey, strlen($alias) + 1)
+            : $leftKey;
+
         // Build a hashmap for the right table
         foreach ($rightData as $row) {
-            $key = $row[$rightKey] ?? null;
+            $key = $this->accessNestedValue($row, $rawRightKey, false);
             if (is_int($key) || is_string($key)) {
                 $this->joinHashMap->set($key, $row);
             }
@@ -493,7 +522,8 @@ class Stream extends ResultsProvider implements Aggregable
         $usedRightKeys = [];
 
         foreach ($leftData as $leftRow) {
-            $leftKeyValue = $leftRow[$leftKey] ?? null;
+            $leftKeyValue = $this->accessNestedValue($leftRow, $leftKey, false)
+                ?? $this->accessNestedValue($leftRow, $rawLeftKey, false);
             if ((is_int($leftKeyValue) || is_string($leftKeyValue)) && $this->joinHashMap->has($leftKeyValue)) {
                 // Handle matches (n * n)
                 foreach ($this->joinHashMap->get($leftKeyValue) as $rightRow) {
@@ -502,7 +532,8 @@ class Stream extends ResultsProvider implements Aggregable
                         ? array_merge($leftRow, [$alias => $rightRow])
                         : array_merge($leftRow, $rightRow);
 
-                    if ($operator->evaluate($leftKeyValue, $rightRow[$rightKey] ?? null)) {
+                    $rightValue = $this->accessNestedValue($rightRow, $rawRightKey, false);
+                    if ($operator->evaluate($leftKeyValue, $rightValue)) {
                         yield $joinedRow;
                         $usedRightKeys[$leftKeyValue] = true;
                     }
@@ -726,6 +757,17 @@ class Stream extends ResultsProvider implements Aggregable
             if ($fieldName === Query::SELECT_ALL) {
                 $result = array_merge($result, $item);
                 continue;
+            } elseif (str_ends_with($fieldData['originField'], '.*')) {
+                $expanded = $this->accessNestedValue(
+                    $item,
+                    $fieldData['originField'],
+                    false
+                );
+                if (is_array($expanded)) {
+                    $this->detectAmbiguousFields($result, $expanded, $fieldData['originField']);
+                    $result = array_merge($result, $expanded);
+                }
+                continue;
             } elseif ($fieldData['function'] instanceof BaseFunction) {
                 $result[$fieldName] = $fieldData['function']($item, $result);
                 continue;
@@ -753,6 +795,29 @@ class Stream extends ResultsProvider implements Aggregable
         }
 
         return $result;
+    }
+
+    /**
+     * Detects ambiguous field names when expanding wildcard selects.
+     * @param array<int|string, mixed> $existing
+     * @param array<int|string, mixed> $expanded
+     * @param string $origin
+     * @throws Exception\SelectException
+     */
+    private function detectAmbiguousFields(array $existing, array $expanded, string $origin): void
+    {
+        $conflicts = array_intersect_key($existing, $expanded);
+        if ($conflicts !== []) {
+            $conflictKeys = implode(', ', array_keys($conflicts));
+            throw new Exception\SelectException(
+                sprintf(
+                    'Ambiguous field(s) "%s" in "%s" — field(s) already exist in the result set. '
+                    . 'Use explicit field selection or aliases to resolve the conflict.',
+                    $conflictKeys,
+                    $origin
+                )
+            );
+        }
     }
 
     /**

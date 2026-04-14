@@ -2,6 +2,8 @@
 
 namespace FQL\Query;
 
+use FQL\Enum;
+use FQL\Functions;
 use FQL\Interface\Query;
 use FQL\Results;
 use FQL\Traits\Conditions;
@@ -21,11 +23,25 @@ use FQL\Traits\Unionable;
  */
 class TestProvider implements Query
 {
-    use Select;
-    use From;
+    use Select {
+        asSelect as private traitAsSelect;
+        select as private traitSelect;
+        addFieldFunction as private traitAddFieldFunction;
+    }
+    use From {
+        from as private traitFrom;
+        asFrom as private traitAsFrom;
+    }
     use Into;
     use Groupable;
-    use Joinable;
+    use Joinable {
+        join as private traitJoin;
+        innerJoin as private traitInnerJoin;
+        leftJoin as private traitLeftJoin;
+        rightJoin as private traitRightJoin;
+        fullJoin as private traitFullJoin;
+        asJoin as private traitAsJoin;
+    }
     use Conditions {
         initialize as initializeConditions;
     }
@@ -33,6 +49,73 @@ class TestProvider implements Query
     use Unionable;
     use Limit;
     use Describable;
+
+    private ?Enum\LastClause $lastClause = null;
+
+    public function select(string ...$fields): Query
+    {
+        $this->lastClause = null;
+        return $this->traitSelect(...$fields);
+    }
+
+    /**
+     * @param Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
+     */
+    private function addFieldFunction(
+        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
+    ): Query {
+        $this->lastClause = null;
+        return $this->traitAddFieldFunction($function);
+    }
+
+    public function from(string $query): Query
+    {
+        $this->lastClause = Enum\LastClause::FROM;
+        return $this->traitFrom($query);
+    }
+
+    public function join(Query $query, string $alias = ''): Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitJoin($query, $alias);
+    }
+
+    public function innerJoin(Query $query, string $alias = ''): Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitInnerJoin($query, $alias);
+    }
+
+    public function leftJoin(Query $query, string $alias = ''): Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitLeftJoin($query, $alias);
+    }
+
+    public function rightJoin(Query $query, string $alias = ''): Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitRightJoin($query, $alias);
+    }
+
+    public function fullJoin(Query $query, string $alias = ''): Query
+    {
+        $this->lastClause = Enum\LastClause::JOIN;
+        return $this->traitFullJoin($query, $alias);
+    }
+
+    public function as(string $alias): Query
+    {
+        if ($this->lastClause === Enum\LastClause::FROM) {
+            $this->traitAsFrom($alias);
+        } elseif ($this->lastClause === Enum\LastClause::JOIN) {
+            $this->traitAsJoin($alias);
+        } else {
+            $this->traitAsSelect($alias);
+        }
+        $this->lastClause = null;
+        return $this;
+    }
 
     /**
      * @return SelectedFields
@@ -61,6 +144,11 @@ class TestProvider implements Query
     public function getFromSource(): string
     {
         return $this->getFrom();
+    }
+
+    public function getFromAliasValue(): ?string
+    {
+        return $this->getFromAlias();
     }
 
     public function resetConditions(): Query
@@ -100,8 +188,19 @@ class TestProvider implements Query
         return '';
     }
 
-    public function provideFileQuery(): FileQuery
+    public function provideFileQuery(bool $withQuery = false): FileQuery
     {
         return new FileQuery($this->getFromSource());
+    }
+
+    public function isSimpleQuery(): bool
+    {
+        return $this->isSelectEmpty()
+            && $this->isConditionsEmpty()
+            && $this->isGroupableEmpty()
+            && $this->isSortableEmpty()
+            && $this->isLimitableEmpty()
+            && $this->isJoinableEmpty()
+            && $this->isUnionableEmpty();
     }
 }

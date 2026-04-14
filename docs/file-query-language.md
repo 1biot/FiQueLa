@@ -112,7 +112,7 @@ SELECT
 ```
 
 - _**select_expr**_: is a column name, function or user string. Supports dot notation for nested fields. `*` can be
-  combined with additional fields, for example `SELECT *, totalPrice`.
+  combined with additional fields, for example `SELECT *, totalPrice`. Aliased wildcard `alias.*` selects all fields from an aliased source (e.g. `SELECT p.*` when `FROM ... AS p`).
 - _**select_alias**_: is an alias for the _**select_expr**_.
 - _**excl_alias**_: is an aliased column name to exclude from the result set. Supports dot notation for nested fields.
 
@@ -341,16 +341,18 @@ Use `JOIN` to join data sources in your query. You can join multiple data source
 data sources, you must specify alias `AS` and `ON` condition. Multiple using of `ON` statement rewrites last condition.
 
 ```sql
-FROM file_reference
+FROM file_reference [AS from_alias]
 [
     {[INNER] JOIN | {LEFT|RIGHT|FULL} [OUTER] JOIN}
-    file_reference
+    {file_reference | (subquery)}
     AS alias_reference
     ON where_condition
 ]
 ```
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
+- _**subquery**_: a nested SELECT statement in parentheses, e.g. `(SELECT id, name FROM ... WHERE ...)`.
+- _**from_alias**_: optional alias for the FROM source. When set, fields can be accessed as `from_alias.field_name` and `from_alias.*` selects all fields.
 
 | Join type | Description      |
 |-----------|------------------|
@@ -359,18 +361,43 @@ FROM file_reference
 | `RIGHT`   | Right outer join |
 | `FULL`    | Full outer join  |
 
-**Example:**
+**Example with FROM alias:**
 
 ```sql
 SELECT
-    id,
-    name,
+    u.name,
     o.id AS orderId,
     o.total_price AS totalPrice
-FROM json(./examples/data/users.json).data.users
+FROM json(./examples/data/users.json).data.users AS u
 LEFT JOIN
     xml(./examples/data/orders.xml).orders.order AS o
-        ON id = user_id
+        ON u.id = o.user_id
+```
+
+**Example with aliased wildcard:**
+
+```sql
+SELECT
+    u.*,
+    o.total_price AS totalPrice
+FROM json(./examples/data/users.json).data.users AS u
+LEFT JOIN
+    xml(./examples/data/orders.xml).orders.order AS o
+        ON u.id = o.user_id
+```
+
+**Example with subquery JOIN:**
+
+```sql
+SELECT
+    u.name,
+    o.id AS orderId,
+    o.total_price AS totalPrice
+FROM json(./examples/data/users.json).data.users AS u
+LEFT JOIN
+    (SELECT id, user_id, total_price FROM xml(./examples/data/orders.xml).orders.order WHERE total_price > 100) AS o
+        ON u.id = o.user_id
+ORDER BY o.total_price DESC
 ```
 
 ## 6. Conditions

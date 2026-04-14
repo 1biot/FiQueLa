@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-83.62%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_745-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-82.57%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_755-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -363,7 +363,7 @@ Requires PHP 8.2+ with readline, curl, and zlib extensions.
 
 [![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/1biot/fiquela-api/tree/main?refcode=92025543cb9f)
 
-Requires credentials configuration via environment variables. Optionally enable S3 backup (Cloudflare R2) for file storage. For more information visit the [repository](https://github.com/1biot/fiquela-api?tab=readme-ov-file#-credentials).
+Require credentials configuration via environment variables. Optionally enable S3 backup (Cloudflare R2) for file storage. For more information visit the [repository](https://github.com/1biot/fiquela-api?tab=readme-ov-file#-credentials).
 
 Key endpoints: `POST /api/auth/login` for JWT authentication, `POST /api/v1/query` for executing queries, `GET /api/v1/files` for file management, `GET /api/v1/export/{hash}` for downloading results. All endpoints except login require `Authorization: Bearer <token>`.
 

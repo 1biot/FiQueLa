@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.12.0]
+
+### Added
+- **FROM aliasing**: `FROM source AS alias` in FQL and `->from('source')->as('alias')` in fluent API. Aliased fields accessible via `alias.field` dot notation.
+- **Fluent JOIN aliasing**: `->join($query)->as('alias')->on(...)` as alternative to passing alias as parameter. Backward-compatible — `->join($query, 'alias')` still works.
+- **Aliased wildcard `alias.*`**: select all fields from an aliased source (FROM or JOIN) using `alias.*` in SELECT. Throws `SelectException` on ambiguous field conflicts.
+- **Wildcard `*` support in `EnhancedNestedArrayAccessor`**: path traversal now supports `*` token to expand all keys of an associative array.
+- **Context-aware `as()` method**: `as()` in `Query` now detects context — aliases SELECT field, FROM source, or JOIN depending on what was called before it.
+- `LastClause` enum (`FQL\Enum\LastClause`) for internal context tracking.
+- **Subquery JOIN support** in FQL parser: `LEFT JOIN (SELECT ... FROM ... WHERE ...) AS alias ON ...`. Parser recursively handles nested SELECT statements in JOIN clauses.
+- `Query::isSimpleQuery()` method to detect queries without any clauses (SELECT * FROM source only).
+- `Query::provideFileQuery(bool $withQuery = false)` parameter to include FROM path in the returned FileQuery.
+
+### Changed
+- `as()` moved from `Select` trait to `Query` class as a unified context-aware method. Internally delegates to `asSelect()`, `asFrom()`, or `asJoin()`.
+- JOIN methods (`join`, `innerJoin`, `leftJoin`, `rightJoin`, `fullJoin`) now accept alias as optional parameter (`string $alias = ''`). Alias is still required but can be set via `->as()` fluently.
+- JOIN `__toString()` renders simple joins as direct source references instead of subqueries.
+- `EnhancedNestedArrayAccessor::parsePath()` token type extended with `wildcard` flag.
+- JOIN `ON` conditions now resolve dot-notation keys via `accessNestedValue()`, supporting aliased field paths (e.g. `ON u.id = c.id`).
+
+### Changed
+- `SqlLexer` tokenizer now respects parenthesis depth — control keywords inside `(...)` are not treated as block delimiters.
+
+### Fixed
+- FQL parser: `LIMIT` before `UNION` no longer consumes the `UNION` token as offset.
+- FQL parser: `FROM ... AS alias` tokenization and parsing support in `SqlLexer`.
+
 ## [2.11.0]
 
 ### Added
