@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **`FQL\Sql\Token` namespace** — typed tokenizer foundation for the upcoming SQL parser refactor.
+  - `TokenType` enum classifies every lexical element (keywords, identifiers, function names, literals, operators, file queries, structural tokens, and trivia such as whitespace and comments).
+  - `Token` and `Position` readonly value objects carry normalized values, raw lexemes, source positions (offset/line/column) and optional metadata (e.g. parsed `FileQuery` for `FILE_QUERY` tokens).
+  - `TokenStream` cursor wraps `Token[]` with `peek`/`consume`/`consumeIf`/`expect`/`mark`/`rewindTo`. Skips trivia by default; opt-in `includeTrivia` mode preserves whitespace and comments verbatim for highlighters and formatters.
+  - `Tokenizer` is a single-pass character-scanning lexer that emits typed tokens with position information. Recognises `FILE_QUERY` as a single token in `FROM`/`INTO`/`DESCRIBE`/`JOIN` contexts, handles dotted identifiers, supports negative numeric literals in expression contexts, and reports unterminated strings/comments with location info.
+- **`FQL\Sql\Ast` namespace** — scaffolding for the abstract syntax tree (statement, clause, and expression nodes as immutable readonly value objects). Not yet wired to a consumer — produced by the parser in a follow-up PR.
+- **`FQL\Sql\Parser\ParseException`** carries the offending token and the expected token types; produces error messages with line/column information.
+
+### Notes
+- The legacy `FQL\Sql\Sql` parser and `FQL\Sql\SqlLexer` continue to back `Query\Provider::fql()` unchanged. The new tokenizer and AST scaffold are introduced in isolation; the parser, builder, and `fql()` rewiring land in subsequent PRs.
+
 ## [2.12.0]
 
 ### Added

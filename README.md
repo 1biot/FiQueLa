@@ -39,13 +39,7 @@ with streaming support, explain/debug tooling, and strongly typed operators.
 - [Installation](#2-installation)
 - [Supported Formats](#3-supported-formats)
 - [Getting Started](#4-getting-started)
-- [Documentation](#5-documentation)
-  - [Opening Files](docs/opening-files.md)
-  - [Fluent API](docs/fluent-api.md)
-  - [File Query Language](docs/file-query-language.md)
-  - [Fetching Data](docs/fetching-data.md)
-  - [Query Life Cycle](docs/query-life-cycle.md)
-  - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
+- [Documentation](https://docs.fiquela.io)
   - [API Reference](docs/api-reference.md)
 - [Examples](#6-examples)
 - [Ecosystem](#7-ecosystem)
@@ -191,14 +185,8 @@ Array
 
 ## 5. Documentation
 
-For more details about **F**i**Q**ue**L**a and her capabilities, explore the documentation sections.
+For more details about **F**i**Q**ue**L**a and her capabilities, explore the [documentation](https://docs.fiquela.io).
 
-- [Opening Files](docs/opening-files.md)
-- [Fluent API](docs/fluent-api.md)
-- [File Query Language](docs/file-query-language.md)
-- [Fetching Data](docs/fetching-data.md)
-- [Query Life Cycle](docs/query-life-cycle.md)
-- [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [API Reference](docs/api-reference.md)
 
 ## 6. Examples
@@ -387,8 +375,8 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
 - [x] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ ~~- Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.~~
+- [x] ~~**Documentation**: Create detailed guides and examples for advanced use cases.~~ - [docs.fiquela.io](https://docs.fiquela.io)
 - [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
 - [ ] **Tests**: Increase test coverage (90%+).
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 
