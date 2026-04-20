@@ -67,10 +67,10 @@ final class Provider
      * @implements Interface\Query<Query\Query>
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
+     * @throws Sql\Parser\ParseException
      */
     public static function fql(string $sql): Interface\Query
     {
-        return (new Sql\Sql(trim($sql)))
-            ->toQuery();
+        return Sql\Provider::compile($sql)->toQuery();
     }
 }

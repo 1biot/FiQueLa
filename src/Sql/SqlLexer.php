@@ -9,6 +9,10 @@ use FQL\Query\FileQuery;
 use FQL\Traits;
 
 /**
+ * @deprecated Use {@see \FQL\Sql\Token\Tokenizer} together with {@see \FQL\Sql\Parser\Parser}
+ * instead. Still used internally by the Select/SelectIf/SelectCase helpers for legacy
+ * `parseConditionGroup()` support; these will be migrated in a follow-up PR.
+ *
  * @implements \Iterator<string>
  */
 class SqlLexer implements \Iterator

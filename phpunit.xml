@@ -20,6 +20,16 @@
         </include>
         <exclude>
             <directory>vendor</directory>
+            <!--
+                Deprecated legacy parser classes kept in-tree only to support the remaining
+                internal consumers (Traits\Select, Functions\Utils\SelectIf/SelectCase).
+                They are scheduled for removal once those consumers migrate to the new
+                Sql\Provider pipeline; excluding them from coverage avoids incentivising
+                investment in tests for soon-to-be-deleted code.
+            -->
+            <file>src/Sql/Sql.php</file>
+            <file>src/Sql/SqlLexer.php</file>
+            <file>src/Interface/Parser.php</file>
         </exclude>
     </source>
 </phpunit>

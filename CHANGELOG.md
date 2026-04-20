@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **`FQL\Sql\Token` namespace** — typed tokenizer foundation for the SQL parser refactor.
+  - `TokenType` enum classifies every lexical element (keywords, identifiers, function names, literals, operators, file queries, structural tokens, and trivia such as whitespace and comments).
+  - `Token` and `Position` readonly value objects carry normalized values, raw lexemes, source positions (offset/line/column) and optional metadata (e.g. parsed `FileQuery` for `FILE_QUERY` tokens).
+  - `TokenStream` cursor wraps `Token[]` with `peek`/`consume`/`consumeIf`/`expect`/`mark`/`rewindTo`. Skips trivia by default; opt-in `includeTrivia` mode preserves whitespace and comments verbatim for highlighters and formatters.
+  - `Tokenizer` is a single-pass character-scanning lexer that emits typed tokens with position information. Recognises `FILE_QUERY` as a single token in `FROM`/`INTO`/`DESCRIBE`/`JOIN` contexts, handles dotted identifiers (including `@` XML-attribute and kebab-case names), supports negative numeric literals in expression contexts, and reports unterminated strings/comments with location info.
+- **`FQL\Sql\Ast` namespace** — abstract syntax tree nodes produced by the parser.
+  - `SelectStatementNode` root plus clause nodes (`FromClauseNode`, `JoinClauseNode`, `WhereClauseNode`, `HavingClauseNode`, `GroupByClauseNode`, `OrderByClauseNode`, `OrderByItemNode`, `LimitClauseNode`, `UnionClauseNode`, `IntoClauseNode`, `SelectFieldNode`).
+  - Expression nodes (`ColumnReferenceNode`, `LiteralNode`, `StarNode`, `FunctionCallNode`, `CastExpressionNode`, `MatchAgainstNode`, `CaseExpressionNode`, `WhenBranchNode`, `ConditionExpressionNode`, `ConditionGroupNode`, `SubQueryNode`, `FileQueryNode`) — all immutable readonly value objects implementing `AstNode`.
+  - `JoinType` / `ExplainMode` enums.
+- **`FQL\Sql\Parser` namespace** — recursive-descent parser split into dedicated clause parsers (`SelectClauseParser`, `FromClauseParser`, `JoinClauseParser`, `WhereClauseParser`, `HavingClauseParser`, `GroupByClauseParser`, `OrderByClauseParser`, `LimitOffsetParser`, `UnionParser`, `IntoParser`), an `ExpressionParser` for function/CASE/CAST/MATCH handling, and a shared `ConditionParser` + `ConditionGroupParser`. `Parser::create()` wires the default configuration; `ParseException` carries the offending token and expected token types for rich, positioned diagnostics.
+- **`FQL\Sql\Builder` namespace** — `QueryBuildingVisitor` walks the AST and constructs an `Interface\Query` via the existing fluent API. Function-name dispatch is kept inline in `applyFunctionCall()` (mirrors the legacy `Sql::applyFunctionToQuery()` — a future PR extracts this into a registry of handlers). `ExpressionCompiler` serialises AST nodes back into FQL-string form where the Query API requires strings (`whenCase`, `elseCase`, `IF` condition). `FileQueryResolver` wraps the existing `FileQueryPathValidator` with the compiler's `basePath`.
+- **`FQL\Sql\Provider::compile()` + `FQL\Sql\Compiler`** — public entry point for the new pipeline. `Compiler` exposes `toTokens()`, `toTokenStream()`, `toAst()`, `toQuery()`, and `applyTo(Interface\Query $existing)` (the replacement for the legacy `Sql::parseWithQuery()`).
+
+### Changed
+- **`Query\Provider::fql()` now runs on the new Token → AST → Query pipeline.** Public behaviour is preserved; parse errors are raised as `FQL\Sql\Parser\ParseException` (a subclass of the existing `FQL\Exception\UnexpectedValueException`) with precise line/column information.
+- Internal consumers migrated to the new `Sql\Provider::compile()` API: `Query\Debugger::inspectStreamSql()`, `examples/test.php`, and the full `tests/SQL` suite (`SqlIntegrationTest`, `SqlIntoTest`, `SqlTest`, `SqlSubqueryJoinTest`) plus `tests/Query/UnionTest` and `tests/Functions/Utils/UuidTest`.
+
+### Deprecated
+- `FQL\Sql\Sql` and `FQL\Sql\SqlLexer` are marked `@deprecated` in favour of `FQL\Sql\Provider` / `FQL\Sql\Compiler` and `FQL\Sql\Token\Tokenizer` respectively. Both classes remain in tree because a handful of internal helpers (`Traits\Select::select()` / `::exclude()`, `Functions\Utils\SelectIf`, `Functions\Utils\SelectCase`) still use `SqlLexer::parseConditionGroup()` to parse condition strings. These sites will be migrated to the new pipeline and the legacy classes removed in a follow-up PR.
+- `FQL\Interface\Parser` is marked `@deprecated` for the same reason.
+
 ## [2.12.0]
 
 ### Added

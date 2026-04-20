@@ -4,7 +4,7 @@ namespace SQL;
 
 use FQL\Exception\InvalidFormatException;
 use FQL\Query\TestProvider;
-use FQL\Sql\Sql;
+use FQL\Sql\Provider as SqlProvider;
 use PHPUnit\Framework\TestCase;
 
 class SqlIntoTest extends TestCase
@@ -24,9 +24,9 @@ class SqlIntoTest extends TestCase
 
     public function testIntoClauseIsParsedAndStored(): void
     {
-        $sql = new Sql('SELECT id INTO csv(output.csv)', $this->basePath);
+        $sql = SqlProvider::compile('SELECT id INTO csv(output.csv)', $this->basePath);
 
-        $query = $sql->parseWithQuery(new TestProvider());
+        $query = $sql->applyTo(new TestProvider());
 
         $this->assertTrue($query->hasInto());
         $this->assertNotNull($query->getInto());
@@ -41,8 +41,8 @@ class SqlIntoTest extends TestCase
         $this->expectException(InvalidFormatException::class);
         $this->expectExceptionMessage('Invalid path of file');
 
-        $sql = new Sql('SELECT id INTO csv(../escape.csv)', $this->basePath);
-        $sql->parseWithQuery(new TestProvider());
+        $sql = SqlProvider::compile('SELECT id INTO csv(../escape.csv)', $this->basePath);
+        $sql->applyTo(new TestProvider());
     }
 
     private function removeDirectory(string $path): void

@@ -2,8 +2,9 @@
 
 namespace SQL;
 
-use FQL\Sql\Sql;
-use FQL\Sql\SqlLexer;
+use FQL\Sql\Provider as SqlProvider;
+use FQL\Sql\Token\Tokenizer;
+use FQL\Sql\Token\TokenType;
 use PHPUnit\Framework\TestCase;
 
 class SqlSubqueryJoinTest extends TestCase
@@ -17,34 +18,41 @@ class SqlSubqueryJoinTest extends TestCase
         $this->ordersXml = realpath(__DIR__ . '/../../examples/data/orders.xml');
     }
 
-    public function testLexerFiltersKeywordsInsideParentheses(): void
+    public function testTokenizerEmitsParenBoundaryForSubqueryJoin(): void
     {
         $sql = sprintf(
             'SELECT id FROM json(%s).data.users LEFT JOIN (SELECT id, name FROM json(%s).data.users WHERE id > 1) AS u ON id = u.id',
             $this->usersJson,
             $this->usersJson
         );
-        $lexer = new SqlLexer();
-        $tokens = $lexer->tokenize($sql);
+        $tokens = array_values(array_filter(
+            (new Tokenizer())->tokenize($sql),
+            static fn ($t) => !$t->type->isTrivia()
+        ));
+        $types = array_map(static fn ($t) => $t->type, $tokens);
 
-        // ( and ) should be present as tokens
-        $this->assertContains('(', $tokens);
-        $this->assertContains(')', $tokens);
-
-        // Inner SELECT/FROM/WHERE should be between ( and )
-        $openIdx = array_search('(', $tokens);
-        $closeIdx = array_search(')', $tokens);
+        $openIdx = array_search(TokenType::PAREN_OPEN, $types, true);
+        $closeIdx = array_search(TokenType::PAREN_CLOSE, $types, true);
         $this->assertNotFalse($openIdx);
         $this->assertNotFalse($closeIdx);
         $this->assertGreaterThan($openIdx, $closeIdx);
 
-        // Outer tokens should be in order
-        $outerSelect = array_search('SELECT', $tokens);
-        $outerLeft = array_search('LEFT', $tokens);
-        $outerJoin = array_search('JOIN', $tokens);
+        $outerSelect = array_search(TokenType::KEYWORD_SELECT, $types, true);
+        $outerLeft = array_search(TokenType::KEYWORD_LEFT, $types, true);
+        $outerJoin = array_search(TokenType::KEYWORD_JOIN, $types, true);
         $this->assertLessThan($outerLeft, $outerSelect);
         $this->assertLessThan($outerJoin, $outerLeft);
         $this->assertLessThan($openIdx, $outerJoin);
+
+        // Inner SELECT appears between ( and )
+        $innerSelect = null;
+        for ($i = $openIdx + 1; $i < $closeIdx; $i++) {
+            if ($types[$i] === TokenType::KEYWORD_SELECT) {
+                $innerSelect = $i;
+                break;
+            }
+        }
+        $this->assertNotNull($innerSelect, 'Inner SELECT token must appear between ( and )');
     }
 
     public function testSubqueryJoinParsesAndExecutes(): void
@@ -57,7 +65,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->ordersXml
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $query = $parser->toQuery();
         $rows = iterator_to_array($query->execute()->fetchAll());
 
@@ -80,7 +88,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->ordersXml
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $rows = iterator_to_array($parser->toQuery()->execute()->fetchAll());
 
         // All matched orders should have totalPrice > 500
@@ -101,7 +109,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->ordersXml
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $query = $parser->toQuery();
         $queryString = (string) $query;
 
@@ -121,7 +129,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->ordersXml
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $query = $parser->toQuery();
         $queryString = (string) $query;
 
@@ -140,7 +148,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->ordersXml
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $rows = iterator_to_array($parser->toQuery()->execute()->fetchAll());
 
         $this->assertCount(3, $rows);
@@ -158,7 +166,7 @@ class SqlSubqueryJoinTest extends TestCase
             $this->usersJson
         );
 
-        $parser = new Sql($sql);
+        $parser = SqlProvider::compile($sql);
         $rows = iterator_to_array($parser->toQuery()->execute()->fetchAll());
 
         $this->assertCount(4, $rows);
