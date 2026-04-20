@@ -5,7 +5,7 @@ namespace FQL\Query;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
-use FQL\Sql\Sql;
+use FQL\Sql;
 use FQL\Results;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
@@ -145,8 +145,7 @@ class Debugger
         self::queryToOutput($sql);
 
         /** @var Query $query */
-        $query = (new Sql(trim($sql)))
-            ->parseWithQuery($stream->query());
+        $query = Sql\Provider::compile($sql)->applyTo($stream->query());
 
         self::inspectQuery($query);
         return $query;

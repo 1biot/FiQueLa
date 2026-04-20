@@ -16,8 +16,7 @@
     "halaxa/json-machine": "^1.2",
     "league/csv": "^9.28",
     "symfony/yaml": "^7.0",
-    "nette/neon": "^3.4",
-    "nette/utils": "^4.1"
+    "nette/neon": "^3.4"
   },
   "require-dev": {
     "phpstan/phpstan-nette": "^1.3",

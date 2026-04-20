@@ -3,7 +3,7 @@
 namespace Functions\Utils;
 
 use FQL\Functions\Utils\Uuid;
-use FQL\Sql\Sql;
+use FQL\Sql\Provider as SqlProvider;
 use FQL\Stream\Json;
 use PHPUnit\Framework\TestCase;
 
@@ -52,7 +52,7 @@ class UuidTest extends TestCase
             $jsonFile
         );
 
-        $results = (new Sql($sql))->parse();
+        $results = SqlProvider::compile($sql)->toQuery()->execute();
         $rows = iterator_to_array($results->fetchAll());
 
         $this->assertCount(1, $rows);

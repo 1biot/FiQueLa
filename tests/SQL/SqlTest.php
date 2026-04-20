@@ -58,7 +58,7 @@ use FQL\Functions\Utils\SelectIfNull;
 use FQL\Functions\Utils\SelectIsNull;
 use FQL\Query\Provider;
 use FQL\Query\TestProvider;
-use FQL\Sql\Sql;
+use FQL\Sql\Provider as SqlProvider;
 use PHPUnit\Framework\TestCase;
 
 class SqlTest extends TestCase
@@ -68,8 +68,8 @@ class SqlTest extends TestCase
      */
     public function testFunctionParsing(string $sql, string $expectedKey, string $expectedClass): void
     {
-        $parser = new Sql($sql);
-        $query = $parser->parseWithQuery(new TestProvider());
+        $parser = SqlProvider::compile($sql);
+        $query = $parser->applyTo(new TestProvider());
 
         $selectedFields = $query->getSelectedFields();
         $this->assertArrayHasKey($expectedKey, $selectedFields);

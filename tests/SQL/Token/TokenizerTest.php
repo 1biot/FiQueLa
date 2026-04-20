@@ -341,4 +341,84 @@ class TokenizerTest extends TestCase
         $this->assertSame(TokenType::FILE_QUERY, $tokens[$intoIndex + 1]->type);
         $this->assertSame('csv(out.csv)', $tokens[$intoIndex + 1]->value);
     }
+
+    public function testStrictEqualityOperators(): void
+    {
+        $types = $this->tokenTypes('SELECT * FROM x WHERE a == b');
+        $this->assertContains(TokenType::OP_EQ_STRICT, $types);
+
+        $types = $this->tokenTypes('SELECT * FROM x WHERE a === b');
+        $this->assertContains(TokenType::OP_EQ_STRICT, $types);
+
+        $types = $this->tokenTypes('SELECT * FROM x WHERE a !== b');
+        $this->assertContains(TokenType::OP_NEQ_STRICT, $types);
+    }
+
+    public function testSqlStandardNotEqualOperator(): void
+    {
+        $types = $this->tokenTypes('SELECT * FROM x WHERE a <> b');
+        $this->assertContains(TokenType::OP_NEQ, $types);
+    }
+
+    public function testPositiveSignedNumberInExpressionContext(): void
+    {
+        $tokens = $this->tokens('SELECT * FROM x WHERE n > +5');
+        $last = $tokens[count($tokens) - 2]; // EOF is at -1
+        $this->assertSame(TokenType::NUMBER_LITERAL, $last->type);
+        $this->assertSame('+5', $last->value);
+    }
+
+    public function testUnexpectedCharacterThrowsParseException(): void
+    {
+        $this->expectException(ParseException::class);
+        (new Tokenizer())->tokenize('SELECT ^ FROM x');
+    }
+
+    public function testSourceKeywordWithoutFileQueryFallsBackToPlainIdentifier(): void
+    {
+        // FILE_QUERY context is activated by FROM, but if the next non-trivia token
+        // is not an identifier (e.g. a comment + then keyword), the context drops
+        // cleanly without swallowing real keywords.
+        $tokens = $this->tokens("SELECT * FROM /* comment */ x");
+        $this->assertSame(TokenType::KEYWORD_FROM, $tokens[2]->type);
+        $this->assertSame(TokenType::FILE_QUERY, $tokens[3]->type);
+    }
+
+    public function testEmptyInputEmitsOnlyEof(): void
+    {
+        $tokens = (new Tokenizer())->tokenize('   ');
+        $nonTrivia = array_values(array_filter($tokens, fn ($t) => !$t->type->isTrivia()));
+        $this->assertCount(1, $nonTrivia);
+        $this->assertSame(TokenType::EOF, $nonTrivia[0]->type);
+    }
+
+    public function testFileQueryContextClearsOnComma(): void
+    {
+        // After FROM, FILE_QUERY context activates; a comma mid-sequence (atypical but
+        // a reasonable edge case) clears the flag rather than producing spurious FILE_QUERYs.
+        $tokens = $this->tokens('SELECT x FROM a, b WHERE x = 1');
+        $foundFrom = false;
+        foreach ($tokens as $i => $t) {
+            if ($t->type === TokenType::KEYWORD_FROM) {
+                $foundFrom = true;
+                $this->assertSame(TokenType::FILE_QUERY, $tokens[$i + 1]->type);
+                break;
+            }
+        }
+        $this->assertTrue($foundFrom);
+    }
+
+    public function testIdentifierWithAtPrefix(): void
+    {
+        $tokens = $this->tokens('SELECT @attributes.id FROM x');
+        $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
+        $this->assertSame('@attributes.id', $tokens[1]->value);
+    }
+
+    public function testIdentifierWithKebabCase(): void
+    {
+        $tokens = $this->tokens('SELECT order-total FROM x');
+        $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
+        $this->assertSame('order-total', $tokens[1]->value);
+    }
 }

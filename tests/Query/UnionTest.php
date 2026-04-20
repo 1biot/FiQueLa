@@ -4,7 +4,7 @@ namespace Query;
 
 use FQL\Enum\Operator;
 use FQL\Exception\QueryLogicException;
-use FQL\Sql\Sql;
+use FQL\Sql\Provider as SqlProvider;
 use FQL\Stream\Json;
 use PHPUnit\Framework\TestCase;
 
@@ -173,7 +173,7 @@ class UnionTest extends TestCase
             $jsonFile
         );
 
-        $results = (new Sql($sql))->parse();
+        $results = SqlProvider::compile($sql)->toQuery()->execute();
         $rows = iterator_to_array($results->fetchAll());
 
         $ids = array_column($rows, 'id');
@@ -191,7 +191,7 @@ class UnionTest extends TestCase
             $jsonFile
         );
 
-        $results = (new Sql($sql))->parse();
+        $results = SqlProvider::compile($sql)->toQuery()->execute();
         $rows = iterator_to_array($results->fetchAll());
 
         // 3 + 3 = 6, duplicates kept
@@ -209,7 +209,7 @@ class UnionTest extends TestCase
             $jsonFile
         );
 
-        $results = (new Sql($sql))->parse();
+        $results = SqlProvider::compile($sql)->toQuery()->execute();
         $rows = iterator_to_array($results->fetchAll());
 
         $this->assertCount(3, $rows);

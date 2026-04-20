@@ -69,7 +69,10 @@ final class Tokenizer
         'LIKE' => TokenType::KEYWORD_LIKE,
         'BETWEEN' => TokenType::KEYWORD_BETWEEN,
         'REGEXP' => TokenType::KEYWORD_REGEXP,
-        'AGAINST' => TokenType::KEYWORD_AGAINST,
+        // Note: AGAINST is intentionally *not* mapped here. The tokenizer emits it as
+        // FUNCTION_NAME when followed by `(`, so the parser can treat MATCH(...) and
+        // AGAINST(...) symmetrically. KEYWORD_AGAINST remains in TokenType for future
+        // use (e.g. dedicated highlighter styling), but is never produced.
     ];
 
     /** @var Token[] */
@@ -590,12 +593,20 @@ final class Tokenizer
 
     private function isIdentifierStart(string $char): bool
     {
-        return ctype_alpha($char) || $char === '_';
+        // `@` supports XML attribute-style references such as `@attributes.id`; `$` is
+        // common in document-style accessors.
+        return ctype_alpha($char) || $char === '_' || $char === '@' || $char === '$';
     }
 
     private function isIdentifierChar(string $char): bool
     {
-        return ctype_alnum($char) || $char === '_';
+        // `-` is permitted mid-identifier to support kebab-case field names that appear
+        // in real-world files (e.g. `order-total`, `product-id`).
+        return ctype_alnum($char)
+            || $char === '_'
+            || $char === '@'
+            || $char === '$'
+            || $char === '-';
     }
 
     private function isCharDigit(?string $char): bool

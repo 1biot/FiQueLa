@@ -12,6 +12,13 @@ use FQL\Interface;
 use FQL\Query;
 use FQL\Utils\FileQueryPathValidator;
 
+/**
+ * @deprecated Use {@see Provider::compile()} and {@see Compiler} instead. Retained for
+ * the remaining in-tree consumers ({@see \FQL\Traits\Select}, {@see \FQL\Functions\Utils\SelectIf},
+ * {@see \FQL\Functions\Utils\SelectCase}) that still rely on the legacy
+ * `SqlLexer::parseConditionGroup()` helper; these will be migrated in a follow-up PR
+ * and this class removed for the next major version.
+ */
 class Sql extends SqlLexer implements Interface\Parser
 {
     public function __construct(private readonly string $sql, private ?string $basePath = null)

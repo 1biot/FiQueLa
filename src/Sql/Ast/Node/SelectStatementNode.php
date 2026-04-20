@@ -20,7 +20,7 @@ final readonly class SelectStatementNode implements AstNode
      * @param UnionClauseNode[] $unions
      */
     public function __construct(
-        public FromClauseNode $from,
+        public ?FromClauseNode $from,
         public array $fields,
         public bool $distinct,
         public array $joins,
