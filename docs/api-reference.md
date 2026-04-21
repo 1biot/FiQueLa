@@ -935,7 +935,7 @@ _abstract public_ **provideSource():** `string`
 
 `FQL\Stream\Csv` _extends_ `AbstractStream`
 
-Reads CSV files using `league/csv`. Supports encoding, custom delimiters.
+Reads CSV files using `openspout/openspout` (`Reader\CSV\Reader`). Supports encoding conversion via `Options::ENCODING` (iconv-backed), custom `FIELD_DELIMITER`, and an optional header row.
 
 _public static_ **open(**_string_ `$path`**):** `self`
 
@@ -1083,6 +1083,8 @@ Creates a writer instance based on the FileQuery format.
 ### CsvWriter
 
 `FQL\Stream\Writers\CsvWriter` _implements_ `Interface\Writer`
+
+Writes CSV via `openspout/openspout` (`Writer\CSV\Writer`). Honors `delimiter` and `encoding` from `FileQuery` params. Non-UTF-8 output (e.g. `windows-1250`) is produced by pre-converting each string cell via `OpenSpout\Common\Helper\EncodingHelper::attemptConversionFromUTF8()` before it reaches `Row::fromValues()` — OpenSpout then writes byte-level (CSV delimiter and enclosure are ASCII-safe in every supported encoding). The UTF-8 BOM that OpenSpout emits by default is disabled for byte-for-byte compatibility with the legacy writer.
 
 _public_ **__construct(**_FileQuery_ `$fileQuery`**)**
 

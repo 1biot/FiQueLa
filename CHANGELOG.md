@@ -257,6 +257,31 @@ shifts happened:
     route everything through the same parser that powers the SQL builder.
     User-defined functions are registered through `Functions\FunctionRegistry`
     at bootstrap instead of passing an instance into `custom()`.
+- **`league/csv` dependency dropped** — CSV reader and writer now run on
+  `openspout/openspout` (already a direct dependency for XLSX/ODS), so the
+  library ships with one fewer vendor package. Reader switches to
+  `OpenSpout\Reader\CSV\Reader` (`Options::FIELD_DELIMITER`, `::ENCODING`,
+  `::SHOULD_PRESERVE_EMPTY_ROWS`) — encoding conversion is handled by
+  OpenSpout's iconv-backed `EncodingHelper`. Writer switches to
+  `OpenSpout\Writer\CSV\Writer` with the UTF-8 BOM opt-out (preserves
+  byte-for-byte compatibility with the prior writer); non-UTF-8 output
+  encodings (`encoding: "windows-1250"`) are produced by pre-converting each
+  string cell through `OpenSpout\Common\Helper\EncodingHelper`
+  (`attemptConversionFromUTF8()`) before it is handed to
+  `Row::fromValues()` — OpenSpout's `fputcsv` then writes byte-level, which
+  is ASCII-safe for CSV delimiter and enclosure in every supported encoding.
+  All existing FileQuery CSV options (`encoding`, `delimiter`, `useHeader`,
+  positional or named) work unchanged — no migration needed on user queries.
+- **CSV reader hot-path speedup.** `CsvProvider::getStreamGenerator()` now
+  short-circuits `Enum\Type::matchByString()` for cell values that clearly
+  aren't typed literals (first character not a quote/sign/digit/decimal
+  separator and length not 4 or 5 — the same heuristic already used by
+  `SpreadsheetProvider::normalizeCellValue()`). Free-form text columns
+  (names, descriptions, category paths) skip the regex + `in_array` probes
+  inside `matchByString` entirely. Assoc-row assembly uses native
+  `array_combine()` (with explicit `array_pad` / `array_slice` for
+  malformed rows) instead of a per-row PHP `foreach`. ~20 % faster on a
+  representative product CSV.
 
 ## [2.12.0]
 

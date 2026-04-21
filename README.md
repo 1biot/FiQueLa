@@ -84,11 +84,10 @@ composer require tracy/tracy
 
 ### Dependencies
 
-- **`league/csv`**: Required for CSV file support.
+- **`openspout/openspout`**: Required for CSV, XLSX and ODS file support.
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
-- **`openspout/openspout`**: Required for XLSX and ODS file support.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -214,12 +213,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.2819 (emalloc)
-> Memory peak usage (MB): 1.7251 (emalloc)
+> Memory usage (MB): 1.2757 (emalloc)
+> Memory peak usage (MB): 1.7195 (emalloc)
 ------------------------------
-> Execution time (s): 0.000145
-> Execution time (ms): 0.145
-> Execution time (µs): 145
+> Execution time (s): 0.00011
+> Execution time (ms): 0.11
+> Execution time (µs): 110
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -260,13 +259,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.8678 (emalloc)
-> Memory peak usage (MB): 4.0114 (emalloc)
+> Memory usage (MB): 3.7022 (emalloc)
+> Memory peak usage (MB): 3.8458 (emalloc)
 ------------------------------
-> Execution time (s): 0.042488
-> Execution time (ms): 42.488
-> Execution time (µs): 42488
-> Execution memory peak usage (MB): 2.2863
+> Execution time (s): 0.046622
+> Execution time (ms): 46.622
+> Execution time (µs): 46622
+> Execution memory peak usage (MB): 2.1263
 ========================
 ### Benchmark Query: ###
 ========================
@@ -292,12 +291,12 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.8575 (emalloc)
-> Memory peak usage (MB): 4.0114 (emalloc)
+> Memory usage (MB): 3.6911 (emalloc)
+> Memory peak usage (MB): 3.8458 (emalloc)
 ------------------------------
-> Execution time (s): 36.29862
-> Execution time (ms): 36298.62
-> Execution time (µs): 36298620
+> Execution time (s): 44.335968
+> Execution time (ms): 44335.968
+> Execution time (µs): 44335968
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
@@ -306,22 +305,22 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.8678 (emalloc)
-> Memory peak usage (MB): 4.0114 (emalloc)
+> Memory usage (MB): 3.7022 (emalloc)
+> Memory peak usage (MB): 3.8458 (emalloc)
 ------------------------------
-> Execution time (s): 0.018588
-> Execution time (ms): 18.588
-> Execution time (µs): 18588
+> Execution time (s): 0.029982
+> Execution time (ms): 29.982
+> Execution time (µs): 29982
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 3.8569 (emalloc)
-> Memory peak usage (MB): 4.0114 (emalloc)
+> Memory usage (MB): 3.6905 (emalloc)
+> Memory peak usage (MB): 3.8458 (emalloc)
 ------------------------------
-> Final execution time (s): 36.359885
-> Final execution time (ms): 36359.885
-> Final execution time (µs): 36359885
+> Final execution time (s): 44.41278
+> Final execution time (ms): 44412.78
+> Final execution time (µs): 44412780
 ```
 
 ## 7. Ecosystem
