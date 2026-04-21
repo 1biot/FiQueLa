@@ -5,10 +5,11 @@ namespace FQL\Query;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
-use FQL\Sql;
 use FQL\Results;
 use FQL\Results\ResultsProvider;
 use FQL\Results\Stream;
+use FQL\Sql;
+use FQL\Sql\Highlighter\HighlighterKind;
 
 class Debugger
 {
@@ -237,153 +238,22 @@ class Debugger
         echo '> ' . str_replace(PHP_EOL, PHP_EOL . '> ', self::highlightSQL($query)) . PHP_EOL;
     }
 
+    /**
+     * ANSI-coloured SQL preview for terminal output. Delegates to the
+     * AST-driven highlighter in `Sql\Provider::highlight()` which walks the
+     * real parser pipeline — strictly better coverage of keywords, function
+     * calls, nested expressions and `FROM file(…).path` sources than the
+     * previous regex-based fallback. If the parser chokes on the input (for
+     * instance during early debug prints where the query is still malformed)
+     * we fall back to the raw text so the dump doesn't blow up.
+     */
     public static function highlightSQL(string $sql): string
     {
-        $keywords = [
-            'EXPLAIN', 'ANALYZE', 'SELECT', 'DESCRIBE', 'FROM', 'WHERE', 'ORDER', 'GROUP', 'BY', 'HAVING', 'DISTINCT',
-            'EXCLUDE', 'LIMIT', 'OFFSET', 'JOIN', 'ON', 'AS', 'AND', 'OR', 'DESC', 'LIKE', 'XOR',
-            'ASC', 'IN', 'IS', 'NOT', 'NULL', 'LEFT', 'INNER', 'RIGHT', 'FULL', 'OUTER',
-            'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
-            'UNION', 'ALL', 'INTO'
-        ];
-
-        // Function: Uppercase letters, numbers and underscores, at least 2 characters, cannot start/end with underscore
-        $functionPattern = '(?!_)([A-Z0-9_]{2,})(?<!_)\((.*)?\)';
-
-        // Tokenization: FileQuery uses known format names, function pattern for everything else
-        $formats = 'xml|json|jsonFile|ndJson|ndjson|csv|tsv|yaml|yml|neon|xls|xlsx|ods|dir';
-        $fileQueryPattern = '(?<fq>(?<fs>(?<t>' . $formats . ')\((?<p>[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))(?<q>\.\*|\.*[\w*.\-\_]{1,})?)';
-        $regex = '/
-        ' . $fileQueryPattern . ' # FROM source (known format names)
-        | \b' . $functionPattern . ' # function
-        | (\'[^\']*\' # simple quoted string
-        | "[^"]*" # double quotes
-        | [(),] # bracket or comma
-        | \b(' . implode('|', $keywords) . ')\b # operators
-        | [^\s\'"(),]+ # other than spaces and quotes
-        )/uxi';
-
-        // Preserving multi-line structure
-        $lines = explode(PHP_EOL, $sql);
-        $highlightedLines = [];
-        foreach ($lines as $line) {
-            // Extract initial spaces or tabs
-            preg_match('/^(\s*)/', $line, $matches);
-            $indentation = $matches[1] ?? '';
-
-            preg_match_all($regex, $line, $matches);
-            $tokens = array_filter($matches[0]);
-
-            $hasStream = false;
-            $highlightedTokens = array_map(
-                function ($token) use ($keywords, $functionPattern, &$hasStream) {
-                    if (trim($token) === '') {
-                        return '';
-                    }
-
-                    // Keywords
-                    if (in_array(strtoupper($token), $keywords)) {
-                        if (in_array(strtoupper($token), ['FROM', 'JOIN', 'INTO', 'DESCRIBE'])) {
-                            $hasStream = true;
-                        }
-                        return self::echoBlue(self::echoBold($token));
-                    }
-
-                    // FROM format(file, params).query
-                    if ($hasStream && preg_match('/^' . FileQuery::getRegexp() . '$/', $token, $matches)) {
-                        $ext = $matches['t'] ?? '';
-                        $file = $matches['p'] ?? '';
-                        $argsString = ltrim($matches['a'] ?? '', ', ');
-                        $query = $matches['q'] ?? '';
-                        if ($file === '' && $query === '') {
-                            return '';
-                        }
-
-                        $highlightedString = '';
-                        if ($ext !== '') {
-                            $highlightedString = self::echoMagenta(self::echoBold($ext . '('));
-                        }
-
-                        $fileParams = [];
-                        if ($file !== '') {
-                            $fileParams[] = self::echoLightRed($file);
-                        }
-
-                        if ($argsString !== '') {
-                            preg_match_all('/(?:(\w+)\s*:\s*)?("[^"]*")/', $argsString, $argMatches, PREG_SET_ORDER);
-                            foreach ($argMatches as $argMatch) {
-                                $key = $argMatch[1];
-                                $value = $argMatch[2];
-                                if ($key !== '') {
-                                    $fileParams[] = $key . ': ' . self::echoGreen($value);
-                                } else {
-                                    $fileParams[] = self::echoGreen($value);
-                                }
-                            }
-                        }
-                        $highlightedString .= implode(', ', $fileParams);
-
-                        if ($ext !== '') {
-                            $highlightedString .= self::echoMagenta(self::echoBold(')'));
-                        }
-
-                        if ($query !== '') {
-                            $highlightedString .= self::echoCyan(self::echoBold($query));
-                        }
-
-                        $hasStream = false;
-                        return $highlightedString;
-                    }
-
-                    // Functions
-                    if (preg_match('/' . $functionPattern . '/', $token, $matches)) {
-                        $functionName = $matches[1];
-                        $innerContent = $matches[2] ?? '';
-
-                        // Highlight parameters in content
-                        $highlightedContent = implode(
-                            ', ',
-                            array_map(
-                                fn ($param) => self::isQuoted(trim($param))
-                                    ? self::echoGreen(trim($param))
-                                    : trim($param),
-                                explode(',', $innerContent)
-                            )
-                        );
-
-                        return self::echoRed($functionName) . "({$highlightedContent})";
-                    }
-
-                    // Numbers
-                    if (is_numeric($token)) {
-                        return self::echoMagenta($token);
-                    }
-
-                    // Strings
-                    if (preg_match("/^['\"].*['\"]$/", $token)) {
-                        return self::echoGreen($token);
-                    }
-
-                    // Operators
-                    if (preg_match('/^(>=|<=|<>|!=|=|<|>|!==|==)$/', $token)) {
-                        return self::echoYellow(self::echoUnderline($token));
-                    }
-
-                    // Return token unchanged
-                    return $token;
-                },
-                $tokens
-            );
-
-            $highlightedLines[] = $indentation . implode(' ', $highlightedTokens);
+        try {
+            return Sql\Provider::highlight($sql, HighlighterKind::BASH);
+        } catch (\Throwable) {
+            return $sql;
         }
-
-        return implode(PHP_EOL, $highlightedLines);
-    }
-
-    private static function isQuoted(string $input): bool
-    {
-        return preg_match('/^".*"$/', $input) === 1 || preg_match('/^\'.*\'$/', $input) === 1;
     }
 
     public static function echoBold(string $text): string

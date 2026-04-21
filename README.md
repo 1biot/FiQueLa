@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-85.04%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1163-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-81.58%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_923-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -214,12 +214,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.3191 (emalloc)
-> Memory peak usage (MB): 1.7326 (emalloc)
+> Memory usage (MB): 1.2819 (emalloc)
+> Memory peak usage (MB): 1.7251 (emalloc)
 ------------------------------
-> Execution time (s): 8.5E-5
-> Execution time (ms): 0.085
-> Execution time (µs): 85
+> Execution time (s): 0.000145
+> Execution time (ms): 0.145
+> Execution time (µs): 145
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -228,12 +228,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ### SQL query: ###
 ==================
 > SELECT
->   ean ,
->   defaultCategory ,
->   EXPLODE(defaultCategory, " > ") AS categoryArray ,
->   price ,
->   ROUND(price, 2) AS price_rounded ,
->   MOD(price, 100) AS modulo_100 ,
+>   ean,
+>   defaultCategory,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray,
+>   price,
+>   ROUND(price, 2) AS price_rounded,
+>   MOD(price, 100) AS modulo_100,
 >   MOD(price, 54) AS modulo_54
 > FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
@@ -242,7 +242,7 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ### Results: ###
 ================
 > Result class: FQL\Results\InMemory
-> Results size memory (KB): 3.55
+> Results size memory (KB): 3.58
 > Result exists: true
 > Result count: 15
 ========================
@@ -260,13 +260,13 @@ array (7)
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1451 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.8678 (emalloc)
+> Memory peak usage (MB): 4.0114 (emalloc)
 ------------------------------
-> Execution time (s): 0.040016
-> Execution time (ms): 40.016
-> Execution time (µs): 40016
-> Execution memory peak usage (MB): 1.4936
+> Execution time (s): 0.042488
+> Execution time (ms): 42.488
+> Execution time (µs): 42488
+> Execution memory peak usage (MB): 2.2863
 ========================
 ### Benchmark Query: ###
 ========================
@@ -275,12 +275,12 @@ array (7)
 ### SQL query: ###
 ==================
 > SELECT
->   ean ,
->   defaultCategory ,
->   EXPLODE(defaultCategory, " > ") AS categoryArray ,
->   price ,
->   ROUND(price, 2) AS price_rounded ,
->   MOD(price, 100) AS modulo_100 ,
+>   ean,
+>   defaultCategory,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray,
+>   price,
+>   ROUND(price, 2) AS price_rounded,
+>   MOD(price, 100) AS modulo_100,
 >   MOD(price, 54) AS modulo_54
 > FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
@@ -288,40 +288,40 @@ array (7)
 =========================
 ### STREAM BENCHMARK: ###
 =========================
-> Size (KB): 2.78
+> Size (KB): 6.02
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1347 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.8575 (emalloc)
+> Memory peak usage (MB): 4.0114 (emalloc)
 ------------------------------
-> Execution time (s): 36.402098
-> Execution time (ms): 36402.098
-> Execution time (µs): 36402098
+> Execution time (s): 36.29862
+> Execution time (ms): 36298.62
+> Execution time (µs): 36298620
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
 ============================
-> Size (KB): 3.55
+> Size (KB): 3.58
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1451 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.8678 (emalloc)
+> Memory peak usage (MB): 4.0114 (emalloc)
 ------------------------------
-> Execution time (s): 0.01743
-> Execution time (ms): 17.43
-> Execution time (µs): 17430
+> Execution time (s): 0.018588
+> Execution time (ms): 18.588
+> Execution time (µs): 18588
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 3.1343 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.8569 (emalloc)
+> Memory peak usage (MB): 4.0114 (emalloc)
 ------------------------------
-> Final execution time (s): 36.459756
-> Final execution time (ms): 36459.756
-> Final execution time (µs): 36459756
+> Final execution time (s): 36.359885
+> Final execution time (ms): 36359.885
+> Final execution time (µs): 36359885
 ```
 
 ## 7. Ecosystem
