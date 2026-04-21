@@ -3,18 +3,17 @@
 namespace FQL\Functions\Utils;
 
 use FQL\Enum\Type;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Length extends SingleFieldFunction
+final class Length implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return int
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem)
-            ?? ($this->isQuoted($this->field) ? $this->removeQuotes($this->field) : null);
+        return 'LENGTH';
+    }
+
+    public static function execute(mixed $value): int
+    {
         if ($value === null) {
             return 0;
         } elseif (is_array($value)) {

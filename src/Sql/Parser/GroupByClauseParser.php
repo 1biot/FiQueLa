@@ -22,9 +22,9 @@ final class GroupByClauseParser
     public function parseClause(TokenStream $stream, Token $groupKeyword): GroupByClauseNode
     {
         $stream->expect(TokenType::KEYWORD_BY);
-        $fields = [$this->expressionParser->parsePrimary($stream)];
+        $fields = [$this->expressionParser->parseExpression($stream)];
         while ($stream->consumeIf(TokenType::COMMA) !== null) {
-            $fields[] = $this->expressionParser->parsePrimary($stream);
+            $fields[] = $this->expressionParser->parseExpression($stream);
         }
 
         if (!ClauseBoundary::isControlKeyword($stream->peek())) {

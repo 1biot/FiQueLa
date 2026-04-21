@@ -2,21 +2,20 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class RightPad extends MultipleFieldsFunction
+final class RightPad implements ScalarFunction
 {
-    public function __construct(
-        private readonly string $field,
-        private readonly int $length,
-        private readonly string $padString = " "
-    ) {
-        parent::__construct($this->field, (string) $this->length, $this->padString);
+    public static function name(): string
+    {
+        return 'RPAD';
     }
 
-    public function __invoke(array $item, array $resultItem): ?string
+    public static function execute(mixed $value, int $length, string $pad = ' '): ?string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        if ($value === null) {
+            $value = '';
+        }
         if (is_scalar($value)) {
             $value = (string) $value;
         }
@@ -25,16 +24,6 @@ class RightPad extends MultipleFieldsFunction
             return null;
         }
 
-        return str_pad($value, $this->length, $this->padString);
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            'RPAD(%s, %d, "%s")',
-            $this->field,
-            $this->length,
-            $this->padString
-        );
+        return str_pad($value, $length, $pad);
     }
 }

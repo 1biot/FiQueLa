@@ -2,34 +2,21 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class ArraySearch extends SingleFieldFunction
+final class ArraySearch implements ScalarFunction
 {
-    public function __construct(string $field, private string $value)
+    public static function name(): string
     {
-        parent::__construct($field);
+        return 'ARRAY_SEARCH';
     }
-    /**
-     * @inheritDoc
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+
+    public static function execute(mixed $haystack, mixed $needle): mixed
     {
-        $haystack = $this->getFieldValue($this->field, $item, $resultItem);
         if (!is_array($haystack)) {
             return null;
         }
 
-        return array_search($this->value, $haystack, true);
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s")',
-            $this->getName(),
-            $this->field,
-            $this->value
-        );
+        return array_search($needle, $haystack, true);
     }
 }

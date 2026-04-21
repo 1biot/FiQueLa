@@ -20,11 +20,12 @@ abstract class AbstractStream implements Interface\Stream
     /**
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
+     * @throws Sql\Parser\ParseException
      */
     public function fql(string $sql): Interface\Results
     {
-        return (new Sql\Sql(trim($sql)))
-            ->parseWithQuery($this->query())
+        return Sql\Provider::compile($sql)
+            ->applyTo($this->query())
             ->execute();
     }
 }

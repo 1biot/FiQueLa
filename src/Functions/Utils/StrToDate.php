@@ -2,10 +2,15 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class StrToDate extends MultipleFieldsFunction
+final class StrToDate implements ScalarFunction
 {
+    public static function name(): string
+    {
+        return 'STR_TO_DATE';
+    }
+
     private const FORMAT_MAP = [
         'a' => 'D',
         'b' => 'M',
@@ -41,42 +46,34 @@ class StrToDate extends MultipleFieldsFunction
         '%' => '%',
     ];
 
-    public function __construct(private readonly string $valueField, private readonly string $format)
+    public static function execute(mixed $value, string $format): ?string
     {
-        parent::__construct($valueField, $format);
-    }
-
-    public function __invoke(array $item, array $resultItem): ?string
-    {
-        $value = $this->getFieldValue($this->valueField, $item, $resultItem) ?? $this->valueField;
-        $format = $this->getFieldValue($this->format, $item, $resultItem) ?? $this->format;
-
-        if (!is_string($value) || !is_string($format) || $value === '' || $format === '') {
+        if (!is_string($value) || $value === '' || $format === '') {
             return null;
         }
 
-        if (!$this->hasSupportedParts($format)) {
+        if (!self::hasSupportedParts($format)) {
             return null;
         }
 
-        if ($this->hasWeekParts($format) && !$this->hasRequiredWeekParts($format)) {
+        if (self::hasWeekParts($format) && !self::hasRequiredWeekParts($format)) {
             return null;
         }
 
-        if ($this->hasDateParts($format) && !$this->hasFullDateParts($format)) {
+        if (self::hasDateParts($format) && !self::hasFullDateParts($format)) {
             return null;
         }
 
-        if ($this->hasTimeParts($format) && !$this->hasRequiredTimeParts($format)) {
+        if (self::hasTimeParts($format) && !self::hasRequiredTimeParts($format)) {
             return null;
         }
 
-        $phpFormat = $this->convertFormat($format);
+        $phpFormat = self::convertFormat($format);
         $date = \DateTimeImmutable::createFromFormat('!' . $phpFormat, $value);
         $errors = \DateTimeImmutable::getLastErrors();
 
         if (!$date instanceof \DateTimeImmutable) {
-            $trailingPosition = $errors === false ? null : $this->getTrailingDataPosition($errors);
+            $trailingPosition = $errors === false ? null : self::getTrailingDataPosition($errors);
             if ($trailingPosition !== null) {
                 $trimmedValue = substr($value, 0, $trailingPosition);
                 $date = \DateTimeImmutable::createFromFormat('!' . $phpFormat, $trimmedValue);
@@ -88,14 +85,14 @@ class StrToDate extends MultipleFieldsFunction
             return null;
         }
 
-        if ($errors !== false && !$this->isParseValid($errors)) {
+        if ($errors !== false && !self::isParseValid($errors)) {
             return null;
         }
 
-        return $this->formatResult($date, $format);
+        return self::formatResult($date, $format);
     }
 
-    private function convertFormat(string $format): string
+    private static function convertFormat(string $format): string
     {
         $converted = '';
         $length = strlen($format);
@@ -103,18 +100,18 @@ class StrToDate extends MultipleFieldsFunction
             $char = $format[$i];
             if ($char === '%' && isset($format[$i + 1])) {
                 $specifier = $format[$i + 1];
-                $converted .= self::FORMAT_MAP[$specifier] ?? $this->escapeLiteral($specifier);
+                $converted .= self::FORMAT_MAP[$specifier] ?? self::escapeLiteral($specifier);
                 $i++;
                 continue;
             }
 
-            $converted .= $this->escapeLiteral($char);
+            $converted .= self::escapeLiteral($char);
         }
 
         return $converted;
     }
 
-    private function escapeLiteral(string $char): string
+    private static function escapeLiteral(string $char): string
     {
         if (preg_match('/[a-zA-Z]/', $char) === 1) {
             return '\\' . $char;
@@ -126,13 +123,13 @@ class StrToDate extends MultipleFieldsFunction
     /**
      * @param array{warning_count:int,warnings:array<int,string>,error_count:int,errors:array<int,string>} $errors
      */
-    private function isParseValid(array $errors): bool
+    private static function isParseValid(array $errors): bool
     {
-        if ($errors['error_count'] > 0 && !$this->isOnlyTrailingData($errors['errors'])) {
+        if ($errors['error_count'] > 0 && !self::isOnlyTrailingData($errors['errors'])) {
             return false;
         }
 
-        if ($errors['warning_count'] > 0 && !$this->isOnlyTrailingData($errors['warnings'])) {
+        if ($errors['warning_count'] > 0 && !self::isOnlyTrailingData($errors['warnings'])) {
             return false;
         }
 
@@ -142,7 +139,7 @@ class StrToDate extends MultipleFieldsFunction
     /**
      * @param array<int, string> $items
      */
-    private function isOnlyTrailingData(array $items): bool
+    private static function isOnlyTrailingData(array $items): bool
     {
         foreach ($items as $message) {
             if (mb_strtolower($message) !== 'trailing data') {
@@ -156,7 +153,7 @@ class StrToDate extends MultipleFieldsFunction
     /**
      * @param array{warning_count:int,warnings:array<int,string>,error_count:int,errors:array<int,string>} $errors
      */
-    private function getTrailingDataPosition(array $errors): ?int
+    private static function getTrailingDataPosition(array $errors): ?int
     {
         $positions = [];
         foreach ([$errors['errors'], $errors['warnings']] as $items) {
@@ -170,10 +167,10 @@ class StrToDate extends MultipleFieldsFunction
         return $positions === [] ? null : min($positions);
     }
 
-    private function formatResult(\DateTimeImmutable $date, string $format): ?string
+    private static function formatResult(\DateTimeImmutable $date, string $format): ?string
     {
-        $hasDateParts = $this->hasDateParts($format);
-        $hasTimeParts = $this->hasTimeParts($format);
+        $hasDateParts = self::hasDateParts($format);
+        $hasTimeParts = self::hasTimeParts($format);
         $hasMicroseconds = str_contains($format, '%f');
 
         if ($hasDateParts && $hasTimeParts) {
@@ -191,9 +188,9 @@ class StrToDate extends MultipleFieldsFunction
         return null;
     }
 
-    private function hasSupportedParts(string $format): bool
+    private static function hasSupportedParts(string $format): bool
     {
-        $specifiers = $this->collectSpecifiers($format);
+        $specifiers = self::collectSpecifiers($format);
         foreach ($specifiers as $specifier) {
             if (!array_key_exists($specifier, self::FORMAT_MAP)) {
                 return false;
@@ -203,47 +200,50 @@ class StrToDate extends MultipleFieldsFunction
         return $specifiers !== [];
     }
 
-    private function hasDateParts(string $format): bool
+    private static function hasDateParts(string $format): bool
     {
-        return $this->containsAny($format, ['%Y', '%y', '%c', '%m', '%M', '%b', '%d', '%e', '%D', '%j', '%U', '%u', '%V', '%v', '%X', '%x', '%W', '%w']);
+        return self::containsAny($format, [
+            '%Y', '%y', '%c', '%m', '%M', '%b', '%d', '%e', '%D', '%j',
+            '%U', '%u', '%V', '%v', '%X', '%x', '%W', '%w',
+        ]);
     }
 
-    private function hasFullDateParts(string $format): bool
+    private static function hasFullDateParts(string $format): bool
     {
-        if ($this->hasWeekParts($format)) {
+        if (self::hasWeekParts($format)) {
             return true;
         }
 
-        $hasYear = $this->containsAny($format, ['%Y', '%y']);
-        $hasMonth = $this->containsAny($format, ['%c', '%m', '%M', '%b']);
-        $hasDay = $this->containsAny($format, ['%d', '%e', '%D', '%j']);
+        $hasYear = self::containsAny($format, ['%Y', '%y']);
+        $hasMonth = self::containsAny($format, ['%c', '%m', '%M', '%b']);
+        $hasDay = self::containsAny($format, ['%d', '%e', '%D', '%j']);
 
         return $hasYear && $hasMonth && $hasDay;
     }
 
-    private function hasTimeParts(string $format): bool
+    private static function hasTimeParts(string $format): bool
     {
-        return $this->containsAny($format, ['%H', '%h', '%I', '%k', '%l', '%i', '%s', '%S', '%f', '%r', '%T', '%p']);
+        return self::containsAny($format, ['%H', '%h', '%I', '%k', '%l', '%i', '%s', '%S', '%f', '%r', '%T', '%p']);
     }
 
-    private function hasRequiredTimeParts(string $format): bool
+    private static function hasRequiredTimeParts(string $format): bool
     {
-        $hasHour = $this->containsAny($format, ['%H', '%h', '%I', '%k', '%l', '%r', '%T']);
-        $hasMinute = $this->containsAny($format, ['%i', '%r', '%T']);
+        $hasHour = self::containsAny($format, ['%H', '%h', '%I', '%k', '%l', '%r', '%T']);
+        $hasMinute = self::containsAny($format, ['%i', '%r', '%T']);
 
         return $hasHour && $hasMinute;
     }
 
-    private function hasWeekParts(string $format): bool
+    private static function hasWeekParts(string $format): bool
     {
-        return $this->containsAny($format, ['%U', '%u', '%V', '%v', '%X', '%x']);
+        return self::containsAny($format, ['%U', '%u', '%V', '%v', '%X', '%x']);
     }
 
-    private function hasRequiredWeekParts(string $format): bool
+    private static function hasRequiredWeekParts(string $format): bool
     {
-        $hasWeekYear = $this->containsAny($format, ['%X', '%x', '%Y', '%y']);
-        $hasWeek = $this->containsAny($format, ['%U', '%u', '%V', '%v']);
-        $hasWeekday = $this->containsAny($format, ['%W', '%w']);
+        $hasWeekYear = self::containsAny($format, ['%X', '%x', '%Y', '%y']);
+        $hasWeek = self::containsAny($format, ['%U', '%u', '%V', '%v']);
+        $hasWeekday = self::containsAny($format, ['%W', '%w']);
 
         return $hasWeekYear && $hasWeek && $hasWeekday;
     }
@@ -251,7 +251,7 @@ class StrToDate extends MultipleFieldsFunction
     /**
      * @return array<int, string>
      */
-    private function collectSpecifiers(string $format): array
+    private static function collectSpecifiers(string $format): array
     {
         $specifiers = [];
         $length = strlen($format);
@@ -268,7 +268,7 @@ class StrToDate extends MultipleFieldsFunction
     /**
      * @param array<int, string> $tokens
      */
-    private function containsAny(string $format, array $tokens): bool
+    private static function containsAny(string $format, array $tokens): bool
     {
         foreach ($tokens as $token) {
             if (str_contains($format, $token)) {
@@ -277,15 +277,5 @@ class StrToDate extends MultipleFieldsFunction
         }
 
         return false;
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s")',
-            $this->getName(),
-            $this->valueField,
-            $this->format
-        );
     }
 }

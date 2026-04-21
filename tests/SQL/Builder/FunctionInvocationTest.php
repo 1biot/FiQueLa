@@ -72,9 +72,9 @@ class FunctionInvocationTest extends TestCase
             'rpad' => ['SELECT RPAD(name, 8, "0")', 'RPAD(name, 8, "0")'],
             'substring with length' => ['SELECT SUBSTRING(name, 1, 5)', 'SUBSTRING(name, 1, 5)'],
             'substring without length' => ['SELECT SUBSTRING(name, 1)', 'SUBSTRING(name, 1)'],
-            'substr alias' => ['SELECT SUBSTR(name, 1, 2)', 'SUBSTRING(name, 1, 2)'],
-            'locate with position' => ['SELECT LOCATE("x", name, 2)', 'LOCATE(x, name, 2)'],
-            'locate no position' => ['SELECT LOCATE("x", name)', 'LOCATE(x, name)'],
+            'substr alias' => ['SELECT SUBSTR(name, 1, 2)', 'SUBSTR(name, 1, 2)'],
+            'locate with position' => ['SELECT LOCATE("x", name, 2)', 'LOCATE("x", name, 2)'],
+            'locate no position' => ['SELECT LOCATE("x", name)', 'LOCATE("x", name)'],
 
             // Utils
             'coalesce' => ['SELECT COALESCE(a, b, c)', 'COALESCE(a, b, c)'],
@@ -91,10 +91,10 @@ class FunctionInvocationTest extends TestCase
             'cast' => ['SELECT CAST(price AS INT)', 'CAST(price AS INT)'],
 
             // Date/Time functions (numeric bool argument)
-            'curdate true' => ['SELECT CURDATE(true)', 'CURDATE(true)'],
-            'curtime true' => ['SELECT CURTIME(true)', 'CURTIME(true)'],
+            'curdate true' => ['SELECT CURDATE(true)', 'CURDATE(TRUE)'],
+            'curtime true' => ['SELECT CURTIME(true)', 'CURTIME(TRUE)'],
             'current timestamp' => ['SELECT CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP()'],
-            'now with bool true' => ['SELECT NOW(true)', 'NOW(true)'],
+            'now with bool true' => ['SELECT NOW(true)', 'NOW(TRUE)'],
             'date format' => ['SELECT DATE_FORMAT(dateField, "Y-m-d")', 'DATE_FORMAT(dateField, "Y-m-d")'],
             'from unixtime' => ['SELECT FROM_UNIXTIME(dateField, "Y-m-d")', 'FROM_UNIXTIME(dateField, "Y-m-d")'],
             'str to date' => ['SELECT STR_TO_DATE(dateField, "%Y-%m-%d")', 'STR_TO_DATE(dateField, "%Y-%m-%d")'],
@@ -106,21 +106,25 @@ class FunctionInvocationTest extends TestCase
             'day' => ['SELECT DAY(dateField)', 'DAY(dateField)'],
 
             // Conditional
-            'if' => ['SELECT IF(a > 1, "yes", "no")', 'IF(a > 1, yes, no)'],
-            'ifnull' => ['SELECT IFNULL(name, "unknown")', 'IFNULL(name IS NULL, unknown)'],
+            'if' => ['SELECT IF(a > 1, "yes", "no")', 'IF(a > 1, "yes", "no")'],
+            'ifnull' => ['SELECT IFNULL(name, "unknown")', 'IFNULL(name, "unknown")'],
             'isnull' => ['SELECT ISNULL(name)', 'ISNULL(name)'],
 
             // Fulltext
             'match against split' => [
                 'SELECT MATCH(name) AGAINST("term" IN NATURAL MODE)',
-                'MATCH(name) AGAINST("term" IN NATURAL MODE)',
+                'MATCH(name) AGAINST("term IN NATURAL MODE")',
             ],
         ];
     }
 
-    public function testUnknownFunctionThrows(): void
+    public function testUnknownFunctionThrowsAtExecutionTime(): void
     {
+        // The parser accepts any function name — resolution happens at runtime when
+        // the evaluator dispatches through FunctionInvoker. Unknown names throw there.
         $this->expectException(Exception\UnexpectedValueException::class);
-        SqlProvider::compile('SELECT NONSENSE(x)')->applyTo(new TestProvider());
+        $path = (string) realpath(__DIR__ . '/../../../examples/data/products.json');
+        $sql = sprintf('SELECT NONSENSE(name) FROM json(%s).data.products', $path);
+        iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
     }
 }

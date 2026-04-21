@@ -3,17 +3,20 @@
 namespace FQL\Functions\Hashing;
 
 use FQL\Enum\Type;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Md5 extends SingleFieldFunction
+final class Md5 implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return string
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        return 'MD5';
+    }
+
+    public static function execute(mixed $value): string
+    {
+        if ($value === null) {
+            $value = '';
+        }
         if (!is_string($value)) {
             $value = Type::castValue($value, Type::STRING);
         }

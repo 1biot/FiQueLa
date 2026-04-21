@@ -111,6 +111,6 @@ final class SelectClauseParser
             return new StarNode($peek->position);
         }
 
-        return $this->expressionParser->parsePrimary($stream);
+        return $this->expressionParser->parseExpression($stream);
     }
 }

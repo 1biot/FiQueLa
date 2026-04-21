@@ -3,111 +3,65 @@
 namespace FQL\Functions\Aggregate;
 
 use FQL\Enum\Type;
-use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldAggregateFunction;
-use FQL\Interface\Query;
+use FQL\Functions\Core\AggregateFunction;
 
-class GroupConcat extends SingleFieldAggregateFunction
+/**
+ * `GROUP_CONCAT(expr [, separator])` — joins all non-null group values into a
+ * single string using the provided separator (default `,`).
+ *
+ * The separator is carried on the accumulator so each aggregate invocation
+ * within the same grouping phase retains its configured joiner.
+ */
+final class GroupConcat implements AggregateFunction
 {
-    public function __construct(
-        string $field,
-        private readonly string $separator = ',',
-        bool $distinct = false
-    ) {
-        parent::__construct($field, $distinct);
-    }
-
-    public function __invoke(array $items): mixed
+    public static function name(): string
     {
-        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
-        $values = [];
-
-        foreach ($items as $item) {
-            $value = $this->getFieldValue($this->field, $item, false);
-            if (is_string($value)) {
-                $value = Type::matchByString($value);
-            }
-
-            if ($value === null) {
-                continue;
-            }
-
-            if (!$this->isDistinctValue($value, $seen)) {
-                continue;
-            }
-
-            $values[] = $value;
-        }
-
-        return implode(
-            $this->separator,
-            $values
-        );
-    }
-
-    public function initAccumulator(): mixed
-    {
-        $accumulator = [
-            'value' => '',
-            'hasValue' => false,
-        ];
-
-        if (!$this->distinct) {
-            return $accumulator;
-        }
-
-        $accumulator['seen'] = [];
-        return $accumulator;
+        return 'GROUP_CONCAT';
     }
 
     /**
-     * @inheritDoc
+     * @param array{distinct?: bool, separator?: string} $options
+     * @return array{parts: list<string>, distinct: bool, seen: list<mixed>, separator: string}
      */
-    public function accumulate(mixed $accumulator, array $item): mixed
+    public static function initial(array $options = []): array
     {
-        $value = $this->getFieldValue($this->field, $item, false);
+        return [
+            'parts' => [],
+            'distinct' => (bool) ($options['distinct'] ?? false),
+            'seen' => [],
+            'separator' => (string) ($options['separator'] ?? ','),
+        ];
+    }
+
+    /**
+     * @param array{parts: list<string>, distinct: bool, seen: list<mixed>, separator: string} $acc
+     * @return array{parts: list<string>, distinct: bool, seen: list<mixed>, separator: string}
+     */
+    public static function accumulate(mixed $acc, mixed $value): array
+    {
+        if ($value === null) {
+            return $acc;
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
-
-        if ($value === null) {
-            return $accumulator;
-        }
-
-        if ($this->distinct) {
-            if (!$this->isDistinctValue($value, $accumulator['seen'])) {
-                return $accumulator;
+        if ($acc['distinct']) {
+            foreach ($acc['seen'] as $seenValue) {
+                if ($seenValue === $value) {
+                    return $acc;
+                }
             }
+            $acc['seen'][] = $value;
         }
-
-        $stringValue = (string) $value;
-        if ($accumulator['hasValue']) {
-            $accumulator['value'] .= $this->separator . $stringValue;
-            return $accumulator;
-        }
-
-        $accumulator['value'] = $stringValue;
-        $accumulator['hasValue'] = true;
-        return $accumulator;
-    }
-
-    public function finalize(mixed $accumulator): mixed
-    {
-        return $accumulator['value'];
+        $acc['parts'][] = is_scalar($value) ? (string) $value : (string) json_encode($value);
+        return $acc;
     }
 
     /**
-     * @throws UnexpectedValueException
+     * @param array{parts: list<string>, distinct: bool, seen: list<mixed>, separator: string} $acc
      */
-    public function __toString(): string
+    public static function finalize(mixed $acc): string
     {
-        $distinct = $this->distinct ? Query::DISTINCT . ' ' : '';
-        return sprintf(
-            '%s(%s%s, "%s")',
-            $this->getName(),
-            $distinct,
-            $this->field,
-            $this->separator
-        );
+        return implode($acc['separator'], $acc['parts']);
     }
 }

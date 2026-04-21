@@ -2,17 +2,17 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\NoFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class CurrentTimestamp extends NoFieldFunction
+final class CurrentTimestamp implements ScalarFunction
 {
-    public function __invoke(): int
+    public static function name(): string
     {
-        return time();
+        return 'CURRENT_TIMESTAMP';
     }
 
-    public function __toString(): string
+    public static function execute(): int
     {
-        return sprintf('%s()', $this->getName());
+        return time();
     }
 }

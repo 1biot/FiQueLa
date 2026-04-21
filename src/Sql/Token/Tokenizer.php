@@ -205,6 +205,29 @@ final class Tokenizer
             return;
         }
 
+        // Arithmetic operators (after the signed-number lookahead above, so `-5` in
+        // expression context still scans as a single NUMBER_LITERAL).
+        if ($char === '+') {
+            $this->advance();
+            $this->emit(TokenType::OP_PLUS, '+', '+', $startOffset, $startLine, $startColumn, 1);
+            return;
+        }
+        if ($char === '-') {
+            $this->advance();
+            $this->emit(TokenType::OP_MINUS, '-', '-', $startOffset, $startLine, $startColumn, 1);
+            return;
+        }
+        if ($char === '/') {
+            $this->advance();
+            $this->emit(TokenType::OP_SLASH, '/', '/', $startOffset, $startLine, $startColumn, 1);
+            return;
+        }
+        if ($char === '%') {
+            $this->advance();
+            $this->emit(TokenType::OP_PERCENT, '%', '%', $startOffset, $startLine, $startColumn, 1);
+            return;
+        }
+
         // Identifiers / keywords / function names / file queries
         if ($this->isIdentifierStart($char)) {
             $this->scanIdentifierLike($startOffset, $startLine, $startColumn);

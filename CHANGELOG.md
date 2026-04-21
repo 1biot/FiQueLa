@@ -1,28 +1,262 @@
 # Changelog
 
-## [Unreleased]
+## [3.0.0]
+
+This is a major rewrite of the FQL parser **and fluent API**. Two deeply related
+shifts happened:
+
+1.  The legacy monolithic `Sql\Sql` / `SqlLexer` are gone. The public
+    `Query\Provider::fql()` entry point is unchanged. The new pipeline
+    (Tokenizer → AST → Builder) opens the door to highlighters, formatters,
+    an expression evaluator, and more.
+
+2.  **Expression-First Fluent API.** Every fluent helper now accepts an SQL
+    expression string and routes it through `Sql\Provider::parseExpression()`:
+    `$query->sum('price + vat')`, `$query->groupBy('year(date)')`,
+    `$query->where('lower(name)', Op::EQ, 'alice')`, `$query->select('if(x > 5, "big", "small")')`
+    all work. The SQL builder and the fluent API converge on the **same code
+    path** — there are no more `@internal` side doors (`addExpression`,
+    `groupByExpression`, `orderByExpression`, `addAggregateExpression` are gone).
+    `Functions\*` classes are now pure static utilities implementing the
+    `ScalarFunction` / `AggregateFunction` contracts in `Functions\Core`; the
+    global `Functions\FunctionRegistry` drives dispatch with auto-discovery
+    from a shipped `functions.neon`, a runtime PHP cache, and user-facing
+    `register()` / `unregister()` / `override()` / `loadConfig()` API.
 
 ### Added
-- **`FQL\Sql\Token` namespace** — typed tokenizer foundation for the SQL parser refactor.
-  - `TokenType` enum classifies every lexical element (keywords, identifiers, function names, literals, operators, file queries, structural tokens, and trivia such as whitespace and comments).
-  - `Token` and `Position` readonly value objects carry normalized values, raw lexemes, source positions (offset/line/column) and optional metadata (e.g. parsed `FileQuery` for `FILE_QUERY` tokens).
-  - `TokenStream` cursor wraps `Token[]` with `peek`/`consume`/`consumeIf`/`expect`/`mark`/`rewindTo`. Skips trivia by default; opt-in `includeTrivia` mode preserves whitespace and comments verbatim for highlighters and formatters.
-  - `Tokenizer` is a single-pass character-scanning lexer that emits typed tokens with position information. Recognises `FILE_QUERY` as a single token in `FROM`/`INTO`/`DESCRIBE`/`JOIN` contexts, handles dotted identifiers (including `@` XML-attribute and kebab-case names), supports negative numeric literals in expression contexts, and reports unterminated strings/comments with location info.
-- **`FQL\Sql\Ast` namespace** — abstract syntax tree nodes produced by the parser.
-  - `SelectStatementNode` root plus clause nodes (`FromClauseNode`, `JoinClauseNode`, `WhereClauseNode`, `HavingClauseNode`, `GroupByClauseNode`, `OrderByClauseNode`, `OrderByItemNode`, `LimitClauseNode`, `UnionClauseNode`, `IntoClauseNode`, `SelectFieldNode`).
-  - Expression nodes (`ColumnReferenceNode`, `LiteralNode`, `StarNode`, `FunctionCallNode`, `CastExpressionNode`, `MatchAgainstNode`, `CaseExpressionNode`, `WhenBranchNode`, `ConditionExpressionNode`, `ConditionGroupNode`, `SubQueryNode`, `FileQueryNode`) — all immutable readonly value objects implementing `AstNode`.
-  - `JoinType` / `ExplainMode` enums.
-- **`FQL\Sql\Parser` namespace** — recursive-descent parser split into dedicated clause parsers (`SelectClauseParser`, `FromClauseParser`, `JoinClauseParser`, `WhereClauseParser`, `HavingClauseParser`, `GroupByClauseParser`, `OrderByClauseParser`, `LimitOffsetParser`, `UnionParser`, `IntoParser`), an `ExpressionParser` for function/CASE/CAST/MATCH handling, and a shared `ConditionParser` + `ConditionGroupParser`. `Parser::create()` wires the default configuration; `ParseException` carries the offending token and expected token types for rich, positioned diagnostics.
-- **`FQL\Sql\Builder` namespace** — `QueryBuildingVisitor` walks the AST and constructs an `Interface\Query` via the existing fluent API. Function-name dispatch is kept inline in `applyFunctionCall()` (mirrors the legacy `Sql::applyFunctionToQuery()` — a future PR extracts this into a registry of handlers). `ExpressionCompiler` serialises AST nodes back into FQL-string form where the Query API requires strings (`whenCase`, `elseCase`, `IF` condition). `FileQueryResolver` wraps the existing `FileQueryPathValidator` with the compiler's `basePath`.
-- **`FQL\Sql\Provider::compile()` + `FQL\Sql\Compiler`** — public entry point for the new pipeline. `Compiler` exposes `toTokens()`, `toTokenStream()`, `toAst()`, `toQuery()`, and `applyTo(Interface\Query $existing)` (the replacement for the legacy `Sql::parseWithQuery()`).
+- **`FQL\Sql\Token` namespace** — typed tokenizer foundation.
+  - `TokenType` enum classifies every lexical element (keywords, identifiers, function
+    names, literals, operators, file queries, structural tokens, whitespace/comment trivia).
+  - `Token` and `Position` readonly value objects carry normalized values, raw lexemes,
+    source positions (offset/line/column), and optional metadata (e.g. parsed `FileQuery`
+    for `FILE_QUERY` tokens).
+  - `TokenStream` cursor with `peek`/`consume`/`consumeIf`/`expect`/`mark`/`rewindTo`.
+    Skips trivia by default; opt-in `includeTrivia` mode preserves whitespace and
+    comments verbatim for highlighters and formatters.
+  - `Tokenizer` — single-pass character-scanning lexer with line/column tracking. Emits
+    `FILE_QUERY` as a single token after `FROM`/`INTO`/`DESCRIBE`/`JOIN`, supports
+    dotted identifiers including `@` XML-attribute and kebab-case names, negative
+    numeric literals in expression contexts, and reports unterminated strings/comments
+    with exact position info.
+- **`FQL\Sql\Ast` namespace** — abstract syntax tree nodes (immutable readonly VOs).
+  - Statement / clause nodes: `SelectStatementNode`, `FromClauseNode`, `JoinClauseNode`,
+    `WhereClauseNode`, `HavingClauseNode`, `GroupByClauseNode`, `OrderByClauseNode`,
+    `OrderByItemNode`, `LimitClauseNode`, `UnionClauseNode`, `IntoClauseNode`,
+    `SelectFieldNode`.
+  - Expression nodes: `ColumnReferenceNode`, `LiteralNode`, `StarNode`, `FunctionCallNode`,
+    `CastExpressionNode`, `MatchAgainstNode`, `CaseExpressionNode`, `WhenBranchNode`,
+    `ConditionExpressionNode`, `ConditionGroupNode`, `SubQueryNode`, `FileQueryNode`,
+    and new `BinaryOpNode` for arithmetic.
+  - `JoinType`, `ExplainMode`, `BinaryOperator` enums.
+- **`FQL\Sql\Parser` namespace** — recursive-descent parser split into one class per
+  clause (`SelectClauseParser`, `FromClauseParser`, `JoinClauseParser`, `WhereClauseParser`,
+  `HavingClauseParser`, `GroupByClauseParser`, `OrderByClauseParser`, `LimitOffsetParser`,
+  `UnionParser`, `IntoParser`). `ExpressionParser` handles literals, function calls,
+  `CAST`/`MATCH AGAINST`/`CASE`, **and infix arithmetic operators (`+`, `-`, `*`, `/`,
+  `%`) via a Pratt-style precedence parser**. `ConditionParser` + `ConditionGroupParser`
+  cover WHERE/HAVING with full operator coverage including nested groups. `ParseException`
+  carries the offending token and expected token types for line/column-aware diagnostics.
+- **`FQL\Sql\Builder` namespace** — translates the AST into an `Interface\Query`.
+  - `QueryBuildingVisitor` walks the AST and invokes fluent `Query` methods.
+  - `ExpressionCompiler` serialises AST nodes back to FQL strings for APIs that expect
+    strings (`whenCase`, `elseCase`, `IF` condition).
+  - `FileQueryResolver` wraps `FileQueryPathValidator` with the compiler's `basePath`.
+  - **`ClauseRewriter`** auto-promotes complex expressions (function calls, binary
+    arithmetic, CAST, CASE, MATCH) in `GROUP BY` / `ORDER BY` into computed SELECT
+    fields referenced by alias. Auto-aliases (`__fql_auto_*`) are excluded from the
+    result set, so `SELECT id FROM x ORDER BY LENGTH(name)` works out of the box.
+- **`FQL\Sql\Function` namespace** — function dispatch registry.
+  - `FunctionHandler` interface + `FunctionRegistry` with `register()` / `get()` /
+    `has()` / `apply()` and a `default()` factory that pre-registers every built-in.
+  - `GenericFunctionHandler` provides data-driven 1:1 mapping from FQL function name
+    to the fluent `Interface\Query` API (with arity and DISTINCT constraints).
+  - `ArgCoercion` helper converts AST argument nodes into the scalar/string forms
+    expected by the Query API.
+  - Category factories: `AggregateHandlers`, `HashingHandlers`, `MathHandlers`,
+    `StringHandlers`, `UtilsHandlers`, `DateTimeHandlers`, `ConditionalHandlers`
+    (plus the standalone `IfHandler` for the condition-argument IF function).
+  - Registering a user-defined function is now a one-liner via
+    `FunctionRegistry::register(new GenericFunctionHandler([...], fn(...) => ...))`.
+- **`FQL\Sql\Highlighter` namespace** — syntax highlighting.
+  - `Highlighter` + `Theme` interfaces, `ThemedHighlighter` base class.
+  - `BashHighlighter` + `BashTheme` emit ANSI colour codes for terminal output.
+  - `HtmlHighlighter` + `HtmlTheme` emit `<span class="fql-…">` with `htmlspecialchars`-
+    escaped content. Companion stylesheet in `examples/highlighter.css`.
+  - `HighlighterKind` enum (`BASH`, `HTML`).
+  - `examples/highlight.php` CLI: `php examples/highlight.php [--html|--bash] "<SQL>"`.
+- **`FQL\Sql\Formatter` namespace** — AST-driven pretty-printer.
+  - `SqlFormatter` with `FormatterOptions` (indent, `uppercaseKeywords`, `fieldsPerLine`,
+    `newline`). Emits one clause per line; multi-field SELECTs wrap onto separate lines.
+- **`FQL\Sql\Provider`** — one-stop facade:
+  - `compile($sql, $basePath)` → `Compiler` (tokens + AST + Query + `applyTo($existing)`).
+  - `tokenize($sql, $includeTrivia)` → `TokenStream`.
+  - `highlight($sql, $kind)` → ANSI or HTML string.
+  - `format($sql, $options)` → pretty-printed SQL.
+- **`FQL\Sql\Support` helpers** — used by internal consumers migrated off the legacy
+  lexer:
+  - `FieldListSplitter::split(...)` / `splitAlias(...)` — quote/paren/bracket-aware
+    comma-split and `<expr> AS <alias>` separation.
+  - `ConditionStringParser::populate(string, BaseConditionGroup)` — parses an FQL
+    condition fragment into a populated runtime condition group.
+- **`FQL\Sql\Runtime` namespace** — runtime expression evaluator that powers nested
+  functions, arithmetic expressions, and expression-driven WHERE / HAVING / GROUP BY /
+  ORDER BY clauses. Replaces the 3.0.0-beta `ClauseRewriter` auto-promote workaround.
+  - `ExpressionEvaluator::evaluate(ExpressionNode, array $item, array $resultItem = []): mixed`
+    walks the AST and resolves every node against a row: column references via
+    `accessNestedValue`, function calls recursively via `FunctionInvoker`, binary
+    arithmetic with SQL-style null propagation and zero-division handling, CAST, CASE,
+    MATCH/AGAINST, and boolean conditions.
+  - `FunctionInvoker` — thin dispatcher on top of `Functions\FunctionRegistry`.
+    Resolves a function name to the registered class and calls its static
+    `execute(...$args)` with already-evaluated AST arguments. Unknown names
+    raise `Exception\UnknownFunctionException` at invocation.
+- **`FQL\Conditions\ExpressionCondition`** — condition whose operands are AST
+  `ExpressionNode`s rather than field-name strings. Built by the visitor for every
+  WHERE/HAVING condition; delegates evaluation to `ExpressionEvaluator`, so
+  `WHERE LOWER(name) = 'alice'` or `HAVING SUM(price * qty) > 1000` work without an
+  explicit SELECT alias.
+- **`FQL\Functions\FunctionRegistry`** — global static registry for every
+  FQL function. Bootstraps from `src/Functions/functions.neon` (committed),
+  caches the resolved `name → class` map to `fiquela-functions.compiled.php`
+  in a writable location (`setCacheDir()` > library dir > system temp),
+  invalidates on neon source mtime. Public lifecycle API:
+  - `register(class-string)` — add a user-defined function. Strict on
+    duplicate names; use `override()` to replace a built-in.
+  - `unregister(string $name)` — drop a built-in or user function.
+  - `loadConfig(string $neonPath)` — merge a custom neon source.
+  - `getScalar` / `getAggregate` / `has` / `isAggregate` / `all` /
+    `reset` — query + test helpers.
+- **`Functions\Core\ScalarFunction`** and **`Functions\Core\AggregateFunction`**
+  interfaces that every built-in function implements. Contracts:
+  - Scalar: `name(): string` + a class-chosen `execute(...$args)` signature.
+  - Aggregate: `name()` + `initial(array $options = [])` +
+    `accumulate(mixed $acc, mixed $value)` + `finalize(mixed $acc)`. The
+    `$options` bag carries `distinct` / `separator` per aggregate.
+- **`Exception\UnknownFunctionException`** — raised at runtime when the
+  registry does not know the invoked name. Subclass of
+  `UnexpectedValueException`.
+- **`Exception\FunctionRegistrationException`** — raised by the registry for
+  duplicate / missing / malformed registration requests.
+- **`Sql\Provider::parseExpression(string): ExpressionNode`** and
+  **`parseCondition(string): ConditionGroupNode`** — public fragment parsers
+  used by every fluent helper (`select('round(price * 1.21, 2)')`,
+  `where('lower(name)', Op::EQ, 'alice')`, `case()->whenCase('x > 5', '"big"')`).
+- **`Sql\Token\Position::synthetic()`** — factory returning a `Position(0, 0, 0)`
+  used by fluent-API code paths that wrap plain field names into synthetic AST
+  nodes.
+- **`Functions\Utils\CaseBuilder`** — internal buffer that backs the
+  `case()->whenCase()->elseCase()->endCase()` fluent builder; produces a
+  `CaseExpressionNode` for the evaluator.
 
 ### Changed
-- **`Query\Provider::fql()` now runs on the new Token → AST → Query pipeline.** Public behaviour is preserved; parse errors are raised as `FQL\Sql\Parser\ParseException` (a subclass of the existing `FQL\Exception\UnexpectedValueException`) with precise line/column information.
-- Internal consumers migrated to the new `Sql\Provider::compile()` API: `Query\Debugger::inspectStreamSql()`, `examples/test.php`, and the full `tests/SQL` suite (`SqlIntegrationTest`, `SqlIntoTest`, `SqlTest`, `SqlSubqueryJoinTest`) plus `tests/Query/UnionTest` and `tests/Functions/Utils/UuidTest`.
+- **`Query\Provider::fql()` runs on the new Token → AST → Query pipeline.** Public
+  behaviour is preserved; parse errors are `FQL\Sql\Parser\ParseException` (a subclass
+  of `FQL\Exception\UnexpectedValueException`) carrying the offending token and
+  line/column info.
+- **Infix arithmetic works anywhere an expression is accepted** — `SELECT price * 0.9`,
+  `SUM(a + b)`, `ORDER BY price - 50`, `GROUP BY YEAR(date) % 10`. Parser uses standard
+  C-family precedence (`*`/`/`/`%` > `+`/`-`) and left-associativity.
+- **Nested function calls work in every clause** — `SELECT`, `WHERE`, `HAVING`,
+  `GROUP BY`, and `ORDER BY` all resolve complex expressions (`UPPER(LOWER(name))`,
+  `ROUND(5 * price, 2)`, `LENGTH(CONCAT(first, " ", last))`) row-by-row via the
+  runtime evaluator. No auxiliary `__fql_auto_*` SELECT fields, no manual alias
+  chaining — `WHERE LOWER(name) = 'alice'` and `ORDER BY LENGTH(name) DESC` now work
+  end-to-end.
+- **Aggregates accept expressions as arguments** — `SUM(price * qty)`,
+  `AVG(total - discount)`, `COUNT(DISTINCT LOWER(email))` are evaluated
+  directly via the `AggregateFunction` interface in
+  `Results\Stream::applyGrouping` (initial / accumulate / finalize).
+  `COUNT(*)` stays on the Count fast path — the StarNode evaluates to `'*'`
+  and Count increments unconditionally on non-null input.
+- **Fluent helpers are now SQL-expression-aware.** Every scalar helper
+  (`lower`, `upper`, `round`, `concat`, `concatWithSeparator`, `year`,
+  `month`, `dateAdd`, `cast`, `strToDate`, `if`, `ifNull`, `isNull`, …)
+  parses its field argument with `Sql\Provider::parseExpression()`. Aggregate
+  helpers (`sum`, `avg`, `count`, `min`, `max`, `groupConcat`) do the same
+  and populate the SELECT field's `aggregate` slot with a `{class, expression,
+  options}` spec. `$query->sum('price + vat')`, `$query->lower('upper(field)')`,
+  `$query->groupBy('year(date)')`, `$query->where('lower(name)', Op::EQ, 'alice')`
+  all work end-to-end.
+- **`Functions\*` classes are static-only utility containers.** Instance
+  state, `__construct`, `__invoke` and `__toString` were removed; they
+  implement `ScalarFunction` / `AggregateFunction` and only define
+  `name()` + the matching static execution entry points. The legacy
+  `applyValue()` / `applyValues()` helpers are renamed to a unified
+  **`execute(...)`**.
+- **`QueryBuildingVisitor` uses the public fluent API exclusively.**
+  Every SELECT / GROUP BY / ORDER BY clause is stringified via
+  `ExpressionCompiler` and fed back into `$query->select()` /
+  `$query->groupBy()` / `$query->orderBy()`, which in turn parse through
+  `Sql\Provider::parseExpression()`. No privileged `addExpression()` /
+  `groupByExpression()` / `orderByExpression()` side doors remain. The
+  ~50 µs/clause stringify/reparse hop is negligible vs stream setup.
+- **Unified internal field representation.** `Traits\Groupable::$groupByFields`
+  and `Traits\Sortable::$orderings` are `ExpressionNode[]`, and every
+  `Traits\Select::$selectedFields[*]` entry carries `{originField, alias,
+  expression: ExpressionNode|null, aggregate: {class, expression, options}|null}`.
+  Fluent `groupBy('field')` / `orderBy('field')` / `select('field')` wrap
+  plain names into a synthetic `ColumnReferenceNode` so the runtime
+  (`Results\Stream::createGroupKey`, `applySorting`, `applySelect`) has a
+  single evaluation path via `ExpressionEvaluator`.
+- **WHERE / HAVING left-hand side parses as an expression.** `$query->where('lower(name)', Op::EQ, 'alice')`
+  and `$query->having('sum(price)', Op::GT, 100)` produce
+  `Conditions\ExpressionCondition`. The right-hand side continues to accept
+  scalar literals / arrays / `Type` enum — SQL would require an explicit
+  literal quote that the fluent API does not encode.
+- **`Traits\Select::select()` now recognises `AS <alias>` inside the field spec**:
+  `$query->select('name AS n')` behaves like `$query->select('name')->as('n')`. The
+  legacy behaviour (which produced three separate fields `name`, `AS`, `n`) was a bug.
+- Internal consumers migrated onto the new pipeline: `Traits\Select::select/exclude`,
+  `Functions\Utils\SelectIf`, `Functions\Utils\SelectCase`, `Query\Debugger::inspectStreamSql`,
+  `Stream\AbstractStream::fql`, all `tests/SQL/*` plus `tests/Query/UnionTest` and
+  `tests/Functions/Utils/UuidTest`.
 
-### Deprecated
-- `FQL\Sql\Sql` and `FQL\Sql\SqlLexer` are marked `@deprecated` in favour of `FQL\Sql\Provider` / `FQL\Sql\Compiler` and `FQL\Sql\Token\Tokenizer` respectively. Both classes remain in tree because a handful of internal helpers (`Traits\Select::select()` / `::exclude()`, `Functions\Utils\SelectIf`, `Functions\Utils\SelectCase`) still use `SqlLexer::parseConditionGroup()` to parse condition strings. These sites will be migrated to the new pipeline and the legacy classes removed in a follow-up PR.
-- `FQL\Interface\Parser` is marked `@deprecated` for the same reason.
+### Removed (BREAKING)
+- **`FQL\Sql\Sql`** — replaced by `FQL\Sql\Provider::compile()` / `FQL\Sql\Compiler`.
+  - `new Sql($sql)` → `Sql\Provider::compile($sql)`
+  - `->parseWithQuery($query)` → `->applyTo($query)`
+  - `->parse()` → `->toQuery()->execute()`
+  - `->toQuery()` → unchanged
+- **`FQL\Sql\SqlLexer`** — replaced by `FQL\Sql\Token\Tokenizer`. The iterator /
+  `parseSingleCondition` / `parseConditionGroup` helpers moved to
+  `FQL\Sql\Parser\{ConditionParser, ConditionGroupParser}` and
+  `FQL\Sql\Support\ConditionStringParser`.
+- **`FQL\Interface\Parser`** interface — no replacement; use the Compiler directly.
+- **`FQL\Sql\Function` namespace** (`FunctionRegistry`, `FunctionHandler`,
+  `GenericFunctionHandler`, `ArgCoercion`, and the whole `Handler\` subfolder) —
+  entirely replaced by the runtime `FunctionInvoker`. The data-driven handler
+  pattern is no longer required because the evaluator dispatches directly to the
+  `applyValue()` helpers on the `Functions\*` classes.
+- **`FQL\Sql\Builder\ClauseRewriter`** (3.0.0-beta auto-promote workaround) —
+  replaced by the runtime evaluator, which handles complex expressions in GROUP BY /
+  ORDER BY natively without introducing auxiliary SELECT columns.
+- **`FQL\Sql\Runtime\ExpressionAggregate`** wrapper — replaced by the direct
+  `Functions\Core\AggregateFunction` static contract (`initial` / `accumulate` /
+  `finalize`). Query state keeps the aggregate as `{class, expression, options}`
+  metadata consumed by `Results\Stream::applyGrouping`.
+- **`FQL\Functions\Core` legacy abstract classes** — `BaseFunction`,
+  `BaseFunctionByReference`, `SingleFieldFunction`,
+  `SingleFieldFunctionByReference`, `MultipleFieldsFunction`, `NoFieldFunction`,
+  the old abstract `AggregateFunction`, and `SingleFieldAggregateFunction` are
+  all deleted. Functions are now pure static utilities implementing the new
+  `ScalarFunction` / `AggregateFunction` interfaces in the same namespace.
+- **`FQL\Interface` Invokable hierarchy** — `Invokable`, `InvokableAggregate`,
+  `InvokableByReference`, `InvokableNoField`, `IncrementalAggregate` removed.
+  The new function contracts live in `Functions\Core`.
+- **`FQL\Functions\Utils\SelectCase`** instance builder — replaced by
+  `Functions\Utils\CaseBuilder`, invoked by the new fluent `case()` chain
+  which now parses WHEN / THEN / ELSE strings through the expression
+  evaluator.
+- **`FQL\Interface\Query` public methods**
+  - `addExpression(ExpressionNode, ?alias)`
+  - `addAggregateExpression(ExpressionAggregate, ?alias)`
+  - `groupByExpression(ExpressionNode)`
+  - `orderByExpression(ExpressionNode, ?Sort)`
+  - `custom(...)` fluent escape hatch
+    — all removed. The fluent helpers now accept SQL expression strings and
+    route everything through the same parser that powers the SQL builder.
+    User-defined functions are registered through `Functions\FunctionRegistry`
+    at bootstrap instead of passing an instance into `custom()`.
 
 ## [2.12.0]
 

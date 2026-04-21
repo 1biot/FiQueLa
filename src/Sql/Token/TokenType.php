@@ -78,6 +78,10 @@ enum TokenType: string
     case OP_LTE = 'OP_LTE';
     case OP_GT = 'OP_GT';
     case OP_GTE = 'OP_GTE';
+    case OP_PLUS = 'OP_PLUS';
+    case OP_MINUS = 'OP_MINUS';
+    case OP_SLASH = 'OP_SLASH';
+    case OP_PERCENT = 'OP_PERCENT';
 
     // Source - whole `format(path[, args]).query` expression as a single token
     case FILE_QUERY = 'FILE_QUERY';

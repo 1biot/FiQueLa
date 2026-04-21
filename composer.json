@@ -112,6 +112,9 @@
     "example:describe": [
       "php -f examples/describe.php"
     ],
+    "example:highlight": [
+      "php examples/highlight.php 'SELECT id, COUNT(*) AS cnt FROM json(data.json) WHERE price > 100 AND name IS NOT NULL'"
+    ],
     "example:logFormat": [
       "php -f examples/logFormat.php"
     ],
@@ -127,7 +130,8 @@
       "@example:yaml",
       "@example:logFormat",
       "@example:explain",
-      "@example:describe"
+      "@example:describe",
+      "@example:highlight"
     ]
   }
 }

@@ -4,6 +4,7 @@ namespace FQL\Sql\Builder;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Sql\Ast\Expression\BinaryOpNode;
 use FQL\Sql\Ast\Expression\CastExpressionNode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ConditionExpressionNode;
@@ -56,6 +57,35 @@ final class ExpressionCompiler
                 $node->searchQuery,
                 $node->mode->value
             );
+        }
+        if ($node instanceof BinaryOpNode) {
+            return sprintf(
+                '%s(%s, %s)',
+                $node->operator->functionName(),
+                $this->renderExpression($node->left),
+                $this->renderExpression($node->right)
+            );
+        }
+        if ($node instanceof \FQL\Sql\Ast\Expression\CaseExpressionNode) {
+            $parts = ['CASE'];
+            foreach ($node->branches as $branch) {
+                $parts[] = sprintf(
+                    'WHEN %s THEN %s',
+                    $this->renderConditionGroup($branch->condition),
+                    $this->renderExpression($branch->then)
+                );
+            }
+            if ($node->else !== null) {
+                $parts[] = 'ELSE ' . $this->renderExpression($node->else);
+            }
+            $parts[] = 'END';
+            return implode(' ', $parts);
+        }
+        if ($node instanceof \FQL\Sql\Ast\Expression\ConditionGroupNode) {
+            return $this->renderConditionGroup($node);
+        }
+        if ($node instanceof \FQL\Sql\Ast\Expression\ConditionExpressionNode) {
+            return $this->renderCondition($node);
         }
         throw new Exception\QueryLogicException(
             sprintf('Cannot render expression of type %s', get_class($node))

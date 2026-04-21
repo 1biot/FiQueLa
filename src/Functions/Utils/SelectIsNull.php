@@ -2,19 +2,17 @@
 
 namespace FQL\Functions\Utils;
 
-class SelectIsNull extends SelectIf
+use FQL\Functions\Core\ScalarFunction;
+
+final class SelectIsNull implements ScalarFunction
 {
-    public function __construct(private readonly string $field)
+    public static function name(): string
     {
-        parent::__construct(sprintf('%s IS NULL', $field), 'true', 'false');
+        return 'ISNULL';
     }
 
-    public function __toString(): string
+    public static function execute(mixed $value): bool
     {
-        return sprintf(
-            '%s(%s)',
-            'ISNULL',
-            $this->field
-        );
+        return $value === null;
     }
 }

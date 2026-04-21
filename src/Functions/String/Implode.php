@@ -3,40 +3,24 @@
 namespace FQL\Functions\String;
 
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Implode extends SingleFieldFunction
+final class Implode implements ScalarFunction
 {
-    public function __construct(string $field, private readonly string $separator = ',')
+    public static function name(): string
     {
-        parent::__construct($field);
+        return 'IMPLODE';
     }
 
     /**
-     * @inheritDoc
      * @throws UnexpectedValueException
-     * @return string
      */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, string $separator = ','): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
         if (!is_array($value) && !is_scalar($value)) {
-            throw new UnexpectedValueException(sprintf('Field "%s" is not an array', $this->field));
+            throw new UnexpectedValueException('Value is not an array or scalar');
         }
 
-        return is_scalar($value) ? (string) $value : implode($this->separator, $value);
-    }
-
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s")',
-            $this->getName(),
-            $this->field,
-            $this->separator
-        );
+        return is_scalar($value) ? (string) $value : implode($separator, $value);
     }
 }

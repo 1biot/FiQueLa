@@ -12,4 +12,6 @@
 
     <!-- Exclude specific files or directories -->
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <!-- Runtime-generated FunctionRegistry cache (not committed). -->
+    <exclude-pattern>*/fiquela-functions.compiled.php</exclude-pattern>
 </ruleset>

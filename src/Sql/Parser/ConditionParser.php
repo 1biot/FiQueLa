@@ -31,7 +31,7 @@ final class ConditionParser
      */
     public function parse(TokenStream $stream): ConditionExpressionNode
     {
-        $left = $this->expressionParser->parsePrimary($stream);
+        $left = $this->expressionParser->parseExpression($stream);
         $operator = $this->parseOperator($stream);
         $right = $this->parseRight($stream, $operator);
 
@@ -107,7 +107,7 @@ final class ConditionParser
         if ($operator === Enum\Operator::BETWEEN || $operator === Enum\Operator::NOT_BETWEEN) {
             return $this->parseBetween($stream);
         }
-        return $this->expressionParser->parsePrimary($stream);
+        return $this->expressionParser->parseExpression($stream);
     }
 
     /**

@@ -45,7 +45,6 @@ class Query implements Interface\Query
         distinct as private traitDistinct;
         asSelect as private traitAsSelect;
         select as private traitSelect;
-        addFieldFunction as private traitAddFieldFunction;
     }
     use Traits\Sortable;
     use Traits\Unionable;
@@ -102,16 +101,6 @@ class Query implements Interface\Query
     {
         $this->lastClause = null;
         return $this->traitSelect(...$fields);
-    }
-
-    /**
-     * @param Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
-     */
-    private function addFieldFunction(
-        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
-    ): Interface\Query {
-        $this->lastClause = null;
-        return $this->traitAddFieldFunction($function);
     }
 
     public function as(string $alias): Interface\Query
@@ -223,7 +212,7 @@ class Query implements Interface\Query
             $this->offset,
             $this->getInto(),
             unions: $this->unions,
-            fromAlias: $this->getFromAlias()
+            fromAlias: $this->getFromAlias(),
         );
 
         if ($this->explain) {

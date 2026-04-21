@@ -2,40 +2,56 @@
 
 namespace FQL\Functions\Core;
 
-use FQL\Exception\UnexpectedValueException;
-use FQL\Interface\IncrementalAggregate;
-use FQL\Interface\InvokableAggregate;
-use FQL\Stream\ArrayStreamProvider;
-use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
-use FQL\Traits\Helpers\StringOperations;
-
 /**
- * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
+ * Contract for FQL aggregate functions (N rows in → one value out).
+ *
+ * Implementations are **pure static utility classes** — the grouping phase
+ * holds the accumulator state externally. Evaluation unfolds as:
+ *
+ * ```php
+ * $acc = Sum::initial(['distinct' => false]);     // empty accumulator
+ * foreach ($rowsInGroup as $row) {
+ *     $value = $evaluator->evaluate($expression, $row);
+ *     $acc   = Sum::accumulate($acc, $value);      // incremental
+ * }
+ * $result = Sum::finalize($acc);                   // final scalar
+ * ```
+ *
+ * The accumulator shape is opaque to the engine (`mixed`); each aggregate
+ * chooses what it needs (scalar for SUM, array for GROUP_CONCAT, etc.).
+ *
+ * `initial()` accepts an `$options` array so each aggregate can read
+ * implementation-specific flags without forcing a bespoke signature:
+ *  - `distinct` (bool) — enforce value uniqueness inside the group.
+ *  - `separator` (string) — used by GROUP_CONCAT.
+ *
+ * Unknown options are ignored. Aggregate implementations should stash every
+ * option they care about inside the accumulator so they remain accessible
+ * during {@see accumulate()}.
  */
-abstract class AggregateFunction implements InvokableAggregate, IncrementalAggregate, \Stringable
+interface AggregateFunction
 {
-    use StringOperations;
-    use EnhancedNestedArrayAccessor;
+    /**
+     * Upper-cased FQL identifier (`SUM`, `AVG`, `COUNT`, …).
+     */
+    public static function name(): string;
 
     /**
-     * @throws UnexpectedValueException
+     * Empty accumulator for a new group.
+     *
+     * @param array<string, mixed> $options aggregate-specific config
+     *        (e.g. `['distinct' => true, 'separator' => ', ']`)
      */
-    public function getName(): string
-    {
-        $array = preg_split('/\\\/', $this::class);
-        if ($array === false) {
-            throw new UnexpectedValueException('Cannot split class name');
-        }
-
-        $functionName = end($array);
-        return $this->camelCaseToUpperSnakeCase($functionName === false ? '' : $functionName);
-    }
+    public static function initial(array $options = []): mixed;
 
     /**
-     * @param StreamProviderArrayIteratorValue $item
+     * Returns the updated accumulator after consuming one row's value.
+     * `null` values follow SQL conventions (typically skipped).
      */
-    protected function getFieldValue(string $field, array $item, bool $throwOnMissing = true): mixed
-    {
-        return $this->accessNestedValue($item, $field, $throwOnMissing);
-    }
+    public static function accumulate(mixed $acc, mixed $value): mixed;
+
+    /**
+     * Produces the final scalar result from the accumulator.
+     */
+    public static function finalize(mixed $acc): mixed;
 }

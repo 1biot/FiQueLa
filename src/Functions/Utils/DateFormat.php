@@ -2,40 +2,29 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions;
+use FQL\Functions\Core\ScalarFunction;
 
-class DateFormat extends Functions\Core\SingleFieldFunction
+final class DateFormat implements ScalarFunction
 {
-    public function __construct(string $field, private readonly string $format = 'c')
+    public static function name(): string
     {
-        parent::__construct($field);
+        return 'DATE_FORMAT';
     }
 
-    public function __invoke(array $item, array $resultItem): ?string
+    public static function execute(mixed $date, string $format = 'c'): ?string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
-        if (is_string($value) && strtotime($value) !== false) {
+        if (is_string($date) && strtotime($date) !== false) {
             try {
-                $value = new \DateTimeImmutable($value);
+                $date = new \DateTimeImmutable($date);
             } catch (\Exception) {
-                $value = null;
+                $date = null;
             }
         }
 
-        if (!$value instanceof \DateTimeImmutable) {
+        if (!$date instanceof \DateTimeImmutable) {
             return null;
         }
 
-        return $value->format($this->format);
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s")',
-            $this->getName(),
-            $this->field,
-            $this->format
-        );
+        return $date->format($format);
     }
 }

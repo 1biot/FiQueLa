@@ -2,22 +2,26 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Day extends SingleFieldFunction
+final class Day implements ScalarFunction
 {
-    public function __invoke(array $item, array $resultItem): ?int
+    public static function name(): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
-        $date = $this->parseDateValue($value);
-        if ($date === null) {
+        return 'DAY';
+    }
+
+    public static function execute(mixed $date): ?int
+    {
+        $dt = self::parseDateValue($date);
+        if ($dt === null) {
             return null;
         }
 
-        return (int) $date->format('j');
+        return (int) $dt->format('j');
     }
 
-    private function parseDateValue(mixed $value): ?\DateTimeImmutable
+    private static function parseDateValue(mixed $value): ?\DateTimeImmutable
     {
         if ($value instanceof \DateTimeInterface) {
             return \DateTimeImmutable::createFromInterface($value);

@@ -47,7 +47,7 @@ final class OrderByClauseParser
     private function parseItem(TokenStream $stream): OrderByItemNode
     {
         $startPosition = $stream->peek()->position;
-        $expression = $this->expressionParser->parsePrimary($stream);
+        $expression = $this->expressionParser->parseExpression($stream);
         $direction = Sort::ASC;
         if ($stream->consumeIf(TokenType::KEYWORD_ASC) !== null) {
             $direction = Sort::ASC;

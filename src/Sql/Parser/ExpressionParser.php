@@ -4,6 +4,8 @@ namespace FQL\Sql\Parser;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Sql\Ast\Expression\BinaryOperator;
+use FQL\Sql\Ast\Expression\BinaryOpNode;
 use FQL\Sql\Ast\Expression\CaseExpressionNode;
 use FQL\Sql\Ast\Expression\CastExpressionNode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
@@ -38,7 +40,43 @@ final class ExpressionParser
      */
     public function parseExpression(TokenStream $stream): ExpressionNode
     {
-        return $this->parsePrimary($stream);
+        return $this->parseBinary($stream, 0);
+    }
+
+    /**
+     * Pratt-style infix parser for arithmetic operators.
+     *
+     * Reads a primary on the left, then as long as the next token is a binary operator
+     * whose precedence >= `$minPrecedence`, consumes it and recurses on the right side
+     * with `precedence + 1` (standard left-associative parsing).
+     *
+     * @throws ParseException
+     */
+    private function parseBinary(TokenStream $stream, int $minPrecedence): ExpressionNode
+    {
+        $left = $this->parsePrimary($stream);
+        while (true) {
+            $op = self::matchBinaryOperator($stream->peekType());
+            if ($op === null || $op->precedence() < $minPrecedence) {
+                break;
+            }
+            $opToken = $stream->consume();
+            $right = $this->parseBinary($stream, $op->precedence() + 1);
+            $left = new BinaryOpNode($left, $op, $right, $opToken->position);
+        }
+        return $left;
+    }
+
+    private static function matchBinaryOperator(TokenType $type): ?BinaryOperator
+    {
+        return match ($type) {
+            TokenType::OP_PLUS => BinaryOperator::ADD,
+            TokenType::OP_MINUS => BinaryOperator::SUBTRACT,
+            TokenType::STAR => BinaryOperator::MULTIPLY,
+            TokenType::OP_SLASH => BinaryOperator::DIVIDE,
+            TokenType::OP_PERCENT => BinaryOperator::MODULO,
+            default => null,
+        };
     }
 
     /**
@@ -117,7 +155,11 @@ final class ExpressionParser
             TokenType::KEYWORD_INNER,
             TokenType::KEYWORD_LEFT,
             TokenType::KEYWORD_RIGHT,
-            TokenType::KEYWORD_FULL => true,
+            TokenType::KEYWORD_FULL,
+            TokenType::KEYWORD_ON,
+            TokenType::KEYWORD_BY,
+            TokenType::KEYWORD_JOIN,
+            TokenType::KEYWORD_INTO => true,
             default => false,
         };
     }
@@ -153,9 +195,9 @@ final class ExpressionParser
 
         $arguments = [];
         if ($stream->peekType() !== TokenType::PAREN_CLOSE) {
-            $arguments[] = $this->parsePrimary($stream);
+            $arguments[] = $this->parseExpression($stream);
             while ($stream->consumeIf(TokenType::COMMA) !== null) {
-                $arguments[] = $this->parsePrimary($stream);
+                $arguments[] = $this->parseExpression($stream);
             }
         }
         $stream->expect(TokenType::PAREN_CLOSE);
@@ -171,9 +213,9 @@ final class ExpressionParser
         $stream->expect(TokenType::PAREN_OPEN);
         $condition = $this->conditionParser()->parse($stream);
         $stream->expect(TokenType::COMMA);
-        $then = $this->parsePrimary($stream);
+        $then = $this->parseExpression($stream);
         $stream->expect(TokenType::COMMA);
-        $else = $this->parsePrimary($stream);
+        $else = $this->parseExpression($stream);
         $stream->expect(TokenType::PAREN_CLOSE);
 
         return new FunctionCallNode('IF', [$condition, $then, $else], false, $nameToken->position);
@@ -313,12 +355,12 @@ final class ExpressionParser
                 static fn (Token $t): bool => $t->type === TokenType::KEYWORD_THEN
             );
             $stream->expect(TokenType::KEYWORD_THEN);
-            $then = $this->parsePrimary($stream);
+            $then = $this->parseExpression($stream);
             $branches[] = new WhenBranchNode($condition, $then, $whenToken->position);
         }
 
         if ($stream->consumeIf(TokenType::KEYWORD_ELSE) !== null) {
-            $else = $this->parsePrimary($stream);
+            $else = $this->parseExpression($stream);
         }
 
         $stream->expect(TokenType::KEYWORD_END);

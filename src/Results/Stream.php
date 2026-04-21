@@ -6,10 +6,6 @@ use FQL\Conditions\BaseConditionGroup;
 use FQL\Conditions\Condition;
 use FQL\Enum;
 use FQL\Exception;
-use FQL\Functions\Core\AggregateFunction;
-use FQL\Functions\Core\BaseFunction;
-use FQL\Functions\Core\BaseFunctionByReference;
-use FQL\Functions\Core\NoFieldFunction;
 use FQL\Interface\Aggregable;
 use FQL\Interface\JoinHashmap;
 use FQL\Interface\Query;
@@ -32,6 +28,7 @@ use FQL\Utils\InMemoryHashmap;
  *
  * @phpstan-import-type JoinAbleArray from Traits\Joinable
  * @phpstan-import-type SelectedField from Traits\Select
+ * @phpstan-import-type AggregateSpec from Traits\Select
  * @phpstan-import-type ExplainResultArray from Traits\Explain
  */
 class Stream extends ResultsProvider implements Aggregable
@@ -58,8 +55,8 @@ class Stream extends ResultsProvider implements Aggregable
      * @param array<string, SelectedField> $selectedFields
      * @param string[] $excludedFields
      * @param JoinAbleArray[] $joins
-     * @param string[] $groupByFields
-     * @param array<string, Enum\Sort> $orderings
+     * @param array<int, \FQL\Sql\Ast\Expression\ExpressionNode> $groupByFields
+     * @param array<int, array{expression: \FQL\Sql\Ast\Expression\ExpressionNode, sort: Enum\Sort}> $orderings
      */
     public function __construct(
         private readonly \FQL\Interface\Stream $stream,
@@ -79,7 +76,7 @@ class Stream extends ResultsProvider implements Aggregable
         /** @var array<int, array{type: string, query: Query}> */
         private readonly array $unions = [],
         private ?ExplainCollector $collector = null,
-        private readonly ?string $fromAlias = null
+        private readonly ?string $fromAlias = null,
     ) {
     }
 
@@ -381,7 +378,12 @@ class Stream extends ResultsProvider implements Aggregable
     private function getGroupNote(): string
     {
         if ($this->groupByFields !== []) {
-            return sprintf('group by %s', implode(', ', $this->groupByFields));
+            $compiler = new \FQL\Sql\Builder\ExpressionCompiler();
+            $labels = array_map(
+                static fn (\FQL\Sql\Ast\Expression\ExpressionNode $f): string => $compiler->renderExpression($f),
+                $this->groupByFields
+            );
+            return sprintf('group by %s', implode(', ', $labels));
         }
 
         return 'aggregate';
@@ -393,9 +395,10 @@ class Stream extends ResultsProvider implements Aggregable
             return 'order by';
         }
 
+        $compiler = new \FQL\Sql\Builder\ExpressionCompiler();
         $parts = [];
-        foreach ($this->orderings as $field => $direction) {
-            $parts[] = sprintf('%s %s', $field, $direction->value);
+        foreach ($this->orderings as $entry) {
+            $parts[] = sprintf('%s %s', $compiler->renderExpression($entry['expression']), $entry['sort']->value);
         }
 
         return sprintf('order by %s', implode(', ', $parts));
@@ -768,20 +771,24 @@ class Stream extends ResultsProvider implements Aggregable
                     $result = array_merge($result, $expanded);
                 }
                 continue;
-            } elseif ($fieldData['function'] instanceof BaseFunction) {
-                $result[$fieldName] = $fieldData['function']($item, $result);
-                continue;
-            } elseif ($fieldData['function'] instanceof BaseFunctionByReference) {
-                $fieldData['function']($item, $result);
-                continue;
-            } elseif ($fieldData['function'] instanceof NoFieldFunction) {
-                $result[$fieldName] = $fieldData['function']();
-                continue;
-            } elseif ($fieldData['function'] instanceof AggregateFunction) {
+            } elseif (($fieldData['aggregate'] ?? null) !== null) {
+                // Aggregate placeholder — finalized in the grouping phase
+                // (see applyAggregations) and re-entered here afterwards.
                 $result[$finalField] = $item[$finalField] ?? null;
+                continue;
+            } elseif (($fieldData['expression'] ?? null) !== null) {
+                // Expression-backed SELECT field — evaluate against the row.
+                // Plain column references from the fluent API arrive here wrapped
+                // in a synthetic ColumnReferenceNode, so the evaluator handles
+                // both trivial lookups and complex AST expressions uniformly.
+                $result[$fieldName] = $this->expressionEvaluator()
+                    ->evaluate($fieldData['expression'], $item, $result);
                 continue;
             }
 
+            // Fallback only reached for legacy paths that don't populate any of
+            // function/aggregate/expression (e.g. quoted-literal originField
+            // produced outside of Select::addField). Kept for safety.
             $result[$fieldName] = $this->accessNestedValue(
                 $item,
                 $fieldData['originField'],
@@ -795,6 +802,18 @@ class Stream extends ResultsProvider implements Aggregable
         }
 
         return $result;
+    }
+
+    private ?\FQL\Sql\Runtime\ExpressionEvaluator $expressionEvaluator = null;
+
+    /**
+     * Lazily creates a runtime expression evaluator. Shared across the whole
+     * stream lifecycle so {@see ExpressionAggregate} and SELECT-expression fields
+     * reuse the same function dispatch table.
+     */
+    private function expressionEvaluator(): \FQL\Sql\Runtime\ExpressionEvaluator
+    {
+        return $this->expressionEvaluator ??= new \FQL\Sql\Runtime\ExpressionEvaluator();
     }
 
     /**
@@ -940,8 +959,7 @@ class Stream extends ResultsProvider implements Aggregable
     ): \Traversable {
         $groupedData = [];
         $groupKey = Query::SELECT_ALL;
-        $aggregateFunctions = $this->getAggregateFunctions();
-        $incrementalAggregates = $aggregateFunctions;
+        $aggregateSpecs = $this->getAggregateSpecs();
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
         $c = $this->collector;
 
@@ -973,7 +991,7 @@ class Stream extends ResultsProvider implements Aggregable
             if (!isset($groupedData[$groupKey])) {
                 $groupedData[$groupKey] = $this->createGroupState(
                     $item,
-                    $incrementalAggregates
+                    $aggregateSpecs
                 );
                 if ($c !== null && $groupIdx !== null) {
                     $c->stopAccumulator($groupIdx);
@@ -981,10 +999,14 @@ class Stream extends ResultsProvider implements Aggregable
                 continue;
             }
 
-            foreach ($incrementalAggregates as $finalField => $function) {
-                $groupedData[$groupKey]['accumulators'][$finalField] = $function->accumulate(
+            $evaluator = $this->expressionEvaluator();
+            foreach ($aggregateSpecs as $finalField => $spec) {
+                $value = $evaluator->evaluate($spec['expression'], $item);
+                /** @var class-string<\FQL\Functions\Core\AggregateFunction> $class */
+                $class = $spec['class'];
+                $groupedData[$groupKey]['accumulators'][$finalField] = $class::accumulate(
                     $groupedData[$groupKey]['accumulators'][$finalField],
-                    $item
+                    $value
                 );
             }
             if ($c !== null && $groupIdx !== null) {
@@ -1004,7 +1026,7 @@ class Stream extends ResultsProvider implements Aggregable
                 return yield from [];
             }
 
-            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateFunctions);
+            $aggregatedItem = $this->applyAggregations($groupedData[Query::SELECT_ALL], $aggregateSpecs);
 
             if ($c !== null && $havingIdx !== null) {
                 $c->incrementIn($havingIdx);
@@ -1032,7 +1054,7 @@ class Stream extends ResultsProvider implements Aggregable
         $count = 0;
         $currentOffset = 0;
         foreach ($groupedData as $groupState) {
-            $aggregatedItem = $this->applyAggregations($groupState, $aggregateFunctions);
+            $aggregatedItem = $this->applyAggregations($groupState, $aggregateSpecs);
 
             if ($c !== null && $havingIdx !== null) {
                 $c->incrementIn($havingIdx);
@@ -1078,55 +1100,68 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * Aggregates grouped items.
+     * Finalises all aggregates for a group, folds the results into the group's
+     * first row, and pipes it through `applySelect()` so downstream SELECT
+     * expressions can reference the computed aggregate values.
      *
      * @param array{firstItem: array<int|string, mixed>, accumulators: array<string, mixed>} $groupState
-     * @param array<string, AggregateFunction> $aggregateFunctions
-     * @return array<int|string, mixed> Aggregated result
+     * @param array<string, AggregateSpec> $aggregateSpecs
+     * @return array<int|string, mixed>
      */
-    private function applyAggregations(array $groupState, array $aggregateFunctions): array
+    private function applyAggregations(array $groupState, array $aggregateSpecs): array
     {
         $aggregatedItem = $groupState['firstItem'];
-        foreach ($aggregateFunctions as $finalField => $function) {
-            $accumulator = $groupState['accumulators'][$finalField] ?? $function->initAccumulator();
-            $aggregatedItem[$finalField] = $function->finalize($accumulator);
+        foreach ($aggregateSpecs as $finalField => $spec) {
+            /** @var class-string<\FQL\Functions\Core\AggregateFunction> $class */
+            $class = $spec['class'];
+            $accumulator = $groupState['accumulators'][$finalField] ?? $class::initial($spec['options']);
+            $aggregatedItem[$finalField] = $class::finalize($accumulator);
         }
 
         return $this->applySelect($aggregatedItem);
     }
 
     /**
-     * @return array<string, AggregateFunction>
+     * Snapshot of aggregate metadata captured on the query's SELECT fields.
+     * Keyed by the final field name / alias.
+     *
+     * @return array<string, AggregateSpec>
      */
-    private function getAggregateFunctions(): array
+    private function getAggregateSpecs(): array
     {
-        $aggregateFunctions = [];
+        $specs = [];
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            if ($fieldData['function'] instanceof AggregateFunction) {
-                $aggregateFunctions[$finalField] = $fieldData['function'];
+            $aggregate = $fieldData['aggregate'] ?? null;
+            if ($aggregate !== null) {
+                $specs[$finalField] = $aggregate;
             }
         }
-
-        return $aggregateFunctions;
+        return $specs;
     }
 
     /**
      * @param StreamProviderArrayIteratorValue $item
-     * @param array<string, AggregateFunction> $incrementalAggregates
+     * @param array<string, AggregateSpec> $aggregateSpecs
      * @return array{firstItem: array<int|string, mixed>, accumulators: array<string, mixed>}
      */
     private function createGroupState(
         array $item,
-        array $incrementalAggregates
+        array $aggregateSpecs
     ): array {
         $state = [
             'firstItem' => $item,
             'accumulators' => [],
         ];
 
-        foreach ($incrementalAggregates as $finalField => $function) {
-            $accumulator = $function->initAccumulator();
-            $state['accumulators'][$finalField] = $function->accumulate($accumulator, $item);
+        $evaluator = $this->expressionEvaluator();
+        foreach ($aggregateSpecs as $finalField => $spec) {
+            /** @var class-string<\FQL\Functions\Core\AggregateFunction> $class */
+            $class = $spec['class'];
+            $value = $evaluator->evaluate($spec['expression'], $item);
+            $state['accumulators'][$finalField] = $class::accumulate(
+                $class::initial($spec['options']),
+                $value
+            );
         }
 
         return $state;
@@ -1158,16 +1193,16 @@ class Stream extends ResultsProvider implements Aggregable
             $data[] = $item;
         }
 
-        usort($data, function ($a, $b): int {
-            foreach ($this->orderings as $field => $type) {
-                $valA = $this->accessNestedValue($a, $field, false);
-                $valB = $this->accessNestedValue($b, $field, false);
+        $evaluator = $this->expressionEvaluator();
 
-                $cmp = match ($type) {
+        usort($data, function ($a, $b) use ($evaluator): int {
+            foreach ($this->orderings as $entry) {
+                $valA = $evaluator->evaluate($entry['expression'], $a);
+                $valB = $evaluator->evaluate($entry['expression'], $b);
+                $cmp = match ($entry['sort']) {
                     Enum\Sort::ASC => ($valA <=> $valB),
                     Enum\Sort::DESC => ($valB <=> $valA),
                 };
-
                 if ($cmp !== 0) {
                     return $cmp;
                 }
@@ -1241,9 +1276,11 @@ class Stream extends ResultsProvider implements Aggregable
      */
     private function createGroupKey(array $item): string
     {
+        $evaluator = $this->expressionEvaluator();
         $keyParts = [];
         foreach ($this->groupByFields as $field) {
-            $keyParts[] = $this->accessNestedValue($item, $field, false) ?? '';
+            $value = $evaluator->evaluate($field, $item);
+            $keyParts[] = $value ?? '';
         }
 
         return implode('|', $keyParts);
@@ -1284,7 +1321,9 @@ class Stream extends ResultsProvider implements Aggregable
     public function isGroupable(): bool
     {
         foreach ($this->selectedFields as $data) {
-            if ($data['function'] instanceof AggregateFunction) {
+            // Any aggregate registered on a SELECT field forces the grouping phase
+            // so it gets a chance to accumulate and finalize over the full stream.
+            if (($data['aggregate'] ?? null) !== null) {
                 return true;
             }
         }

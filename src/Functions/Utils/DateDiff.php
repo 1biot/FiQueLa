@@ -2,36 +2,30 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class DateDiff extends MultipleFieldsFunction
+final class DateDiff implements ScalarFunction
 {
-    /**
-     * @param string $dateField
-     * @param string $dateField2
-     */
-    public function __construct(private readonly string $dateField, private readonly string $dateField2)
+    public static function name(): string
     {
-        parent::__construct($dateField, $dateField2);
+        return 'DATE_DIFF';
     }
 
-    public function __invoke(array $item, array $resultItem): ?int
+    public static function execute(mixed $date1, mixed $date2): ?int
     {
-        $date = $this->getFieldValue($this->dateField, $item, $resultItem);
-        $dateCompare = $this->getFieldValue($this->dateField2, $item, $resultItem);
         if (
-            !is_string($date)
-            || !is_string($dateCompare)
-            || strtotime($date) === false
-            || strtotime($dateCompare) === false
+            !is_string($date1)
+            || !is_string($date2)
+            || strtotime($date1) === false
+            || strtotime($date2) === false
         ) {
             return null;
         }
 
         try {
-            $date = new \DateTime($date);
-            $dateCompare = new \DateTime($dateCompare);
-            return (int) $date->diff($dateCompare)->format('%r%a');
+            $d1 = new \DateTime($date1);
+            $d2 = new \DateTime($date2);
+            return (int) $d1->diff($d2)->format('%r%a');
         } catch (\Exception) {
             return null;
         }

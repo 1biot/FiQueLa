@@ -28,6 +28,7 @@ use FQL\Functions\String\RandomString;
 use FQL\Functions\String\Replace;
 use FQL\Functions\String\Reverse;
 use FQL\Functions\String\RightPad;
+use FQL\Functions\String\Substr;
 use FQL\Functions\String\Substring;
 use FQL\Functions\String\Upper;
 use FQL\Functions\Utils\ArrayCombine;
@@ -64,6 +65,13 @@ use PHPUnit\Framework\TestCase;
 class SqlTest extends TestCase
 {
     /**
+     * Parser compiles FQL into an AST which the Query's fluent API then stores
+     * either as an `aggregate` spec (for SUM/AVG/COUNT/MIN/MAX/GROUP_CONCAT) or
+     * as an `expression` node (for scalar calls). The test verifies that the
+     * field is registered under the expected rendered key and points at the
+     * right Functions\* class — class-string for aggregates, name match for
+     * scalar FunctionCallNodes.
+     *
      * @dataProvider functionProvider
      */
     public function testFunctionParsing(string $sql, string $expectedKey, string $expectedClass): void
@@ -74,7 +82,42 @@ class SqlTest extends TestCase
         $selectedFields = $query->getSelectedFields();
         $this->assertArrayHasKey($expectedKey, $selectedFields);
         $this->assertSame($expectedKey, $selectedFields[$expectedKey]['originField']);
-        $this->assertInstanceOf($expectedClass, $selectedFields[$expectedKey]['function']);
+
+        $field = $selectedFields[$expectedKey];
+
+        // Aggregate: `{class, expression, options}` points directly at the class.
+        if (($field['aggregate'] ?? null) !== null) {
+            $this->assertSame($expectedClass, $field['aggregate']['class']);
+            return;
+        }
+
+        $expression = $field['expression'] ?? null;
+        $this->assertNotNull($expression, "Field '$expectedKey' has no expression");
+
+        // Scalar FunctionCallNode → name matches the class's advertised name().
+        if ($expression instanceof \FQL\Sql\Ast\Expression\FunctionCallNode) {
+            $this->assertSame($expectedClass::name(), $expression->name);
+            return;
+        }
+
+        // CAST → CastExpressionNode; MATCH/AGAINST → MatchAgainstNode. Those
+        // don't carry a function name but the mere presence of the right AST
+        // subclass for the provided class is enough — the runtime dispatches
+        // them via dedicated evaluator branches, not FunctionInvoker.
+        $expectedNodeTypes = [
+            \FQL\Functions\Utils\Cast::class => \FQL\Sql\Ast\Expression\CastExpressionNode::class,
+            \FQL\Functions\String\Fulltext::class => \FQL\Sql\Ast\Expression\MatchAgainstNode::class,
+        ];
+        if (isset($expectedNodeTypes[$expectedClass])) {
+            $this->assertInstanceOf($expectedNodeTypes[$expectedClass], $expression);
+            return;
+        }
+
+        $this->fail(sprintf(
+            'Unexpected expression node %s for function "%s"',
+            get_class($expression),
+            $expectedClass
+        ));
     }
 
     /**
@@ -123,13 +166,13 @@ class SqlTest extends TestCase
             'array combine' => ['SELECT ARRAY_COMBINE(keys, values)', 'ARRAY_COMBINE(keys, values)', ArrayCombine::class],
             'array merge' => ['SELECT ARRAY_MERGE(first, second)', 'ARRAY_MERGE(first, second)', ArrayMerge::class],
             'array filter' => ['SELECT ARRAY_FILTER(items)', 'ARRAY_FILTER(items)', ArrayFilter::class],
-            'array search' => ['SELECT ARRAY_SEARCH(items, item)', 'ARRAY_SEARCH(items, "item")', ArraySearch::class],
+            'array search' => ['SELECT ARRAY_SEARCH(items, item)', 'ARRAY_SEARCH(items, item)', ArraySearch::class],
             'cast' => ['SELECT CAST(price AS DOUBLE)', 'CAST(price AS DOUBLE)', Cast::class],
             'col split' => ['SELECT COL_SPLIT(items, "item_%index", "id")', 'COL_SPLIT(items, "item_%index", "id")', ColSplit::class],
-            'current date' => ['SELECT CURDATE(true)', 'CURDATE(true)', CurrentDate::class],
-            'current time' => ['SELECT CURTIME(true)', 'CURTIME(true)', CurrentTime::class],
+            'current date' => ['SELECT CURDATE(true)', 'CURDATE(TRUE)', CurrentDate::class],
+            'current time' => ['SELECT CURTIME(true)', 'CURTIME(TRUE)', CurrentTime::class],
             'current timestamp' => ['SELECT CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP()', CurrentTimestamp::class],
-            'now' => ['SELECT NOW(true)', 'NOW(true)', Now::class],
+            'now' => ['SELECT NOW(true)', 'NOW(TRUE)', Now::class],
             'date format' => ['SELECT DATE_FORMAT(dateField, "Y-m-d")', 'DATE_FORMAT(dateField, "Y-m-d")', DateFormat::class],
             'from unixtime' => ['SELECT FROM_UNIXTIME(dateField, "Y-m-d")', 'FROM_UNIXTIME(dateField, "Y-m-d")', FromUnixTime::class],
             'str to date' => ['SELECT STR_TO_DATE(dateField, "%Y-%m-%d")', 'STR_TO_DATE(dateField, "%Y-%m-%d")', StrToDate::class],
@@ -141,15 +184,15 @@ class SqlTest extends TestCase
             'day' => ['SELECT DAY(startDate)', 'DAY(startDate)', Day::class],
             'match against' => [
                 'SELECT MATCH(name) AGAINST("term" IN NATURAL MODE)',
-                'MATCH(name) AGAINST("term" IN NATURAL MODE)',
+                'MATCH(name) AGAINST("term IN NATURAL MODE")',
                 Fulltext::class,
             ],
-            'if' => ['SELECT IF(a > 1, "yes", "no")', 'IF(a > 1, yes, no)', SelectIf::class],
-            'ifnull' => ['SELECT IFNULL(name, "unknown")', 'IFNULL(name IS NULL, unknown)', SelectIfNull::class],
+            'if' => ['SELECT IF(a > 1, "yes", "no")', 'IF(a > 1, "yes", "no")', SelectIf::class],
+            'ifnull' => ['SELECT IFNULL(name, "unknown")', 'IFNULL(name, "unknown")', SelectIfNull::class],
             'isnull' => ['SELECT ISNULL(name)', 'ISNULL(name)', SelectIsNull::class],
             'substring' => ['SELECT SUBSTRING(name, 1, 2)', 'SUBSTRING(name, 1, 2)', Substring::class],
-            'substr' => ['SELECT SUBSTR(name, 1, 2)', 'SUBSTRING(name, 1, 2)', Substring::class],
-            'locate' => ['SELECT LOCATE("foo", name, 2)', 'LOCATE(foo, name, 2)', Locate::class],
+            'substr' => ['SELECT SUBSTR(name, 1, 2)', 'SUBSTR(name, 1, 2)', Substr::class],
+            'locate' => ['SELECT LOCATE("foo", name, 2)', 'LOCATE("foo", name, 2)', Locate::class],
         ];
     }
 

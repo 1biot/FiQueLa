@@ -2,29 +2,25 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Replace extends SingleFieldFunction
+final class Replace implements ScalarFunction
 {
-    public function __construct(
-        string $field,
-        private readonly string $fromString,
-        private readonly string $newString
-    ) {
-        parent::__construct($field);
+    public static function name(): string
+    {
+        return 'REPLACE';
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, mixed $search, mixed $replace): mixed
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem);
+        $search = (string) $search;
+        $replace = (string) $replace;
+
         if (is_array($value)) {
             $returnValue = [];
             foreach ($value as $v) {
                 if (is_scalar($v)) {
-                    $returnValue[] = str_replace($this->fromString, $this->newString, (string) $v);
+                    $returnValue[] = str_replace($search, $replace, (string) $v);
                 } else {
                     $returnValue[] = null;
                 }
@@ -34,17 +30,6 @@ class Replace extends SingleFieldFunction
             return null;
         }
 
-        return str_replace($this->fromString, $this->newString, (string) $value);
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s", "%s")',
-            $this->getName(),
-            $this->field,
-            $this->fromString,
-            $this->newString
-        );
+        return str_replace($search, $replace, (string) $value);
     }
 }

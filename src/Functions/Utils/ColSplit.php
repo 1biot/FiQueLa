@@ -2,86 +2,48 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\SingleFieldFunctionByReference;
-use FQL\Stream\ArrayStreamProvider;
-use FQL\Exception\InvalidArgumentException;
+use FQL\Functions\Core\ScalarFunction;
 
-/**
- * @phpstan-import-type StreamProviderArrayIteratorValue from ArrayStreamProvider
- */
-class ColSplit extends SingleFieldFunctionByReference
+final class ColSplit implements ScalarFunction
 {
-    /**
-     * @param string $field
-     * @param string|null $format
-     * @param string|null $keyField
-     */
-    public function __construct(
-        string $field,
-        protected readonly ?string $format = null,
-        protected readonly ?string $keyField = null
-    ) {
-        parent::__construct($field);
+    public static function name(): string
+    {
+        return 'COL_SPLIT';
     }
 
     /**
-     * @param StreamProviderArrayIteratorValue $item
-     * @param StreamProviderArrayIteratorValue $resultItem
-     * @throws InvalidArgumentException
+     * @return array<string, mixed>|null Map of [columnName => entry], or null if input is not an array.
      */
-    public function __invoke(array $item, array &$resultItem): mixed
+    public static function execute(mixed $value, ?string $format = null, ?string $keyField = null, string $baseFieldName = ''): ?array
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem);
-
         if (!is_array($value)) {
-            return null; // Nic nerozdělujeme, hodnota není list
+            return null;
         }
 
-        $baseName = $this->sanitizeFieldName($this->field);
-        $format = $this->format ?? "{$baseName}_%index";
+        $baseName = self::sanitizeFieldNameStatic($baseFieldName);
+        $effectiveFormat = $format ?? "{$baseName}_%index";
 
+        $result = [];
         foreach (array_values($value) as $i => $entry) {
-            $suffix = $this->getSuffixFromEntry($entry, $i);
-            $colName = str_replace('%index', (string) $suffix, $format);
-            $resultItem[$colName] = $entry;
+            $suffix = self::getSuffixFromEntryStatic($entry, $i, $keyField);
+            $colName = str_replace('%index', (string) $suffix, $effectiveFormat);
+            $result[$colName] = $entry;
         }
 
-        return null; // Výsledky jsou přidány přes referenci
+        return $result;
     }
 
-    protected function getSuffixFromEntry(mixed $entry, int $index): string|int
+    private static function getSuffixFromEntryStatic(mixed $entry, int $index, ?string $keyField): string|int
     {
-        if ($this->keyField && is_array($entry) && array_key_exists($this->keyField, $entry)) {
-            return $entry[$this->keyField];
+        if ($keyField !== null && $keyField !== '' && is_array($entry) && array_key_exists($keyField, $entry)) {
+            return $entry[$keyField];
         }
 
         return $index + 1;
     }
 
-    protected function sanitizeFieldName(string $field): string
+    private static function sanitizeFieldNameStatic(string $field): string
     {
         return str_replace(['.', '[', ']'], '_', $field);
-    }
-
-    public function __toString(): string
-    {
-        $params = [$this->field];
-
-        if ($this->format !== null || $this->keyField !== null) {
-            $params[] = $this->format !== null ? '"' . $this->format . '"' : 'null';
-        }
-
-        if ($this->keyField !== null) {
-            if (!isset($params[1])) {
-                $params[] = 'null';
-            }
-            $params[] = '"' . $this->keyField . '"';
-        }
-
-        return sprintf(
-            '%s(%s)',
-            $this->getName(),
-            implode(', ', $params)
-        );
     }
 }

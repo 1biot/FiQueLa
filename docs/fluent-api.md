@@ -264,30 +264,45 @@ $query->ceil('price')->as('CEIL')
 
 ### Custom functions
 
-You can create your own custom functions by extending the `\FQL\Functions\Core\SingleFieldFunction`
-or `\FQL\Functions\Core\MultiFieldFunction` or `\FQL\Functions\Core\NoFieldFunction` classes.
-
-**Example:**
+Write a class implementing `\FQL\Functions\Core\ScalarFunction` (or
+`AggregateFunction`) and register it once in your application bootstrap
+through the global `FunctionRegistry`. From then on, the name is available
+through every public fluent helper and through FQL/SQL strings — the parser,
+evaluator and fluent API all consult the same registry.
 
 ```php
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
+use FQL\Functions\FunctionRegistry;
 
-class CustomFunction extends SingleFieldFunction
+final class Slugify implements ScalarFunction
 {
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $fieldValue = (string) $this->getFieldValue($this->field, $item, $resultItem);
-        return $fieldValue . '_custom';
+        return 'SLUGIFY';
     }
-    
-    public function __toString(): string
+
+    public static function execute(mixed $value): string
     {
-        return sprintf('myCustomFunction(%s)', $this->field);
+        return preg_replace('/[^a-z0-9]+/i', '-', strtolower((string) $value));
     }
 }
 
-$query->custom(new CustomFunction('name'))->as('CUSTOM');
+// Register once — typically in your DI/bootstrap code.
+FunctionRegistry::register(Slugify::class);
+
+// Then use it like any built-in, either as an expression string or nested.
+$query->select('slugify(title) AS slug');
+$query->where('slugify(name)', Operator::EQUAL, 'product-a');
 ```
+
+Aggregate functions implement `AggregateFunction` and expose
+`initial(array $options = []) → accumulate(mixed $acc, mixed $value) → finalize(mixed $acc)`.
+The grouping phase drives them; you never construct an instance.
+
+To replace a built-in with your own variant, use
+`FunctionRegistry::override($class)`; to drop one entirely,
+`FunctionRegistry::unregister($name)`. Functions loaded via a separate
+neon config are available through `FunctionRegistry::loadConfig($neonPath)`.
 
 
 ## 3. Joining Data Sources

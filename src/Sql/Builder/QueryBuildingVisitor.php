@@ -8,37 +8,44 @@ use FQL\Exception;
 use FQL\Interface;
 use FQL\Query;
 use FQL\Sql\Ast\ExplainMode;
-use FQL\Sql\Ast\Expression\CastExpressionNode;
-use FQL\Sql\Ast\Expression\CaseExpressionNode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
-use FQL\Sql\Ast\Expression\ConditionExpressionNode;
 use FQL\Sql\Ast\Expression\ConditionGroupNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\FileQueryNode;
-use FQL\Sql\Ast\Expression\FunctionCallNode;
-use FQL\Sql\Ast\Expression\LiteralNode;
-use FQL\Sql\Ast\Expression\MatchAgainstNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Expression\SubQueryNode;
 use FQL\Sql\Ast\JoinType;
 use FQL\Sql\Ast\Node\JoinClauseNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
+use FQL\Sql\Runtime\ExpressionEvaluator;
 
 /**
- * Walks a SelectStatementNode AST and constructs an Interface\Query via the existing
- * fluent API.
+ * Walks a `SelectStatementNode` AST and constructs an `Interface\Query` via the
+ * fluent API, wiring the runtime expression evaluator into every non-trivial
+ * SELECT / WHERE / HAVING / GROUP BY / ORDER BY clause.
  *
- * The visitor is stateless between `build()` invocations; each call builds a fresh
- * Interface\Query from a fresh AST. Function-name dispatch is kept inline in
- * `applyFunctionCall()` to match the legacy `Sql::applyFunctionToQuery()` behaviour
- * — a future PR may extract this into a FunctionRegistry.
+ * Design highlights:
+ *  - Every SELECT / GROUP BY / ORDER BY clause is **stringified** via
+ *    {@see ExpressionCompiler} and fed back into the fluent API (`select()`,
+ *    `groupBy()`, `orderBy()`). That fluent entry point parses the string
+ *    through `Sql\Provider::parseExpression()`, so the SQL and fluent paths
+ *    converge on the same AST construction code — no `@internal` side door.
+ *  - `SELECT *` and wildcard expansions retain their bespoke handling in
+ *    `Traits\Select` (they can't be parsed as plain expressions).
+ *  - **WHERE / HAVING** conditions still build {@see Conditions\ExpressionCondition}
+ *    directly from the AST so complex operands resolve at runtime via the
+ *    evaluator without round-tripping through a string.
+ *
+ * Cost of the stringify-reparse hop: roughly 50 µs per clause, paid once at
+ * build time. Negligible vs. any serialisation / stream setup.
  */
 final class QueryBuildingVisitor
 {
     public function __construct(
         private readonly ExpressionCompiler $compiler,
-        private readonly FileQueryResolver $fileQueryResolver
+        private readonly FileQueryResolver $fileQueryResolver,
+        private readonly ExpressionEvaluator $evaluator = new ExpressionEvaluator()
     ) {
     }
 
@@ -55,9 +62,6 @@ final class QueryBuildingVisitor
      * Applies the parsed AST to an existing Interface\Query instance rather than opening
      * a new stream from the FROM clause. Used by consumers who already hold a Query
      * (typically a stream->query() result) and want to extend it with SQL clauses.
-     *
-     * FROM is treated as an inner path navigation (`$query->from($fileQuery->query)`)
-     * because the outer file stream is already open on the provided query.
      *
      * @throws Exception\InvalidFormatException
      * @throws Exception\FileNotFoundException
@@ -102,11 +106,9 @@ final class QueryBuildingVisitor
         }
 
         if ($ast->groupBy !== null) {
-            $fields = array_map(
-                fn (ExpressionNode $n): string => $this->fieldString($n),
-                $ast->groupBy->fields
-            );
-            $query->groupBy(...$fields);
+            foreach ($ast->groupBy->fields as $field) {
+                $query->groupBy($this->compiler->renderExpression($field));
+            }
         }
 
         if ($ast->having !== null) {
@@ -115,7 +117,10 @@ final class QueryBuildingVisitor
 
         if ($ast->orderBy !== null) {
             foreach ($ast->orderBy->items as $item) {
-                $query->orderBy($this->fieldString($item->expression), $item->direction);
+                $query->orderBy(
+                    $this->compiler->renderExpression($item->expression),
+                    $item->direction
+                );
             }
         }
 
@@ -148,16 +153,13 @@ final class QueryBuildingVisitor
     {
         if ($ast->from === null) {
             throw new Exception\QueryLogicException(
-                'FROM clause is required for a stand-alone build(); use applyTo($existingQuery) for FROM-less SQL fragments'
+                'FROM clause is required for a stand-alone build();'
+                . ' use applyTo($existingQuery) for FROM-less SQL fragments'
             );
         }
         $source = $ast->from->source;
         if ($source instanceof SubQueryNode) {
-            $inner = $this->build($source->query);
-            // Subqueries used as top-level source are uncommon; the legacy parser does not
-            // expose this path for top-level FROM either (only JOIN). We surface a clear
-            // error rather than silently mis-building.
-            return $inner;
+            return $this->build($source->query);
         }
         if (!$source instanceof FileQueryNode) {
             throw new Exception\QueryLogicException('FROM source must be a FileQuery or subquery');
@@ -202,33 +204,23 @@ final class QueryBuildingVisitor
             }
 
             $expression = $field->expression;
+
             if ($expression instanceof StarNode) {
                 $query->selectAll();
-            } elseif ($expression instanceof ColumnReferenceNode) {
-                $query->select($expression->name);
-            } elseif ($expression instanceof FunctionCallNode) {
-                $this->applyFunctionCall($query, $expression);
-            } elseif ($expression instanceof CastExpressionNode) {
-                $query->cast($this->fieldString($expression->value), $expression->targetType);
-            } elseif ($expression instanceof MatchAgainstNode) {
-                $query->matchAgainst(
-                    array_map(static fn (ColumnReferenceNode $f): string => $f->name, $expression->fields),
-                    $expression->searchQuery,
-                    $expression->mode
-                );
-            } elseif ($expression instanceof CaseExpressionNode) {
-                $this->applyCase($query, $expression);
-            } elseif ($expression instanceof LiteralNode) {
-                // Rare: SELECT "literal" FROM x; treat as bare select on raw token.
-                $query->select($this->compiler->renderLiteral($expression));
-            } else {
-                throw new Exception\QueryLogicException(
-                    sprintf('Unsupported select expression: %s', get_class($expression))
-                );
+                if ($field->alias !== null) {
+                    $query->as($field->alias);
+                }
+                continue;
             }
 
+            // Stringify the AST and hand it to the fluent select() — that path
+            // now parses SQL expression strings into AST internally, so there's
+            // a single entry point for both the SQL builder and user fluent code.
+            $rendered = $this->compiler->renderExpression($expression);
             if ($field->alias !== null) {
-                $query->as($field->alias);
+                $query->select($rendered . ' ' . Interface\Query::AS . ' ' . $field->alias);
+            } else {
+                $query->select($rendered);
             }
         }
     }
@@ -303,251 +295,28 @@ final class QueryBuildingVisitor
                 $this->populateConditionGroup($nested, $condition);
                 continue;
             }
-            $target->addCondition($logical, new Conditions\SimpleCondition(
+            // Always build ExpressionCondition so complex operands (function calls,
+            // arithmetic) resolve at runtime via the evaluator. Plain-column
+            // equality still works: evaluator reduces ColumnReferenceNode → value.
+            $target->addCondition($logical, new Conditions\ExpressionCondition(
                 $logical,
-                $this->fieldString($condition->left),
+                $condition->left,
                 $condition->operator,
-                $this->compiler->scalarRightValue($condition->right, $condition->operator)
+                $condition->right,
+                $this->evaluator
             ));
         }
     }
 
-    private function applyCase(Interface\Query $query, CaseExpressionNode $case): void
-    {
-        $query->case();
-        foreach ($case->branches as $branch) {
-            $query->whenCase(
-                $this->compiler->renderConditionGroup($branch->condition),
-                $this->compiler->renderExpression($branch->then)
-            );
-        }
-        if ($case->else !== null) {
-            $query->elseCase($this->compiler->renderExpression($case->else));
-        }
-        $query->endCase();
-    }
-
-    /**
-     * Inline dispatch for function calls. Mirrors the legacy `Sql::applyFunctionToQuery()`
-     * match block — a future PR extracts this into a FunctionRegistry (see CHANGELOG
-     * and plan file for deferred work).
-     */
-    private function applyFunctionCall(Interface\Query $query, FunctionCallNode $call): void
-    {
-        $name = strtoupper($call->name);
-        $args = $call->arguments;
-        $distinct = $call->distinct;
-
-        match ($name) {
-            // Aggregate
-            'AVG' => $query->avg($this->argAsString($args, 0)),
-            'COUNT' => $query->count($this->argAsString($args, 0), $distinct),
-            'GROUP_CONCAT' => $query->groupConcat(
-                $this->argAsString($args, 0),
-                $this->argAsString($args, 1, ','),
-                $distinct
-            ),
-            'MAX' => $query->max($this->argAsString($args, 0), $distinct),
-            'MIN' => $query->min($this->argAsString($args, 0), $distinct),
-            'SUM' => $query->sum($this->argAsString($args, 0), $distinct),
-
-            // Hashing
-            'MD5' => $query->md5($this->argAsString($args, 0)),
-            'SHA1' => $query->sha1($this->argAsString($args, 0)),
-
-            // Math
-            'CEIL' => $query->ceil($this->argAsString($args, 0)),
-            'FLOOR' => $query->floor($this->argAsString($args, 0)),
-            'MOD' => $query->modulo($this->argAsString($args, 0), $this->argAsInt($args, 1)),
-            'ROUND' => $query->round($this->argAsString($args, 0), $this->argAsInt($args, 1)),
-            'ADD' => $query->add(...$this->argsAsStrings($args)),
-            'SUB' => $query->subtract(...$this->argsAsStrings($args)),
-            'MULTIPLY' => $query->multiply(...$this->argsAsStrings($args)),
-            'DIVIDE' => $query->divide(...$this->argsAsStrings($args)),
-
-            // String
-            'BASE64_DECODE' => $query->fromBase64($this->argAsString($args, 0)),
-            'BASE64_ENCODE' => $query->toBase64($this->argAsString($args, 0)),
-            'CONCAT' => $query->concat(...$this->argsAsStrings($args)),
-            'CONCAT_WS' => $query->concatWithSeparator(
-                $this->argAsString($args, 0),
-                ...$this->argsAsStrings(array_slice($args, 1))
-            ),
-            'EXPLODE' => $query->explode($this->argAsString($args, 0), $this->argAsString($args, 1, ',')),
-            'IMPLODE' => $query->implode($this->argAsString($args, 0), $this->argAsString($args, 1, ',')),
-            'LENGTH' => $query->length($this->argAsString($args, 0)),
-            'LOWER' => $query->lower($this->argAsString($args, 0)),
-            'UPPER' => $query->upper($this->argAsString($args, 0)),
-            'RANDOM_STRING' => $query->randomString($this->argAsInt($args, 0, 10)),
-            'REPLACE' => $query->replace(
-                $this->argAsString($args, 0),
-                $this->argAsString($args, 1),
-                $this->argAsString($args, 2)
-            ),
-            'REVERSE' => $query->reverse($this->argAsString($args, 0)),
-            'LPAD' => $query->leftPad(
-                $this->argAsString($args, 0),
-                $this->argAsInt($args, 1),
-                $this->argAsString($args, 2, ' ')
-            ),
-            'RPAD' => $query->rightPad(
-                $this->argAsString($args, 0),
-                $this->argAsInt($args, 1),
-                $this->argAsString($args, 2, ' ')
-            ),
-            'SUBSTRING', 'SUBSTR' => $query->substring(
-                $this->argAsString($args, 0),
-                $this->argAsInt($args, 1),
-                isset($args[2]) ? $this->argAsInt($args, 2) : null
-            ),
-            'LOCATE' => $query->locate(
-                $this->argAsString($args, 0),
-                $this->argAsString($args, 1),
-                isset($args[2]) ? $this->argAsInt($args, 2) : null
-            ),
-
-            // Utils
-            'COALESCE' => $query->coalesce(...$this->argsAsStrings($args)),
-            'COALESCE_NE' => $query->coalesceNotEmpty(...$this->argsAsStrings($args)),
-            'RANDOM_BYTES' => $query->randomBytes($this->argAsInt($args, 0, 10)),
-            'UUID' => $query->uuid(),
-            'ARRAY_COMBINE' => $query->arrayCombine($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'ARRAY_MERGE' => $query->arrayMerge($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'ARRAY_FILTER' => $query->arrayFilter($this->argAsString($args, 0)),
-            'ARRAY_SEARCH' => $query->arraySearch($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'COL_SPLIT' => $query->colSplit(
-                $this->argAsString($args, 0),
-                isset($args[1]) ? $this->argAsString($args, 1) : null,
-                isset($args[2]) ? $this->argAsString($args, 2) : null
-            ),
-            'CURDATE' => $query->currentDate($this->argAsBool($args, 0)),
-            'CURTIME' => $query->currentTime($this->argAsBool($args, 0)),
-            'CURRENT_TIMESTAMP' => $query->currentTimestamp(),
-            'NOW' => $query->now($this->argAsBool($args, 0)),
-            'DATE_FORMAT' => $query->formatDate($this->argAsString($args, 0), $this->argAsString($args, 1, 'c')),
-            'FROM_UNIXTIME' => $query->fromUnixTime($this->argAsString($args, 0), $this->argAsString($args, 1, 'c')),
-            'STR_TO_DATE' => $query->strToDate($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'DATE_DIFF' => $query->dateDiff($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'DATE_ADD' => $query->dateAdd($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'DATE_SUB' => $query->dateSub($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'YEAR' => $query->year($this->argAsString($args, 0)),
-            'MONTH' => $query->month($this->argAsString($args, 0)),
-            'DAY' => $query->day($this->argAsString($args, 0)),
-            'IF' => $query->if(
-                $this->renderIfCondition($args[0] ?? null),
-                $this->argAsString($args, 1),
-                $this->argAsString($args, 2)
-            ),
-            'IFNULL' => $query->ifNull($this->argAsString($args, 0), $this->argAsString($args, 1)),
-            'ISNULL' => $query->isNull($this->argAsString($args, 0)),
-            default => throw new Exception\UnexpectedValueException("Unknown function: $name"),
-        };
-    }
-
     /**
      * Produces the textual field identifier for an expression used where the Query API
-     * expects a string (GROUP BY, ORDER BY fields, SimpleCondition field, etc.).
+     * expects a string (JOIN ON field, excluded field names).
      */
     private function fieldString(ExpressionNode $node): string
     {
         if ($node instanceof ColumnReferenceNode) {
             return $node->name;
         }
-        if ($node instanceof LiteralNode) {
-            return $this->compiler->renderLiteral($node);
-        }
-        if ($node instanceof StarNode) {
-            return '*';
-        }
         return $this->compiler->renderExpression($node);
-    }
-
-    private function renderIfCondition(?ExpressionNode $node): string
-    {
-        if ($node instanceof ConditionExpressionNode) {
-            return $this->compiler->renderCondition($node);
-        }
-        if ($node === null) {
-            return '';
-        }
-        return $this->compiler->renderExpression($node);
-    }
-
-    /**
-     * @param ExpressionNode[] $args
-     */
-    private function argAsString(array $args, int $index, string $default = ''): string
-    {
-        if (!isset($args[$index])) {
-            return $default;
-        }
-        $node = $args[$index];
-        if ($node instanceof LiteralNode) {
-            $value = $node->value;
-            if (is_string($value)) {
-                return $value;
-            }
-            if (is_int($value) || is_float($value)) {
-                return (string) $value;
-            }
-            if (is_bool($value)) {
-                return $value ? 'true' : 'false';
-            }
-            return '';
-        }
-        if ($node instanceof ColumnReferenceNode) {
-            return $node->name;
-        }
-        if ($node instanceof StarNode) {
-            return '';
-        }
-        return $this->compiler->renderExpression($node);
-    }
-
-    /**
-     * @param ExpressionNode[] $args
-     */
-    private function argAsInt(array $args, int $index, int $default = 0): int
-    {
-        if (!isset($args[$index])) {
-            return $default;
-        }
-        $node = $args[$index];
-        if ($node instanceof LiteralNode) {
-            return is_numeric($node->value) ? (int) $node->value : $default;
-        }
-        $rendered = $this->argAsString($args, $index);
-        return is_numeric($rendered) ? (int) $rendered : $default;
-    }
-
-    /**
-     * @param ExpressionNode[] $args
-     */
-    private function argAsBool(array $args, int $index, bool $default = false): bool
-    {
-        if (!isset($args[$index])) {
-            return $default;
-        }
-        $node = $args[$index];
-        if ($node instanceof LiteralNode) {
-            if (is_bool($node->value)) {
-                return $node->value;
-            }
-            return (bool) filter_var($node->value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-        }
-        return $default;
-    }
-
-    /**
-     * @param ExpressionNode[] $args
-     * @return string[]
-     */
-    private function argsAsStrings(array $args): array
-    {
-        $result = [];
-        foreach ($args as $i => $arg) {
-            $result[] = $this->argAsString($args, $i);
-        }
-        return $result;
     }
 }

@@ -4,104 +4,59 @@ namespace FQL\Functions\Aggregate;
 
 use FQL\Enum\Type;
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Functions\Core\AggregateFunction;
 
-class Min extends SingleFieldAggregateFunction
+final class Min implements AggregateFunction
 {
-    /**
-     * @inheritDoc
-     * @throws UnexpectedValueException
-     */
-    public function __invoke(array $items): mixed
+    public static function name(): string
     {
-        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
-        $values = [];
-
-        foreach ($items as $item) {
-            $value = $this->getFieldValue($this->field, $item);
-            if (is_string($value)) {
-                $value = Type::matchByString($value);
-            }
-
-            if (!is_numeric($value)) {
-                throw new UnexpectedValueException(
-                    sprintf(
-                        'Field "%s" value is not numeric: %s',
-                        $this->field,
-                        $value
-                    )
-                );
-            }
-
-            if (!$this->isDistinctValue($value, $seen)) {
-                continue;
-            }
-
-            $values[] = $value;
-        }
-
-        return min($values);
+        return 'MIN';
     }
 
-    public function initAccumulator(): mixed
+    /**
+     * @param array{distinct?: bool} $options
+     * @return array{min: int|float|null, hasValue: bool}
+     */
+    public static function initial(array $options = []): array
     {
-        if (!$this->distinct) {
-            return null;
-        }
-
+        unset($options['distinct']); // no-op for MIN
         return [
-            'value' => null,
-            'seen' => [],
+            'min' => null,
+            'hasValue' => false,
         ];
     }
 
     /**
-     * @inheritDoc
+     * @param array{min: int|float|null, hasValue: bool} $acc
+     * @return array{min: int|float|null, hasValue: bool}
+     * @throws UnexpectedValueException
      */
-    public function accumulate(mixed $accumulator, array $item): mixed
+    public static function accumulate(mixed $acc, mixed $value): array
     {
-        $value = $this->getFieldValue($this->field, $item);
+        if ($value === null) {
+            return $acc;
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
-
         if (!is_numeric($value)) {
             throw new UnexpectedValueException(
-                sprintf(
-                    'Field "%s" value is not numeric: %s',
-                    $this->field,
-                    $value
-                )
+                sprintf('MIN value is not numeric: %s', var_export($value, true))
             );
         }
-
-        if ($this->distinct) {
-            if (!$this->isDistinctValue($value, $accumulator['seen'])) {
-                return $accumulator;
-            }
-
-            if ($accumulator['value'] === null) {
-                $accumulator['value'] = $value;
-                return $accumulator;
-            }
-
-            $accumulator['value'] = min($accumulator['value'], $value);
-            return $accumulator;
+        $numeric = $value + 0;
+        if (!$acc['hasValue'] || $numeric < $acc['min']) {
+            $acc['min'] = $numeric;
+            $acc['hasValue'] = true;
         }
-
-        if ($accumulator === null) {
-            return $value;
-        }
-
-        return min($accumulator, $value);
+        return $acc;
     }
 
-    public function finalize(mixed $accumulator): mixed
+    /**
+     * @param array{min: int|float|null, hasValue: bool} $acc
+     */
+    public static function finalize(mixed $acc): int|float|null
     {
-        if ($this->distinct) {
-            return $accumulator['value'];
-        }
-
-        return $accumulator;
+        return $acc['hasValue'] ? $acc['min'] : null;
     }
 }
