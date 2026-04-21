@@ -7,7 +7,7 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-81.58%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-81.01%25-yellow)
 ![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_923-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
