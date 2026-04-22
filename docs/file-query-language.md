@@ -116,6 +116,25 @@ SELECT
 - _**select_alias**_: is an alias for the _**select_expr**_.
 - _**excl_alias**_: is an aliased column name to exclude from the result set. Supports dot notation for nested fields.
 
+### Path syntax for nested / escaped / array fields
+
+Column references support three kinds of segments joined by `.`:
+
+1. **Plain identifiers** — `info.orderID`, `brand.code.full`.
+2. **Backtick-escaped segments** when a key contains spaces, diacritics, a dot or a bracket (e.g. a column literally named `Název Zboží.cz`). Individual segments or a whole chain may be escaped:
+   ```sql
+   SELECT `Název Zboží.cz` AS nazev
+   SELECT `info`.`orderID` AS id
+   SELECT `info`.date                     -- mixing quoted and plain segments is fine
+   ```
+3. **Array iteration** using `[]` after any segment. Returns all items of the underlying array, suitable for aggregate inputs or passing to length-style functions:
+   ```sql
+   SELECT products.product[] AS items,
+          LENGTH(`products`.`product`[]) AS itemCount
+   ```
+
+Aliases in `AS` clauses follow the same rule — wrap them in backticks when they contain non-identifier characters (`` AS `Kód objednávky` ``). The tokenizer strips the outer backticks so the alias appears verbatim in the result set.
+
 **Example:**
 
 ```sql

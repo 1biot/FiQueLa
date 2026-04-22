@@ -62,7 +62,9 @@ final class SqlFormatter
 
         if ($ast->from !== null) {
             $source = $this->renderSource($ast->from->source, $depth);
-            $aliasSuffix = $ast->from->alias !== null ? ' ' . $this->kw('AS') . ' ' . $ast->from->alias : '';
+            $aliasSuffix = $ast->from->alias !== null
+                ? ' ' . $this->kw('AS') . ' ' . self::quoteAliasIfNeeded($ast->from->alias)
+                : '';
             $lines[] = $ind . $this->kw('FROM') . ' ' . $source . $aliasSuffix;
         }
 
@@ -144,9 +146,23 @@ final class SqlFormatter
         $prefix = $field->excluded ? $this->kw('EXCLUDE') . ' ' : '';
         $expr = $this->compiler->renderExpression($field->expression);
         if ($field->alias !== null) {
-            $expr .= ' ' . $this->kw('AS') . ' ' . $field->alias;
+            $expr .= ' ' . $this->kw('AS') . ' ' . self::quoteAliasIfNeeded($field->alias);
         }
         return $prefix . $expr;
+    }
+
+    /**
+     * Re-wraps aliases containing non-identifier-safe characters (spaces,
+     * diacritics, dots, brackets, …) in backticks so the formatted SQL is
+     * re-parseable. Aliases that are already plain ASCII identifiers are
+     * returned verbatim.
+     */
+    private static function quoteAliasIfNeeded(string $alias): string
+    {
+        if ($alias === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $alias) === 1) {
+            return $alias;
+        }
+        return '`' . $alias . '`';
     }
 
     private function renderSource(?ExpressionNode $source, int $depth): string
@@ -173,7 +189,7 @@ final class SqlFormatter
         $source = $this->renderSource($join->source, $depth);
         $on = $this->compiler->renderCondition($join->on);
         return $this->kw($type) . ' ' . $source
-            . ' ' . $this->kw('AS') . ' ' . $join->alias
+            . ' ' . $this->kw('AS') . ' ' . self::quoteAliasIfNeeded($join->alias)
             . ' ' . $this->kw('ON') . ' ' . $on;
     }
 

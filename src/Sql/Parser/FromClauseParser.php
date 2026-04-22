@@ -31,7 +31,7 @@ final class FromClauseParser
         $alias = null;
         if ($stream->consumeIf(TokenType::KEYWORD_AS) !== null) {
             $aliasToken = $stream->expect(TokenType::IDENTIFIER, TokenType::IDENTIFIER_QUOTED);
-            $alias = $aliasToken->value;
+            $alias = IdentifierHelper::stripOuterBackticks($aliasToken->value);
         }
         return new FromClauseNode($source, $alias, $fromKeyword->position);
     }

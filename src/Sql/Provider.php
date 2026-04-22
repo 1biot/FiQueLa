@@ -9,6 +9,8 @@ use FQL\Sql\Formatter\SqlFormatter;
 use FQL\Sql\Highlighter\BashHighlighter;
 use FQL\Sql\Highlighter\HighlighterKind;
 use FQL\Sql\Highlighter\HtmlHighlighter;
+use FQL\Sql\Lint\Linter;
+use FQL\Sql\Lint\LintReport;
 use FQL\Sql\Parser\ConditionGroupParser;
 use FQL\Sql\Parser\ConditionParser;
 use FQL\Sql\Parser\ExpressionParser;
@@ -52,6 +54,23 @@ final class Provider
     public static function format(string $sql, ?FormatterOptions $options = null): string
     {
         return (new SqlFormatter($options ?? new FormatterOptions()))->format($sql);
+    }
+
+    /**
+     * Statically analyses an FQL string and returns a {@see LintReport} listing
+     * issues that wouldn't surface until execution: unknown function names,
+     * duplicate SELECT aliases, missing FROM clause, and (opt-in) missing
+     * source files. A failing parse returns a single `syntax-error` issue —
+     * semantic rules aren't run without a valid AST.
+     *
+     * Pass `$checkFilesystem = true` to enable {@see \FQL\Sql\Lint\Rule\FileNotFoundRule},
+     * which verifies every `FROM <format>(...)` path resolves to a readable
+     * file. Disabled by default so tests and IDE integrations don't depend on
+     * real files.
+     */
+    public static function lint(string $sql, bool $checkFilesystem = false): LintReport
+    {
+        return (new Linter())->lint($sql, $checkFilesystem);
     }
 
     /**

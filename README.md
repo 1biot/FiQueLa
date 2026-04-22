@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-81.01%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_923-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-81.67%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1010-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -89,6 +89,23 @@ composer require tracy/tracy
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
 - **`tracy/tracy`**: Optional for using Debugger
+
+### Bundled dev tooling — `fql-dev`
+
+Installing the package also ships `vendor/bin/fql-dev` — a lint / format / highlight tool driven by the same parser pipeline as the library itself. The binary is intentionally named `fql-dev` (not `fiquela`) so it doesn't clash with the separate [`fiquela-cli`](#fiquela-cli) REPL — **`fql-dev` works on FQL source code, `fiquela-cli` runs queries against files.**
+
+```bash
+# Static analysis (exit 1 on errors, 0 on warnings/info)
+vendor/bin/fql-dev lint -e "SELECT LOEWR(name) FROM json(products.json)"
+
+# Pretty-print
+vendor/bin/fql-dev format -e "SELECT a,b,c FROM json(x.json) WHERE a=1"
+
+# Syntax highlighting (ANSI by default, --format=html for HTML wrappers)
+vendor/bin/fql-dev highlight -e "SELECT a FROM json(x.json)"
+```
+
+Run `vendor/bin/fql-dev help` for the full command list. See the [API Reference](docs/api-reference.md#cli) for details.
 
 ## 3. Supported Formats
 

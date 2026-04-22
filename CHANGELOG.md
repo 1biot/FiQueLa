@@ -147,6 +147,56 @@ shifts happened:
 - **`Functions\Utils\CaseBuilder`** — internal buffer that backs the
   `case()->whenCase()->elseCase()->endCase()` fluent builder; produces a
   `CaseExpressionNode` for the evaluator.
+- **`FQL\Sql\Lint` namespace** — static analyser for FQL strings. Reuses the
+  parser pipeline to surface issues that wouldn't trip until execution:
+  `syntax-error` (wraps `ParseException`), `unknown-function` (typos like
+  `LOEWR(name)` that the parser otherwise accepts as generic function calls),
+  `duplicate-alias` (`SELECT a AS x, b AS x`), `missing-from` (warning, since
+  `Compiler::applyTo()` legitimately omits FROM), and the opt-in
+  `file-not-found` (filesystem-touching, disabled by default). Entry point
+  is `Sql\Provider::lint($sql, $checkFilesystem = false): LintReport`.
+  `LintReport` implements `IteratorAggregate`/`Countable` and exposes
+  `hasErrors()`, `hasWarnings()`, `filterBySeverity()`, `toArray()` for CLI /
+  JSON export. Rules live in `Lint\Rule\*`, each implementing the
+  `Lint\Rule` interface — custom rule sets can be passed to `new Linter([...])`.
+- **Backtick-escaped path chains + array iteration in the SQL tokenizer.**
+  Three related tokenizer gaps are closed:
+  - Dotted backtick chains like `` `info`.`orderID` `` now lex as a single
+    `IDENTIFIER_QUOTED` token whose `.value` preserves the backticks so the
+    runtime `EnhancedNestedArrayAccessor::parsePath()` sees the escape
+    boundaries and doesn't split a key like `Název Zboží.cz` into two path
+    segments.
+  - Mixed chains such as `` `info`.date `` and `` info.`orderID` `` are
+    accepted and emit a single IDENTIFIER_QUOTED token.
+  - Array iteration markers `[]` are allowed between / after path segments
+    (`products.product[]`, `a.b[].c`, `` `products`.`product`[] ``) — the
+    runtime accessor already handles them; the tokenizer just wouldn't let
+    them through in SELECT / WHERE / ORDER BY contexts.
+
+  SELECT / FROM / JOIN alias parsers now strip the outer backticks from
+  `IDENTIFIER_QUOTED` alias tokens — `SELECT x AS \`Kód objednávky\`` yields
+  alias `Kód objednávky`, and the formatter re-wraps non-identifier-safe
+  aliases on output so `fql-dev format | fql-dev lint` stays round-trip
+  clean.
+
+  Implementation merges the old `scanBacktickIdentifier` and
+  `scanIdentifierChain` into a single `Tokenizer::scanPathChain()` that
+  handles every combination uniformly; a small `Sql\Parser\IdentifierHelper`
+  centralises the alias-strip rule.
+- **`FQL\Cli` namespace + `bin/fql-dev` executable** — CLI wrapper around
+  `Sql\Provider::lint()` / `::format()` / `::highlight()`. Registered under
+  `composer.json "bin"`, so `composer require 1biot/fiquela` exposes
+  `vendor/bin/fql-dev` for end users. Binary name intentionally differs from
+  the package name so it doesn't collide with the separate `fiquela-cli`
+  REPL project (which runs queries; this tool is for FQL source analysis).
+  Subcommands: `lint`, `format`, `highlight`, `help`. Input modes: file
+  path, `-` (stdin), `-e "<sql>"` (inline). Lint supports
+  `--severity=error|warning|info`, `--format=human|plain|json`, and opt-in
+  `--check-fs`. Global flags: `--help`/`-h`, `--version`/`-V`,
+  `--color`/`--no-color` (TTY auto-detection by default). Exit codes are
+  CLI-standard — `0` success, `1` lint errors / parse failure, `2` usage /
+  IO errors. Each command owns its own `Args::parse()` call for
+  deterministic option handling; no symfony/console dependency added.
 
 ### Changed
 - **`Query\Provider::fql()` runs on the new Token → AST → Query pipeline.** Public

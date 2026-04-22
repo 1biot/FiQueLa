@@ -76,6 +76,7 @@
     - [FunctionInvoker](#functioninvoker)
   - [Formatter](#sql-formatter)
   - [Highlighter](#sql-highlighter)
+  - [Lint](#sql-lint)
   - [Support](#sql-support)
 - [Conditions](#conditions)
   - [Condition](#condition)
@@ -108,6 +109,12 @@
 - [Utils](#utils-1)
   - [InMemoryHashmap](#inmemoryhashmaputil)
   - [FileQueryPathValidator](#filequerypath-validator)
+- [CLI](#cli)
+  - [Application](#cli-application)
+  - [Command](#cli-command)
+  - [Args](#cli-args)
+  - [Output](#cli-output)
+  - [Commands](#cli-commands)
 
 ---
 
@@ -1187,6 +1194,19 @@ _public static_ **format(**_string_ `$sql`**,** _?Formatter\FormatterOptions_ `$
 
 AST-driven pretty-print. One clause per line, multi-field SELECTs wrap onto separate lines (configurable).
 
+_public static_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `Lint\LintReport`
+
+Static analysis of an FQL string — returns a [`LintReport`](#sql-lint) of issues that wouldn't surface until execution (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files when `$checkFilesystem = true`). Parse failures collapse to a single `syntax-error` entry.
+
+```php
+$report = Sql\Provider::lint('SELECT LOEWR(name) FROM json(products.json)');
+if ($report->hasErrors()) {
+    foreach ($report as $issue) {
+        echo $issue, PHP_EOL;   // [ERROR] unknown-function at line 1, column 8 — …
+    }
+}
+```
+
 _public static_ **parseExpression(**_string_ `$fragment`**):** `Ast\Expression\ExpressionNode`
 
 Parses a single SQL expression fragment into an AST node. Used internally by fluent helpers (`groupBy`, `orderBy`, `lower`, `round`, aggregate helpers, etc.) when the argument string contains function calls or arithmetic rather than a plain field name.
@@ -1539,6 +1559,71 @@ Token-based syntax highlighter. `HighlighterKind` enum exposes `BASH` and `HTML`
 | `ThemedHighlighter` | Generic implementation; `BashHighlighter` / `HtmlHighlighter` extend it with the default theme |
 | `BashTheme` | ANSI escape codes (bold cyan keywords, magenta functions, green strings, ...) |
 | `HtmlTheme` | `<span class="fql-…">` wrappers with `htmlspecialchars`-escaped content |
+
+### SQL Lint
+
+**namespace:** `FQL\Sql\Lint`
+
+Static analyser for FQL strings — surfaces issues that only pop up at execution time (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files). Built on the same parser pipeline as `compile()` / `highlight()` / `format()`; all rules walk the AST, so a failing parse short-circuits with a single `syntax-error` issue.
+
+`FQL\Sql\Lint\Severity` _enum_ — `ERROR`, `WARNING`, `INFO` (`isAtLeast(Severity)`).
+
+`FQL\Sql\Lint\LintIssue` _(readonly value object)_
+
+_public_ **__construct(**_Severity_ `$severity`**,** _string_ `$rule`**,** _string_ `$message`**,** _?Position_ `$position = null`**)**
+
+_public_ **__toString():** `string` — `[ERROR] unknown-function at line 1, column 8 — Unknown function "LOEWR".`
+
+_public_ **toArray():** `array{severity, rule, message, line, column, offset}` — JSON-friendly projection.
+
+`FQL\Sql\Lint\LintReport` _(implements `IteratorAggregate`, `Countable`)_
+
+Immutable collection of `LintIssue` returned by `Linter::lint()`.
+
+_public readonly_ `list<LintIssue>` **$issues**
+
+_public_ **hasErrors():** `bool`, **hasWarnings():** `bool`, **count():** `int`
+
+_public_ **filterBySeverity(**_Severity_ `$min`**):** `LintReport` — new report containing issues at `$min` or higher.
+
+_public_ **with(**_LintIssue|list<LintIssue>_ `$additional`**):** `LintReport`
+
+_public_ **toArray():** `list<array>`
+
+`FQL\Sql\Lint\Linter`
+
+_public_ **__construct(**_?list<Rule>_ `$rules = null`**)** — `null` uses `defaultRules()`.
+
+_public static_ **defaultRules():** `list<Rule>` — `UnknownFunctionRule`, `DuplicateAliasRule`, `MissingFromRule`, `FileNotFoundRule`.
+
+_public_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `LintReport`
+
+Typical usage goes through [`Sql\Provider::lint()`](#sql-provider). Construct your own `Linter` when you want a reduced rule set or need to inject a custom `FunctionInvoker` into `UnknownFunctionRule`.
+
+**Built-in rules** (`FQL\Sql\Lint\Rule\*`):
+
+| Class | ID | Severity | Checks |
+|-------|----|----------|--------|
+| `UnknownFunctionRule` | `unknown-function` | ERROR | Every `FunctionCallNode::$name` is known to the runtime `FunctionInvoker` (scalar or aggregate). |
+| `DuplicateAliasRule` | `duplicate-alias` | ERROR | No two SELECT fields share the same explicit alias (`SELECT a AS x, b AS x`). |
+| `MissingFromRule` | `missing-from` | WARNING | SELECT has a `FROM` clause. Not an error because `Compiler::applyTo()` legitimately omits it. |
+| `FileNotFoundRule` | `file-not-found` | ERROR | Opt-in (`$checkFilesystem = true`): every `FROM <format>(path)` path exists and is readable. |
+
+Parse failures emit a single `syntax-error` issue (severity `ERROR`) sourced from `ParseException::$token->position`; semantic rules don't run without a valid AST.
+
+`FQL\Sql\Lint\Rule` _(interface)_
+
+_public_ **id():** `string` — stable identifier used in `LintIssue::$rule` and future CLI filters.
+
+_public_ **severity():** `Severity`
+
+_public_ **check(**_LintContext_ `$ctx`**):** `list<LintIssue>`
+
+`FQL\Sql\Lint\LintContext` _(readonly)_ — carries `SelectStatementNode $ast`, `string $source`, and `bool $checkFilesystem`.
+
+`FQL\Sql\Lint\AstWalker`
+
+_public static_ **findAll(**_object_ `$node`**,** _class-string<T>_ `$type`**):** `Generator<T>` — recursive AST traversal used by rules to collect every descendant of a given node class.
 
 ### SQL Support
 
@@ -2127,6 +2212,96 @@ _public_ **clear():** `void`
 _public static_ **validate(**_FileQuery_ `$fileQuery`**,** _string_ `$basePath`**,** _bool_ `$mustExist = true`**):** `FileQuery`
 
 Validates file paths against base path. Prevents directory traversal.
+
+---
+
+## CLI
+
+**namespace:** `FQL\Cli` — executable via `bin/fql-dev`, published as `vendor/bin/fql-dev` after `composer require 1biot/fiquela`. Binary name intentionally differs from the package name so it doesn't clash with the separate [`fiquela-cli`](https://github.com/1biot/fiquela-cli) REPL (which runs queries, whereas this tool lints / formats / highlights FQL source).
+
+Thin wrapper around `Sql\Provider::lint()` / `::format()` / `::highlight()` with a file/stdin/`-e "<sql>"` input story, ANSI-aware output, and CLI-standard exit codes (`0` success, `1` findings, `2` usage/IO error).
+
+```bash
+# Global
+fql-dev                              # top-level help
+fql-dev --help / fql-dev help <cmd>  # help variants
+fql-dev --version / -V
+fql-dev --color | --no-color         # force ANSI on/off (auto-detected by default)
+
+# Subcommands
+fql-dev lint [--severity=error|warning|info] [--format=human|plain|json] [--check-fs] <file|-|-e "<sql>">
+fql-dev format [--indent=N] [--no-uppercase-keywords] [--fields-per-line=N] <file|-|-e "<sql>">
+fql-dev highlight [--format=bash|html] <file|-|-e "<sql>">
+```
+
+### CLI Application
+
+`FQL\Cli\Application`
+
+_public_ **__construct(**_?array<string,Command>_ `$commands = null`**)** — injects a custom command set for tests; `null` uses the default `lint`/`format`/`highlight`/`help`.
+
+_public_ **run(**_list<string>_ `$argv`**,** _?Output_ `$stdoutOverride = null`**,** _?Output_ `$stderrOverride = null`**):** `int` — parses global flags, resolves the subcommand, returns its exit code.
+
+### CLI Command
+
+`FQL\Cli\Command` _(interface)_ — every subcommand implements `name()`, `description()`, `usage()`, `run(list<string> $argv, Output $stdout, Output $stderr): int`.
+
+### CLI Args
+
+`FQL\Cli\Args` _(readonly value object)_ — deterministic argv parser that keeps parsing logic local to each command (each command declares which options take values).
+
+_public static_ **parse(**_list<string>_ `$argv`**,** _list<string>_ `$valueShortFlags = ['e']`**,** _list<string>_ `$valueLongOptions = []`**):** `Args`
+
+_public_ **bool(**_string_ `$name`**,** _bool_ `$default = false`**):** `bool`
+
+_public_ **string(**_string_ `$name`**,** _?string_ `$default = null`**):** `?string`
+
+_public_ **has(**_string_ `$name`**):** `bool`, **first():** `?string`
+
+Parser conventions:
+- `--flag`, `--no-flag` → boolean
+- `--opt=value` → string (explicit, always works)
+- `--opt value` → string, only when `opt` is registered in `$valueLongOptions`
+- `-x value`, `-xvalue` → short option with value when `x` is in `$valueShortFlags`
+- `-x` → bool flag
+- bare `-` → positional (stdin sentinel)
+- `--` → forces remaining tokens to positional
+
+### CLI Output
+
+`FQL\Cli\Output` — ANSI color helper with TTY auto-detection.
+
+_public_ **__construct(**_bool_ `$useColor`**,** _resource_ `$stream`**)**
+
+_public static_ **forStdout(**_?bool_ `$override = null`**):** `Output`
+
+_public static_ **forStderr(**_?bool_ `$override = null`**):** `Output`
+
+_public static_ **memory(**_bool_ `$useColor = false`**):** `array{0: Output, 1: resource}` — test helper backed by `php://memory`; returned stream lets tests `fread()` what was written.
+
+_public_ **write(**_string_ `$text`**):** `void`, **writeln(**_string_ `$text = ''`**):** `void`
+
+Color helpers — pass-through when `useColor === false`, wrapped with ANSI escape otherwise:
+
+_public_ **red/green/yellow/blue/magenta/cyan/bold/dim(**_string_ `$s`**):** `string`
+
+### CLI Commands
+
+**namespace:** `FQL\Cli\Command`
+
+| Class | Name | Delegates to |
+|-------|------|--------------|
+| `LintCommand` | `lint` | `Sql\Provider::lint()` |
+| `FormatCommand` | `format` | `Sql\Provider::format()` |
+| `HighlightCommand` | `highlight` | `Sql\Provider::highlight()` |
+| `HelpCommand` | `help` | prints usage of Application or a specific command |
+
+**Lint output formats:**
+- `human` (default) — ANSI-coloured `location: severity rule message` lines, summary on stderr
+- `plain` — same layout, no colors (auto-selected when stdout is not a TTY)
+- `json` — pretty-printed JSON array of `LintIssue::toArray()` shape; suitable for CI / editor integrations
+
+**Lint exit codes**: `0` = clean at the selected severity filter, `1` = at least one error, `2` = usage / IO / invalid option value.
 
 ---
 

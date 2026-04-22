@@ -46,6 +46,12 @@ final class JoinClauseParser
         $stream->expect(TokenType::KEYWORD_ON);
         $condition = $this->conditionParser->parse($stream);
 
-        return new JoinClauseNode($joinType, $source, $aliasToken->value, $condition, $leadToken->position);
+        return new JoinClauseNode(
+            $joinType,
+            $source,
+            IdentifierHelper::stripOuterBackticks($aliasToken->value),
+            $condition,
+            $leadToken->position
+        );
     }
 }

@@ -180,9 +180,10 @@ final class Tokenizer
             return;
         }
 
-        // Backtick-quoted identifier
+        // Backtick-quoted identifier (optionally extending into a dotted
+        // path with mixed quoted / unquoted segments and `[]` iteration).
         if ($char === '`') {
-            $this->scanBacktickIdentifier($startOffset, $startLine, $startColumn);
+            $this->scanPathChain($startOffset, $startLine, $startColumn, backtickFirst: true);
             return;
         }
 
@@ -419,38 +420,166 @@ final class Tokenizer
     }
 
     /**
+     * Scans a path-style identifier consisting of one or more segments joined
+     * by `.` — each segment is either an unquoted word, a backtick-escaped
+     * chunk (`` `name with.dot` ``), or the `*` wildcard. Array iteration
+     * markers `[]` may appear after any segment. Emits a single IDENTIFIER
+     * token (or IDENTIFIER_QUOTED when any segment was backticked), with the
+     * value preserving backticks verbatim so the runtime
+     * `EnhancedNestedArrayAccessor::parsePath()` can distinguish escaped keys
+     * from dotted paths.
+     *
+     * Special case: a single bare backtick segment (no chain, no brackets,
+     * no wildcard, no `.` inside the quoted content) emits its stripped
+     * contents as the value — keeps aliases like `AS \`weird name\`` flowing
+     * through `$aliasToken->value` unchanged (the alias parser handles
+     * multi-segment stripping itself).
+     *
+     * @throws ParseException on unterminated backtick
+     */
+    private function scanPathChain(
+        int $startOffset,
+        int $startLine,
+        int $startColumn,
+        bool $backtickFirst
+    ): void {
+        $start = $this->position;
+        $anyBacktick = false;
+        $segmentCount = 0;
+
+        // --- first segment ---
+        if ($backtickFirst) {
+            $this->scanBacktickSegment($startOffset, $startLine, $startColumn);
+            $anyBacktick = true;
+        } else {
+            $this->scanIdentifierWord();
+        }
+        $segmentCount++;
+        $this->consumeArrayMarkers();
+
+        // --- additional segments joined by `.` ---
+        while ($this->position < $this->length && $this->sql[$this->position] === '.') {
+            $next = $this->peekChar(1);
+            if ($next === '*') {
+                $this->advance();   // '.'
+                $this->advance();   // '*'
+                $segmentCount++;
+                break;              // wildcard terminates the chain
+            }
+            if ($next === '`') {
+                $this->advance();   // '.'
+                $this->scanBacktickSegment($startOffset, $startLine, $startColumn);
+                $anyBacktick = true;
+                $segmentCount++;
+                $this->consumeArrayMarkers();
+                continue;
+            }
+            if ($next !== null && $this->isIdentifierStart($next)) {
+                $this->advance();   // '.'
+                $this->scanIdentifierWord();
+                $segmentCount++;
+                $this->consumeArrayMarkers();
+                continue;
+            }
+            break;
+        }
+
+        $raw = substr($this->sql, $start, $this->position - $start);
+
+        if ($anyBacktick) {
+            // Strip outer backticks only when the sole segment's content is a
+            // "plain" name — no dots, brackets, wildcards or nested backticks
+            // — so it can flow safely through downstream code that treats
+            // IDENTIFIER_QUOTED::value as a bare key. Anything richer keeps
+            // backticks preserved so the runtime path accessor sees the
+            // escape boundaries; alias parsers strip them separately when
+            // the value is used as an alias rather than a column path.
+            $value = $raw;
+            if (
+                $segmentCount === 1
+                && strlen($raw) >= 2
+                && $raw[0] === '`'
+                && $raw[strlen($raw) - 1] === '`'
+            ) {
+                $inner = substr($raw, 1, -1);
+                if (
+                    !str_contains($inner, '`')
+                    && !str_contains($inner, '.')
+                    && !str_contains($inner, '[')
+                    && !str_contains($inner, ']')
+                    && !str_contains($inner, '*')
+                ) {
+                    $value = $inner;
+                }
+            }
+            $this->emit(
+                TokenType::IDENTIFIER_QUOTED,
+                $value,
+                $raw,
+                $startOffset,
+                $startLine,
+                $startColumn,
+                strlen($raw)
+            );
+            return;
+        }
+
+        $this->emit(
+            TokenType::IDENTIFIER,
+            $raw,
+            $raw,
+            $startOffset,
+            $startLine,
+            $startColumn,
+            strlen($raw)
+        );
+    }
+
+    /**
+     * Consumes one backtick-delimited segment (expects cursor at the opening
+     * backtick). Throws on an unterminated segment. Used by scanPathChain()
+     * for the first segment and for any `` .`…` `` follow-up.
+     *
      * @throws ParseException
      */
-    private function scanBacktickIdentifier(int $startOffset, int $startLine, int $startColumn): void
+    private function scanBacktickSegment(int $chainOffset, int $chainLine, int $chainColumn): void
     {
-        $start = $this->position;
+        $segmentStart = $this->position;
         $this->advance(); // opening backtick
 
         while ($this->position < $this->length) {
             if ($this->sql[$this->position] === '`') {
                 $this->advance();
-                $raw = substr($this->sql, $start, $this->position - $start);
-                $value = substr($raw, 1, strlen($raw) - 2);
-                $this->emit(
-                    TokenType::IDENTIFIER_QUOTED,
-                    $value,
-                    $raw,
-                    $startOffset,
-                    $startLine,
-                    $startColumn,
-                    $this->position - $start
-                );
                 return;
             }
             $this->advance();
         }
 
-        $position = new Position($startOffset, $startLine, $startColumn);
+        // Unterminated — surface with a position pointing at the chain start,
+        // which is close enough to the problem to be useful.
+        $position = new Position($chainOffset, $chainLine, $chainColumn);
         throw new ParseException(
             new Token(TokenType::EOF, '`', '`', $position, 1),
             [],
             sprintf('Unterminated backtick identifier starting at %s', (string) $position)
         );
+    }
+
+    /**
+     * Consumes any trailing `[]` markers (array iteration) right after a
+     * segment. Only `[]` is recognised — `[index]` is not supported by the
+     * runtime accessor today, so we stay in lockstep and reject it.
+     */
+    private function consumeArrayMarkers(): void
+    {
+        while (
+            $this->position + 1 < $this->length
+            && $this->sql[$this->position] === '['
+            && $this->sql[$this->position + 1] === ']'
+        ) {
+            $this->advance();   // '['
+            $this->advance();   // ']'
+        }
     }
 
     private function scanNumber(int $startOffset, int $startLine, int $startColumn): void
@@ -506,13 +635,21 @@ final class Tokenizer
             $this->expectFileQuery = false;
         }
 
-        $word = $this->scanIdentifierChain();
-        $upper = strtoupper($word);
+        // Scan the first word in isolation — keywords / booleans / NULL /
+        // function names are always single-word, never dotted or bracketed,
+        // so we must not greedily consume a path chain until we know the
+        // first word isn't special.
+        $rollbackPosition = $this->position;
+        $rollbackLine = $this->line;
+        $rollbackColumn = $this->column;
+        $this->scanIdentifierWord();
+        $firstWord = substr($this->sql, $rollbackPosition, $this->position - $rollbackPosition);
+        $upper = strtoupper($firstWord);
 
         // Keyword?
         if (isset(self::KEYWORDS[$upper])) {
             $type = self::KEYWORDS[$upper];
-            $this->emit($type, $upper, $word, $startOffset, $startLine, $startColumn, strlen($word));
+            $this->emit($type, $upper, $firstWord, $startOffset, $startLine, $startColumn, strlen($firstWord));
             // Activate FILE_QUERY context after source-introducing keywords.
             if (
                 $type === TokenType::KEYWORD_FROM
@@ -529,28 +666,49 @@ final class Tokenizer
         if ($upper === 'TRUE' || $upper === 'FALSE') {
             $this->emit(
                 TokenType::BOOLEAN_LITERAL,
-                strtolower($word),
-                $word,
+                strtolower($firstWord),
+                $firstWord,
                 $startOffset,
                 $startLine,
                 $startColumn,
-                strlen($word)
+                strlen($firstWord)
             );
             return;
         }
         if ($upper === 'NULL') {
-            $this->emit(TokenType::NULL_LITERAL, 'null', $word, $startOffset, $startLine, $startColumn, strlen($word));
+            $this->emit(
+                TokenType::NULL_LITERAL,
+                'null',
+                $firstWord,
+                $startOffset,
+                $startLine,
+                $startColumn,
+                strlen($firstWord)
+            );
             return;
         }
 
         // Function name: identifier immediately followed by `(`
         if ($this->position < $this->length && $this->sql[$this->position] === '(') {
-            $this->emit(TokenType::FUNCTION_NAME, $upper, $word, $startOffset, $startLine, $startColumn, strlen($word));
+            $this->emit(
+                TokenType::FUNCTION_NAME,
+                $upper,
+                $firstWord,
+                $startOffset,
+                $startLine,
+                $startColumn,
+                strlen($firstWord)
+            );
             return;
         }
 
-        // Plain identifier (may be dotted)
-        $this->emit(TokenType::IDENTIFIER, $word, $word, $startOffset, $startLine, $startColumn, strlen($word));
+        // Plain identifier: extend the chain over `.segment`, `.*`, `[]`.
+        // Roll back cursor/line/column together so `scanPathChain()` can
+        // consume the first word uniformly along with any trailing chain.
+        $this->position = $rollbackPosition;
+        $this->line = $rollbackLine;
+        $this->column = $rollbackColumn;
+        $this->scanPathChain($startOffset, $startLine, $startColumn, backtickFirst: false);
     }
 
     /**
@@ -578,33 +736,6 @@ final class Tokenizer
             return null;
         }
         return $match;
-    }
-
-    /**
-     * Scans an identifier with optional dot-chain segments (e.g. `data.users.name`, `data.*`).
-     */
-    private function scanIdentifierChain(): string
-    {
-        $start = $this->position;
-        $this->scanIdentifierWord();
-
-        while ($this->position < $this->length && $this->sql[$this->position] === '.') {
-            // Look one character ahead to ensure the dot continues the chain.
-            $next = $this->peekChar(1);
-            if ($next === '*') {
-                $this->advance(); // consume '.'
-                $this->advance(); // consume '*'
-                continue;
-            }
-            if ($next !== null && $this->isIdentifierStart($next)) {
-                $this->advance(); // consume '.'
-                $this->scanIdentifierWord();
-                continue;
-            }
-            break;
-        }
-
-        return substr($this->sql, $start, $this->position - $start);
     }
 
     private function scanIdentifierWord(): void

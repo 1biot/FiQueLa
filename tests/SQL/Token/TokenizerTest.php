@@ -135,6 +135,76 @@ class TokenizerTest extends TestCase
         $this->assertSame('`weird name`', $tokens[1]->raw);
     }
 
+    public function testBacktickIdentifierWithDotInside(): void
+    {
+        // A single backtick segment whose contents contain `.` must keep
+        // the backticks in `.value` — otherwise the runtime path accessor
+        // would split `Název Zboží.cz` into two segments.
+        $tokens = $this->tokens('SELECT `Název Zboží.cz` FROM x');
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[1]->type);
+        $this->assertSame('`Název Zboží.cz`', $tokens[1]->value);
+        $this->assertSame('`Název Zboží.cz`', $tokens[1]->raw);
+    }
+
+    public function testBacktickChain(): void
+    {
+        $tokens = $this->tokens('SELECT `info`.`orderID` FROM x');
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[1]->type);
+        $this->assertSame('`info`.`orderID`', $tokens[1]->value);
+        $this->assertSame('`info`.`orderID`', $tokens[1]->raw);
+    }
+
+    public function testBacktickMixedChain(): void
+    {
+        $tokens = $this->tokens('SELECT `info`.date FROM x');
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[1]->type);
+        $this->assertSame('`info`.date', $tokens[1]->value);
+    }
+
+    public function testBacktickStartsWithUnquotedFollowedByBacktick(): void
+    {
+        $tokens = $this->tokens('SELECT info.`orderID` FROM x');
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[1]->type);
+        $this->assertSame('info.`orderID`', $tokens[1]->value);
+    }
+
+    public function testArrayAccessor(): void
+    {
+        $tokens = $this->tokens('SELECT products.product[] FROM x');
+        $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
+        $this->assertSame('products.product[]', $tokens[1]->value);
+    }
+
+    public function testArrayAccessorMidPath(): void
+    {
+        $tokens = $this->tokens('SELECT a.b[].c FROM x');
+        $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
+        $this->assertSame('a.b[].c', $tokens[1]->value);
+    }
+
+    public function testArrayAccessorOnBacktickChain(): void
+    {
+        $tokens = $this->tokens('SELECT `products`.`product`[] FROM x');
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[1]->type);
+        $this->assertSame('`products`.`product`[]', $tokens[1]->value);
+    }
+
+    public function testWildcardStillWorks(): void
+    {
+        $tokens = $this->tokens('SELECT a.b.* FROM x');
+        $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
+        $this->assertSame('a.b.*', $tokens[1]->value);
+    }
+
+    public function testBacktickAliasStripped(): void
+    {
+        $tokens = $this->tokens('SELECT x AS `Kód objednávky` FROM y');
+        // Token keeps its value as stripped (single segment, no special
+        // chars) — SelectClauseParser sees `Kód objednávky` directly.
+        $this->assertSame(TokenType::IDENTIFIER_QUOTED, $tokens[3]->type);
+        $this->assertSame('Kód objednávky', $tokens[3]->value);
+    }
+
     public function testNumberLiterals(): void
     {
         $tokens = $this->tokens('SELECT 42, 3.14, .5 FROM x');

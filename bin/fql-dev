@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Bootstrap the correct autoloader whether we're running from a checkout
+// (vendor/ at the repo root) or installed as a Composer dependency
+// (vendor/1biot/fiquela/bin/fql-dev → up three levels to the host project's
+// autoload.php).
+foreach (
+    [
+        __DIR__ . '/../vendor/autoload.php',
+        __DIR__ . '/../../../autoload.php',
+    ] as $autoload
+) {
+    if (file_exists($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+if (!class_exists(FQL\Cli\Application::class)) {
+    fwrite(STDERR, "FiQueLa autoloader could not be located. Run `composer install`.\n");
+    exit(2);
+}
+
+exit((new FQL\Cli\Application())->run($argv));

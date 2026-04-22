@@ -30,6 +30,9 @@
       "FQL\\": "./src/"
     }
   },
+  "bin": [
+    "bin/fql-dev"
+  ],
   "scripts": {
     "utils:phpstan": [
       "vendor/bin/phpstan"
