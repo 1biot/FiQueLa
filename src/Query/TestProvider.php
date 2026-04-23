@@ -19,7 +19,12 @@ use FQL\Traits\Unionable;
 
 /**
  * Class TestProvider implements traits for Query and empty results when fetching data. We need to test for traits only.
+ *
+ * Excluded from coverage — this is a test scaffolding class used to exercise
+ * the trait composition in isolation, not production code.
+ *
  * @phpstan-import-type SelectedFields from Select
+ * @codeCoverageIgnore
  */
 class TestProvider implements Query
 {

@@ -11,6 +11,16 @@ use FQL\Results\Stream;
 use FQL\Sql;
 use FQL\Sql\Highlighter\HighlighterKind;
 
+/**
+ * Developer-facing inspection / benchmarking scaffold. The class is a thin
+ * ANSI-styled diagnostic logger used by the `composer examples` entry points
+ * and by ad-hoc debugging sessions — it is not part of the library's
+ * queryable core and its behaviour is exercised end-to-end by running the
+ * examples. Excluded from the coverage metric because unit-testing output
+ * printing would provide no real safety net.
+ *
+ * @codeCoverageIgnore
+ */
 class Debugger
 {
     private static ?float $lastSplitTime = null;

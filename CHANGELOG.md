@@ -281,6 +281,7 @@ shifts happened:
   `Functions\Utils\SelectIf`, `Functions\Utils\SelectCase`, `Query\Debugger::inspectStreamSql`,
   `Stream\AbstractStream::fql`, all `tests/SQL/*` plus `tests/Query/UnionTest` and
   `tests/Functions/Utils/UuidTest`.
+- Increased test coverage to 90%+
 
 ### Removed (BREAKING)
 - **`FQL\Sql\Sql`** — replaced by `FQL\Sql\Provider::compile()` / `FQL\Sql\Compiler`.
