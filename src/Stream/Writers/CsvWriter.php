@@ -5,46 +5,59 @@ namespace FQL\Stream\Writers;
 use FQL\Exception;
 use FQL\Interface\Writer;
 use FQL\Query\FileQuery;
-use OpenSpout\Common\Entity\Row;
-use OpenSpout\Common\Exception\EncodingConversionException;
-use OpenSpout\Common\Helper\EncodingHelper;
-use OpenSpout\Writer\CSV\Options;
-use OpenSpout\Writer\CSV\Writer as CsvFileWriter;
 
+/**
+ * Native CSV writer built on top of `fopen` + `fputcsv` — deliberately
+ * dependency-free so the hot-path row emission stays as close to bare-metal
+ * PHP as possible. Encoding, delimiter, enclosure and BOM emission are all
+ * controlled via FileQuery parameters.
+ */
 class CsvWriter implements Writer
 {
-    private CsvFileWriter $writer;
+    /** @var resource */
+    private $handle;
 
-    private EncodingHelper $encodingHelper;
-
-    private ?string $targetEncoding = null;
+    private readonly string $delimiter;
+    private readonly string $enclosure;
+    private readonly ?string $targetEncoding;
+    private readonly bool $emitBom;
 
     /** @var string[]|null */
     private ?array $headers = null;
 
+    /**
+     * @throws Exception\UnableOpenFileException
+     */
     public function __construct(private readonly FileQuery $fileQuery)
     {
-        $options = new Options();
-
-        $delimiter = (string) $this->fileQuery->getParam('delimiter', ',');
-        if ($delimiter !== '') {
-            $options->FIELD_DELIMITER = $delimiter;
-        }
-
-        // Legacy (league/csv) writer never emitted the UTF-8 BOM.
-        // OpenSpout defaults to adding it — opt out to keep byte-for-byte
-        // compatibility with existing consumers / golden files.
-        $options->SHOULD_ADD_BOM = false;
-
-        $this->writer = new CsvFileWriter($options);
-        $this->encodingHelper = EncodingHelper::factory();
+        $this->delimiter = $this->readSingleChar('delimiter', ',');
+        $this->enclosure = $this->readSingleChar('enclosure', '"');
 
         $encoding = $this->fileQuery->getParam('encoding');
-        if (is_string($encoding) && $encoding !== '' && strtolower($encoding) !== 'utf-8') {
-            $this->targetEncoding = $encoding;
-        }
+        $this->targetEncoding = (is_string($encoding) && $encoding !== '' && strcasecmp($encoding, 'UTF-8') !== 0)
+            ? $encoding
+            : null;
 
-        $this->writer->openToFile($this->fileQuery->file ?? 'php://memory');
+        $bomFlag = $this->fileQuery->getParam('bom');
+        $this->emitBom = $bomFlag !== null && !in_array(
+            is_string($bomFlag) ? strtolower($bomFlag) : $bomFlag,
+            ['0', 'false', 'off', 'no', false, 0],
+            true
+        );
+
+        $target = $this->fileQuery->file ?? 'php://memory';
+        $handle = @fopen($target, 'w');
+        if ($handle === false) {
+            throw new Exception\UnableOpenFileException(
+                sprintf('Unable to open CSV target "%s" for writing.', $target)
+            );
+        }
+        $this->handle = $handle;
+
+        if ($this->emitBom && $this->targetEncoding === null) {
+            // UTF-8 BOM — opt-in only; prior library behaviour did not emit one.
+            fwrite($this->handle, "\xEF\xBB\xBF");
+        }
     }
 
     /**
@@ -52,58 +65,29 @@ class CsvWriter implements Writer
      */
     public function write(array $row): void
     {
-        if ($this->headers === null) {
-            $this->headers = array_keys($row);
-            $this->writer->addRow(Row::fromValues($this->encodeCells($this->headers)));
+        $headers = $this->headers;
+        if ($headers === null) {
+            $headers = array_keys($row);
+            $this->headers = $headers;
+            $this->writeRow($headers);
         }
 
         $ordered = [];
-        foreach ($this->headers as $header) {
+        foreach ($headers as $header) {
             $value = $row[$header] ?? null;
             $ordered[] = is_scalar($value) || $value === null
                 ? $value
                 : json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
-        $this->writer->addRow(Row::fromValues($this->encodeCells($ordered)));
-    }
-
-    /**
-     * Converts every string cell from UTF-8 into the writer's target encoding
-     * via OpenSpout's own {@see EncodingHelper} (iconv + mbstring fallback).
-     * Non-string cells (int/float/bool/null) are passed through unchanged —
-     * OpenSpout's {@see Row::fromValues()} typed them into the matching Cell
-     * subclass and `fputcsv()` renders them in ASCII-safe form anyway.
-     *
-     * @param array<int, string|int|float|bool|null> $cells
-     * @return array<int, string|int|float|bool|null>
-     * @throws Exception\UnableOpenFileException
-     */
-    private function encodeCells(array $cells): array
-    {
-        if ($this->targetEncoding === null) {
-            return $cells;
-        }
-
-        try {
-            $encoded = [];
-            foreach ($cells as $cell) {
-                $encoded[] = is_string($cell)
-                    ? $this->encodingHelper->attemptConversionFromUTF8($cell, $this->targetEncoding)
-                    : $cell;
-            }
-            return $encoded;
-        } catch (EncodingConversionException $e) {
-            throw new Exception\UnableOpenFileException(
-                sprintf('Unable to encode CSV row to "%s": %s', $this->targetEncoding, $e->getMessage()),
-                previous: $e
-            );
-        }
+        $this->writeRow($ordered);
     }
 
     public function close(): void
     {
-        $this->writer->close();
+        if (is_resource($this->handle)) {
+            fclose($this->handle);
+        }
     }
 
     public function getFileQuery(): FileQuery
@@ -111,5 +95,56 @@ class CsvWriter implements Writer
         return $this->fileQuery->query === null
             ? $this->fileQuery->withQuery('*')
             : $this->fileQuery;
+    }
+
+    /**
+     * Serialises a row with `fputcsv` after an optional UTF-8 → target
+     * encoding conversion per cell. Per-cell iconv sounds expensive but it
+     * runs only over the cells the caller actually emits (write-side volume
+     * is typically orders of magnitude smaller than read-side), and avoids
+     * layering a `php://filter` wrapper on the file pointer that's hard to
+     * reason about for consumers.
+     *
+     * @param array<int, string|int|float|bool|null> $cells
+     * @throws Exception\UnableOpenFileException
+     */
+    private function writeRow(array $cells): void
+    {
+        if ($this->targetEncoding !== null) {
+            foreach ($cells as $idx => $cell) {
+                if (!is_string($cell)) {
+                    continue;
+                }
+                $converted = @iconv('UTF-8', $this->targetEncoding, $cell);
+                if ($converted === false) {
+                    throw new Exception\UnableOpenFileException(
+                        sprintf(
+                            'Unable to transcode CSV cell from UTF-8 to "%s".',
+                            $this->targetEncoding
+                        )
+                    );
+                }
+                $cells[$idx] = $converted;
+            }
+        }
+
+        if (fputcsv($this->handle, $cells, $this->delimiter, $this->enclosure, '') === false) {
+            throw new Exception\UnableOpenFileException('Failed to write CSV row.');
+        }
+    }
+
+    /**
+     * Reads a single-character FileQuery parameter, defaulting to `$default`
+     * if the value is missing or empty. Values longer than a single byte
+     * are truncated — delimiter / enclosure are by convention one byte in
+     * standard CSV dialects.
+     */
+    private function readSingleChar(string $name, string $default): string
+    {
+        $value = $this->fileQuery->getParam($name);
+        if (!is_string($value) || $value === '') {
+            return $default;
+        }
+        return $value[0];
     }
 }

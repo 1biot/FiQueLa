@@ -37,20 +37,25 @@ enum Operator: string
     public function evaluate(mixed $left, mixed $right): bool
     {
         return match ($this) {
-            self::EQUAL => $left == $right,
-            self::NOT_EQUAL => $left != $right,
+            // Loose-equal ops coerce string operands through Type::matchByString
+            // so raw CSV/XML strings (e.g. "100") compare equal to their
+            // parsed counterparts (int 100) without forcing eager per-cell
+            // coercion during row iteration.
+            self::EQUAL => self::coerceValue($left) == self::coerceValue($right),
+            self::NOT_EQUAL => self::coerceValue($left) != self::coerceValue($right),
 
+            // Strict ops intentionally skip coercion — users writing `===`
+            // are opting into exact-type matching.
             self::EQUAL_STRICT => $left === $right,
             self::NOT_EQUAL_STRICT => $left !== $right,
 
-            self::GREATER_THAN => $left > $right,
-            self::GREATER_THAN_OR_EQUAL => $left >= $right,
+            self::GREATER_THAN => self::coerceValue($left) > self::coerceValue($right),
+            self::GREATER_THAN_OR_EQUAL => self::coerceValue($left) >= self::coerceValue($right),
+            self::LESS_THAN => self::coerceValue($left) < self::coerceValue($right),
+            self::LESS_THAN_OR_EQUAL => self::coerceValue($left) <= self::coerceValue($right),
 
-            self::LESS_THAN => $left < $right,
-            self::LESS_THAN_OR_EQUAL => $left <= $right,
-
-            self::IN => in_array($left, $right, true),
-            self::NOT_IN => !in_array($left, $right, true),
+            self::IN => $this->evaluateIn($left, $right),
+            self::NOT_IN => !$this->evaluateIn($left, $right),
 
             self::LIKE => $this->evaluateLike($left, $right),
             self::NOT_LIKE => !$this->evaluateLike($left, $right),
@@ -63,6 +68,25 @@ enum Operator: string
             self::BETWEEN => $this->evaluateBetween($left, $right),
             self::NOT_BETWEEN => !$this->evaluateBetween($left, $right),
         };
+    }
+
+    /**
+     * Per-value type coercion hook. Pure strings go through
+     * {@see Type::matchByString()} (empty string maps to null so `IS NULL`
+     * keeps matching empty CSV cells that used to be eager-typed); other
+     * types are passed through. Used by the operator evaluator to bridge the
+     * gap between stream providers that yield raw strings (CSV, XML) and
+     * comparison operators that expect native PHP types.
+     */
+    private static function coerceValue(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+        if ($value === '') {
+            return null;
+        }
+        return Type::matchByString($value);
     }
 
     public function render(mixed $value, mixed $right): string
@@ -117,21 +141,60 @@ enum Operator: string
             );
         }
 
+        // Type predicates are permissive: `$left IS INTEGER` is true if the
+        // raw value already is an int OR if it's a string that parses as an
+        // int (so CSV cell "42" matches). This preserves the original PHP
+        // `is_*` semantics for native types (e.g. `'0' IS STRING` stays true)
+        // while unlocking the CSV/XML use case where stream providers yield
+        // raw strings and expect `IS NUMBER`/`IS INTEGER` to still work.
         return match ($right) {
-            Type::BOOLEAN => is_bool($left),
-            Type::TRUE => $left === true,
-            Type::FALSE => $left === false,
+            Type::BOOLEAN => is_bool($left) || $this->stringMatches($left, 'is_bool'),
+            Type::TRUE => $left === true || (is_string($left) && self::coerceValue($left) === true),
+            Type::FALSE => $left === false || (is_string($left) && self::coerceValue($left) === false),
             Type::NUMBER => is_numeric($left),
-            Type::INTEGER => is_integer($left),
-            Type::FLOAT => is_float($left),
+            Type::INTEGER => is_integer($left) || $this->stringMatches($left, 'is_integer'),
+            Type::FLOAT => is_float($left) || $this->stringMatches($left, 'is_float'),
             Type::STRING => is_string($left),
-            Type::NULL => is_null($left),
+            // Empty strings are treated as null so CSV empty cells match IS NULL
+            // — mirrors the behaviour of the old eager-typed row iteration.
+            Type::NULL => $left === null || $left === '',
             Type::ARRAY => is_array($left),
             Type::OBJECT => is_object($left),
             default => throw new InvalidArgumentException(
                 sprintf('Unsupported type: %s', $right->value)
             )
         };
+    }
+
+    /**
+     * Returns true when `$value` is a string whose coerced form satisfies the
+     * given PHP type predicate (`is_int`, `is_bool`, …). Used by IS checks to
+     * extend native type recognition onto raw string operands.
+     *
+     * @param callable(mixed): bool $predicate
+     */
+    private function stringMatches(mixed $value, callable $predicate): bool
+    {
+        return is_string($value) && $value !== '' && $predicate(self::coerceValue($value));
+    }
+
+    /**
+     * IN / NOT IN with coerced strict compare. Needed because the raw
+     * `in_array($left, $right, true)` mismatches across type boundaries —
+     * string "100" would never match int 100 coming from a parsed literal.
+     *
+     * @param mixed $left
+     * @param array<int, mixed> $right
+     */
+    private function evaluateIn(mixed $left, array $right): bool
+    {
+        $leftCoerced = self::coerceValue($left);
+        foreach ($right as $candidate) {
+            if ($leftCoerced === self::coerceValue($candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function evaluateLike(mixed $left, mixed $right): bool

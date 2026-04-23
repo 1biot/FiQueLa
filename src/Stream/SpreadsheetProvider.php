@@ -296,20 +296,7 @@ abstract class SpreadsheetProvider extends AbstractStream
             return $value;
         }
 
-        $len = strlen($value);
-        if ($len === 0) {
-            return $value;
-        }
-
-        // Quick reject: if it doesn't look like a typed value, don't call matchByString()
-        $c0 = $value[0];
-        $maybeTyped =
-            $c0 === '"' || $c0 === "'" ||                 // quoted string
-            $c0 === '-' || $c0 === '+' || $c0 === '.' || $c0 === ',' || // number-like
-            ($c0 >= '0' && $c0 <= '9') ||                 // number-like
-            $len === 4 || $len === 5;                     // null/true/false (case-insensitive)
-
-        return $maybeTyped ? Enum\Type::matchByString($value) : $value;
+        return $value;
     }
 
     private function isCellReference(string $value): bool

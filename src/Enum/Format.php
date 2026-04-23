@@ -91,7 +91,7 @@ enum Format: string
     public function getDefaultParams(): array
     {
         return match ($this) {
-            self::CSV => ['encoding' => 'utf-8', 'delimiter' => ',', 'useHeader' => '1'],
+            self::CSV => ['encoding' => 'utf-8', 'delimiter' => ',', 'useHeader' => '1', 'enclosure' => '"', 'bom' => '0'],
             self::XML => ['encoding' => 'utf-8'],
             self::LOG => ['format' => 'nginx_combined'],
             default   => [],
@@ -176,6 +176,18 @@ enum Format: string
         if (isset($params['useHeader']) && !in_array((string) $params['useHeader'], ['0', '1'], true)) {
             throw new Exception\InvalidFormatException(
                 'CSV useHeader must be "0" or "1"'
+            );
+        }
+
+        if (isset($params['enclosure']) && strlen((string) $params['enclosure']) !== 1) {
+            throw new Exception\InvalidFormatException(
+                'CSV enclosure must be a single character'
+            );
+        }
+
+        if (isset($params['bom']) && !in_array((string) $params['bom'], ['0', '1'], true)) {
+            throw new Exception\InvalidFormatException(
+                'CSV bom must be "0" or "1"'
             );
         }
     }

@@ -176,29 +176,50 @@ shifts happened:
   SELECT / FROM / JOIN alias parsers now strip the outer backticks from
   `IDENTIFIER_QUOTED` alias tokens — `SELECT x AS \`Kód objednávky\`` yields
   alias `Kód objednávky`, and the formatter re-wraps non-identifier-safe
-  aliases on output so `fql-dev format | fql-dev lint` stays round-trip
-  clean.
+  aliases on output so a format/lint round-trip stays clean.
 
   Implementation merges the old `scanBacktickIdentifier` and
   `scanIdentifierChain` into a single `Tokenizer::scanPathChain()` that
   handles every combination uniformly; a small `Sql\Parser\IdentifierHelper`
   centralises the alias-strip rule.
-- **`FQL\Cli` namespace + `bin/fql-dev` executable** — CLI wrapper around
-  `Sql\Provider::lint()` / `::format()` / `::highlight()`. Registered under
-  `composer.json "bin"`, so `composer require 1biot/fiquela` exposes
-  `vendor/bin/fql-dev` for end users. Binary name intentionally differs from
-  the package name so it doesn't collide with the separate `fiquela-cli`
-  REPL project (which runs queries; this tool is for FQL source analysis).
-  Subcommands: `lint`, `format`, `highlight`, `help`. Input modes: file
-  path, `-` (stdin), `-e "<sql>"` (inline). Lint supports
-  `--severity=error|warning|info`, `--format=human|plain|json`, and opt-in
-  `--check-fs`. Global flags: `--help`/`-h`, `--version`/`-V`,
-  `--color`/`--no-color` (TTY auto-detection by default). Exit codes are
-  CLI-standard — `0` success, `1` lint errors / parse failure, `2` usage /
-  IO errors. Each command owns its own `Args::parse()` call for
-  deterministic option handling; no symfony/console dependency added.
 
 ### Changed
+- **Lazy value typing in stream providers — CSV and XML yield raw strings.**
+  Previously `Stream\CsvProvider` and `Stream\XmlProvider` eagerly pushed every
+  cell / attribute / text node through `Enum\Type::matchByString()` while
+  iterating rows. SPX profiling a 100 MB CSV (178k rows × 105 cols) showed
+  **~45 s** burned in `matchByString` + `isNumeric` alone — 20M calls,
+  touching every cell even if the query only referenced a handful of fields.
+  Both providers now pass raw strings through; typing happens lazily in
+  `Enum\Operator::evaluate()` (via a new `coerceValue()` helper) when the
+  cell reaches a WHERE / HAVING comparison, and in
+  `Sql\Runtime\ExpressionEvaluator` when it enters arithmetic / CAST. The
+  net effect on the 100 MB CSV profile: **~100 s → ~15 s**; equivalent XML
+  feeds gain similarly.
+- **`Stream\CsvProvider` / `Stream\Writers\CsvWriter` — native `fgetcsv` /
+  `fputcsv`, no library wrapper.** Both `league/csv` (3.0.0-beta) and
+  `openspout/openspout` (later 3.0.0) were dropped for CSV in favour of
+  PHP's native CSV primitives. OpenSpout wraps every cell in a
+  `StringCell` object for CSV output (typing isn't inferred from content
+  because CSV has no schema), which cost ~13× more wall time than bare
+  `fgetcsv` on a 10k-row benchmark (832 ms → 65 ms). OpenSpout stays in use
+  for XLSX / ODS where its typed `Cell` subclasses are genuinely populated
+  from the spreadsheet XML schema.
+  New CSV provider features: four-byte BOM sniffing (UTF-8 / UTF-16 LE / BE /
+  UTF-32 LE / BE) before the encoding filter attaches, PHP stream filter
+  (`convert.iconv.<src>/UTF-8`) for zero-copy encoding conversion, short /
+  long row length-normalisation via `array_pad` / `array_slice` + native
+  `array_combine`. Writer adds an opt-in `bom: "1"` FileQuery parameter and a
+  configurable `enclosure` alongside the existing `delimiter` / `encoding` /
+  `useHeader`.
+- **`Enum\Operator::evaluate()` coerces raw-string operands before loose
+  comparison.** Comparison ops (`=`, `!=`, `<`, `<=`, `>`, `>=`, `BETWEEN`,
+  `IN`), `IS` type predicates (`IS INTEGER`, `IS NUMBER`, `IS NULL` …) and
+  `IN` now funnel string operands through the same `matchByString` coercion
+  that used to happen eagerly at read-time. Strict ops (`===` / `!==`) are
+  deliberately left uncoerced — the user is opting into type-exact
+  matching. `IS NULL` additionally treats empty strings as null so empty
+  CSV cells keep matching (preserves the pre-laziness behaviour).
 - **`Query\Provider::fql()` runs on the new Token → AST → Query pipeline.** Public
   behaviour is preserved; parse errors are `FQL\Sql\Parser\ParseException` (a subclass
   of `FQL\Exception\UnexpectedValueException`) carrying the offending token and

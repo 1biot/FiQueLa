@@ -109,12 +109,6 @@
 - [Utils](#utils-1)
   - [InMemoryHashmap](#inmemoryhashmaputil)
   - [FileQueryPathValidator](#filequerypath-validator)
-- [CLI](#cli)
-  - [Application](#cli-application)
-  - [Command](#cli-command)
-  - [Args](#cli-args)
-  - [Output](#cli-output)
-  - [Commands](#cli-commands)
 
 ---
 
@@ -942,7 +936,11 @@ _abstract public_ **provideSource():** `string`
 
 `FQL\Stream\Csv` _extends_ `AbstractStream`
 
-Reads CSV files using `openspout/openspout` (`Reader\CSV\Reader`). Supports encoding conversion via `Options::ENCODING` (iconv-backed), custom `FIELD_DELIMITER`, and an optional header row.
+Reads CSV files with native PHP primitives (`fopen` + `fgetcsv`) — no library wrapper, no per-cell object allocations. Values are yielded as raw strings and typed lazily in `Enum\Operator::evaluate()` when compared. Features:
+
+- Automatic BOM detection and skip for UTF-8, UTF-16 LE/BE, UTF-32 LE/BE before the encoding filter attaches.
+- Non-UTF-8 input encoding via PHP stream filter `convert.iconv.<encoding>/UTF-8` — single-pass conversion at I/O layer, no user-land iconv-per-cell loop.
+- Configurable single-character `delimiter`, `useHeader` toggle, tolerant handling of short/long rows (padded or truncated to header length).
 
 _public static_ **open(**_string_ `$path`**):** `self`
 
@@ -1091,7 +1089,12 @@ Creates a writer instance based on the FileQuery format.
 
 `FQL\Stream\Writers\CsvWriter` _implements_ `Interface\Writer`
 
-Writes CSV via `openspout/openspout` (`Writer\CSV\Writer`). Honors `delimiter` and `encoding` from `FileQuery` params. Non-UTF-8 output (e.g. `windows-1250`) is produced by pre-converting each string cell via `OpenSpout\Common\Helper\EncodingHelper::attemptConversionFromUTF8()` before it reaches `Row::fromValues()` — OpenSpout then writes byte-level (CSV delimiter and enclosure are ASCII-safe in every supported encoding). The UTF-8 BOM that OpenSpout emits by default is disabled for byte-for-byte compatibility with the legacy writer.
+Writes CSV with native `fopen` + `fputcsv` — no library wrapper. FileQuery parameters:
+
+- `delimiter` (single char, default `,`)
+- `enclosure` (single char, default `"`)
+- `encoding` (default `utf-8`; non-UTF-8 values trigger a per-cell iconv pass on the way out — small write-side volume makes this cheaper than piping `php://filter`)
+- `bom` (default `"0"` — set to `"1"` to prepend a UTF-8 BOM for Excel / legacy consumers)
 
 _public_ **__construct(**_FileQuery_ `$fileQuery`**)**
 
@@ -2212,96 +2215,6 @@ _public_ **clear():** `void`
 _public static_ **validate(**_FileQuery_ `$fileQuery`**,** _string_ `$basePath`**,** _bool_ `$mustExist = true`**):** `FileQuery`
 
 Validates file paths against base path. Prevents directory traversal.
-
----
-
-## CLI
-
-**namespace:** `FQL\Cli` — executable via `bin/fql-dev`, published as `vendor/bin/fql-dev` after `composer require 1biot/fiquela`. Binary name intentionally differs from the package name so it doesn't clash with the separate [`fiquela-cli`](https://github.com/1biot/fiquela-cli) REPL (which runs queries, whereas this tool lints / formats / highlights FQL source).
-
-Thin wrapper around `Sql\Provider::lint()` / `::format()` / `::highlight()` with a file/stdin/`-e "<sql>"` input story, ANSI-aware output, and CLI-standard exit codes (`0` success, `1` findings, `2` usage/IO error).
-
-```bash
-# Global
-fql-dev                              # top-level help
-fql-dev --help / fql-dev help <cmd>  # help variants
-fql-dev --version / -V
-fql-dev --color | --no-color         # force ANSI on/off (auto-detected by default)
-
-# Subcommands
-fql-dev lint [--severity=error|warning|info] [--format=human|plain|json] [--check-fs] <file|-|-e "<sql>">
-fql-dev format [--indent=N] [--no-uppercase-keywords] [--fields-per-line=N] <file|-|-e "<sql>">
-fql-dev highlight [--format=bash|html] <file|-|-e "<sql>">
-```
-
-### CLI Application
-
-`FQL\Cli\Application`
-
-_public_ **__construct(**_?array<string,Command>_ `$commands = null`**)** — injects a custom command set for tests; `null` uses the default `lint`/`format`/`highlight`/`help`.
-
-_public_ **run(**_list<string>_ `$argv`**,** _?Output_ `$stdoutOverride = null`**,** _?Output_ `$stderrOverride = null`**):** `int` — parses global flags, resolves the subcommand, returns its exit code.
-
-### CLI Command
-
-`FQL\Cli\Command` _(interface)_ — every subcommand implements `name()`, `description()`, `usage()`, `run(list<string> $argv, Output $stdout, Output $stderr): int`.
-
-### CLI Args
-
-`FQL\Cli\Args` _(readonly value object)_ — deterministic argv parser that keeps parsing logic local to each command (each command declares which options take values).
-
-_public static_ **parse(**_list<string>_ `$argv`**,** _list<string>_ `$valueShortFlags = ['e']`**,** _list<string>_ `$valueLongOptions = []`**):** `Args`
-
-_public_ **bool(**_string_ `$name`**,** _bool_ `$default = false`**):** `bool`
-
-_public_ **string(**_string_ `$name`**,** _?string_ `$default = null`**):** `?string`
-
-_public_ **has(**_string_ `$name`**):** `bool`, **first():** `?string`
-
-Parser conventions:
-- `--flag`, `--no-flag` → boolean
-- `--opt=value` → string (explicit, always works)
-- `--opt value` → string, only when `opt` is registered in `$valueLongOptions`
-- `-x value`, `-xvalue` → short option with value when `x` is in `$valueShortFlags`
-- `-x` → bool flag
-- bare `-` → positional (stdin sentinel)
-- `--` → forces remaining tokens to positional
-
-### CLI Output
-
-`FQL\Cli\Output` — ANSI color helper with TTY auto-detection.
-
-_public_ **__construct(**_bool_ `$useColor`**,** _resource_ `$stream`**)**
-
-_public static_ **forStdout(**_?bool_ `$override = null`**):** `Output`
-
-_public static_ **forStderr(**_?bool_ `$override = null`**):** `Output`
-
-_public static_ **memory(**_bool_ `$useColor = false`**):** `array{0: Output, 1: resource}` — test helper backed by `php://memory`; returned stream lets tests `fread()` what was written.
-
-_public_ **write(**_string_ `$text`**):** `void`, **writeln(**_string_ `$text = ''`**):** `void`
-
-Color helpers — pass-through when `useColor === false`, wrapped with ANSI escape otherwise:
-
-_public_ **red/green/yellow/blue/magenta/cyan/bold/dim(**_string_ `$s`**):** `string`
-
-### CLI Commands
-
-**namespace:** `FQL\Cli\Command`
-
-| Class | Name | Delegates to |
-|-------|------|--------------|
-| `LintCommand` | `lint` | `Sql\Provider::lint()` |
-| `FormatCommand` | `format` | `Sql\Provider::format()` |
-| `HighlightCommand` | `highlight` | `Sql\Provider::highlight()` |
-| `HelpCommand` | `help` | prints usage of Application or a specific command |
-
-**Lint output formats:**
-- `human` (default) — ANSI-coloured `location: severity rule message` lines, summary on stderr
-- `plain` — same layout, no colors (auto-selected when stdout is not a TTY)
-- `json` — pretty-printed JSON array of `LintIssue::toArray()` shape; suitable for CI / editor integrations
-
-**Lint exit codes**: `0` = clean at the selected severity filter, `1` = at least one error, `2` = usage / IO / invalid option value.
 
 ---
 

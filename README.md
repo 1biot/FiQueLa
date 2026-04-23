@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-81.67%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1010-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-82.12%25-yellow)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_965-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -84,28 +84,11 @@ composer require tracy/tracy
 
 ### Dependencies
 
-- **`openspout/openspout`**: Required for CSV, XLSX and ODS file support.
+- **`openspout/openspout`**: Required for XLSX and ODS file support. (CSV runs on native `fgetcsv` / `fputcsv` — no library wrapping.)
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
 - **`tracy/tracy`**: Optional for using Debugger
-
-### Bundled dev tooling — `fql-dev`
-
-Installing the package also ships `vendor/bin/fql-dev` — a lint / format / highlight tool driven by the same parser pipeline as the library itself. The binary is intentionally named `fql-dev` (not `fiquela`) so it doesn't clash with the separate [`fiquela-cli`](#fiquela-cli) REPL — **`fql-dev` works on FQL source code, `fiquela-cli` runs queries against files.**
-
-```bash
-# Static analysis (exit 1 on errors, 0 on warnings/info)
-vendor/bin/fql-dev lint -e "SELECT LOEWR(name) FROM json(products.json)"
-
-# Pretty-print
-vendor/bin/fql-dev format -e "SELECT a,b,c FROM json(x.json) WHERE a=1"
-
-# Syntax highlighting (ANSI by default, --format=html for HTML wrappers)
-vendor/bin/fql-dev highlight -e "SELECT a FROM json(x.json)"
-```
-
-Run `vendor/bin/fql-dev help` for the full command list. See the [API Reference](docs/api-reference.md#cli) for details.
 
 ## 3. Supported Formats
 
@@ -233,9 +216,9 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 > Memory usage (MB): 1.2757 (emalloc)
 > Memory peak usage (MB): 1.7195 (emalloc)
 ------------------------------
-> Execution time (s): 0.00011
-> Execution time (ms): 0.11
-> Execution time (µs): 110
+> Execution time (s): 8.5E-5
+> Execution time (ms): 0.085
+> Execution time (µs): 85
 > Execution memory peak usage (MB): 0
 =========================
 ### Inspecting query: ###
@@ -258,31 +241,31 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ### Results: ###
 ================
 > Result class: FQL\Results\InMemory
-> Results size memory (KB): 3.58
+> Results size memory (KB): 3.7
 > Result exists: true
 > Result count: 15
 ========================
 ### Fetch first row: ###
 ========================
 array (7)
-   'ean' => 5010232964877
+   'ean' => '5010232964877'
    'defaultCategory' => 'Testování > Drogerie'
    'categoryArray' => array (2)
    |  0 => 'Testování'
    |  1 => 'Drogerie'
-   'price' => 121.0
+   'price' => '121,00'
    'price_rounded' => 121.0
    'modulo_100' => 21.0
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.7022 (emalloc)
-> Memory peak usage (MB): 3.8458 (emalloc)
+> Memory usage (MB): 3.5017 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 0.046622
-> Execution time (ms): 46.622
-> Execution time (µs): 46622
-> Execution memory peak usage (MB): 2.1263
+> Execution time (s): 0.02835
+> Execution time (ms): 28.35
+> Execution time (µs): 28350
+> Execution memory peak usage (MB): 2.0284
 ========================
 ### Benchmark Query: ###
 ========================
@@ -308,36 +291,36 @@ array (7)
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.6911 (emalloc)
-> Memory peak usage (MB): 3.8458 (emalloc)
+> Memory usage (MB): 3.4909 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 44.335968
-> Execution time (ms): 44335.968
-> Execution time (µs): 44335968
+> Execution time (s): 10.177616
+> Execution time (ms): 10177.616
+> Execution time (µs): 10177616
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
 ============================
-> Size (KB): 3.58
+> Size (KB): 3.7
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.7022 (emalloc)
-> Memory peak usage (MB): 3.8458 (emalloc)
+> Memory usage (MB): 3.5017 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 0.029982
-> Execution time (ms): 29.982
-> Execution time (µs): 29982
+> Execution time (s): 0.007384
+> Execution time (ms): 7.384
+> Execution time (µs): 7384
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 3.6905 (emalloc)
-> Memory peak usage (MB): 3.8458 (emalloc)
+> Memory usage (MB): 3.4903 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Final execution time (s): 44.41278
-> Final execution time (ms): 44412.78
-> Final execution time (µs): 44412780
+> Final execution time (s): 10.213475
+> Final execution time (ms): 10213.475
+> Final execution time (µs): 10213475
 ```
 
 ## 7. Ecosystem

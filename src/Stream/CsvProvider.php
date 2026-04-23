@@ -2,17 +2,22 @@
 
 namespace FQL\Stream;
 
-use FQL\Enum;
 use FQL\Exception;
-use OpenSpout\Common\Exception\EncodingConversionException;
-use OpenSpout\Reader\CSV\Options;
-use OpenSpout\Reader\CSV\Reader;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
  */
 abstract class CsvProvider extends AbstractStream
 {
+    /** Byte-order-mark signatures we strip from the very start of a stream. */
+    private const BOM_SIGNATURES = [
+        "\xEF\xBB\xBF",          // UTF-8
+        "\xFF\xFE\x00\x00",      // UTF-32 LE (must be tested before UTF-16 LE)
+        "\x00\x00\xFE\xFF",      // UTF-32 BE
+        "\xFF\xFE",              // UTF-16 LE
+        "\xFE\xFF",              // UTF-16 BE
+    ];
+
     protected bool $useHeader = true;
     private ?string $inputEncoding = null;
 
@@ -48,106 +53,117 @@ abstract class CsvProvider extends AbstractStream
     }
 
     /**
+     * Stream-reads the CSV file row-by-row via native `fgetcsv` — no library
+     * wrapping, no per-cell object allocations. Encoding conversion uses the
+     * PHP stream filter API (`convert.iconv.<src>/UTF-8`) so the iconv work
+     * happens once per chunk in C rather than once per cell in user land.
+     *
+     * BOM handling: the four common UTF BOMs are detected on the raw bytes
+     * before the iconv filter attaches and the file pointer is advanced past
+     * them; the first data row therefore never contains a stray BOM in its
+     * leading header key.
+     *
+     * Type coercion is **not** performed here: cells flow out as raw strings
+     * and get typed lazily in `Enum\Operator::evaluate()` when compared.
+     *
      * @throws Exception\UnableOpenFileException
      */
     public function getStreamGenerator(?string $query): \Generator
     {
-        $options = new Options();
-        $options->FIELD_DELIMITER = $this->delimiter;
-        if ($this->inputEncoding !== null && $this->inputEncoding !== '') {
-            $options->ENCODING = $this->inputEncoding;
+        $handle = @fopen($this->csvFilePath, 'r');
+        if ($handle === false) {
+            throw new Exception\UnableOpenFileException(
+                sprintf('Unable to open CSV file "%s".', $this->csvFilePath)
+            );
         }
 
-        $reader = new Reader($options);
         try {
-            $reader->open($this->csvFilePath);
-
-            $sheet = null;
-            foreach ($reader->getSheetIterator() as $csvSheet) {
-                $sheet = $csvSheet;
-                break;
-            }
-
-            if ($sheet === null) {
-                return;
-            }
+            $this->skipBom($handle);
+            $this->appendEncodingFilter($handle);
 
             $headers = null;
             $headerCount = 0;
-            foreach ($sheet->getRowIterator() as $row) {
-                $raw = $row->toArray();
-                $values = [];
-                foreach ($raw as $cellValue) {
-                    $values[] = self::normalizeCellValue($cellValue);
+
+            while (($row = fgetcsv($handle, 0, $this->delimiter, '"', '')) !== false) {
+                // fgetcsv returns `[null]` for fully empty lines when the
+                // strict mode is off — drop them for consistency with the
+                // previous implementation.
+                if ($row === [null]) {
+                    continue;
                 }
 
                 if ($this->useHeader && $headers === null) {
-                    // Remember the declared column names and skip emitting
-                    // the header row — downstream wants associative rows only.
-                    $headers = array_map(static fn ($v): string => (string) $v, $values);
+                    $headers = array_map(static fn ($v): string => (string) $v, $row);
                     $headerCount = count($headers);
                     continue;
                 }
 
                 if ($headers !== null) {
-                    // Length-normalise against the header count so array_combine()
-                    // (native C, ~2–3× faster than a PHP foreach for typical
-                    // 10–50 column CSVs) can zip values with keys safely.
-                    $valueCount = count($values);
+                    // Length-normalise against the header count so
+                    // `array_combine` (native C, ~2–3× faster than a PHP
+                    // foreach on 10–50 column CSVs) can zip values with keys.
+                    $valueCount = count($row);
                     if ($valueCount < $headerCount) {
-                        $values = array_pad($values, $headerCount, null);
+                        $row = array_pad($row, $headerCount, null);
                     } elseif ($valueCount > $headerCount) {
-                        $values = array_slice($values, 0, $headerCount);
+                        $row = array_slice($row, 0, $headerCount);
                     }
-                    yield array_combine($headers, $values);
+                    yield array_combine($headers, $row);
                 } else {
-                    yield $values;
+                    yield $row;
                 }
             }
-        } catch (EncodingConversionException $e) {
-            throw new Exception\UnableOpenFileException(
-                sprintf('Unable to decode CSV with encoding "%s": %s', $this->inputEncoding ?? 'UTF-8', $e->getMessage()),
-                previous: $e
-            );
-        } catch (\Throwable $e) {
-            throw new Exception\UnableOpenFileException(
-                sprintf('Unexpected error: %s', $e->getMessage()),
-                previous: $e
-            );
         } finally {
-            $reader->close();
+            fclose($handle);
         }
     }
 
     /**
-     * Cheap "does this string look like a typed scalar literal?" heuristic.
-     * Only strings starting with a quote / sign / digit / decimal separator
-     * or strings that are 4–5 chars long (covering `null`, `true`, `false`)
-     * are worth running through {@see Enum\Type::matchByString}. Everything
-     * else — typical product names, free-form descriptions, category paths —
-     * short-circuits to the raw string, saving the regex + in_array + numeric
-     * probes inside `matchByString()` on the vast majority of cells in
-     * text-heavy CSVs. Mirrors {@see SpreadsheetProvider::normalizeCellValue}.
+     * Peeks at the first four bytes and moves the file pointer past any
+     * recognised BOM. Called before the iconv filter is attached so the BOM
+     * bytes are compared in their native encoding.
+     *
+     * @param resource $handle
      */
-    private static function normalizeCellValue(mixed $value): mixed
+    private function skipBom($handle): void
     {
-        if (!is_string($value)) {
-            return $value;
+        $prefix = (string) fread($handle, 4);
+        foreach (self::BOM_SIGNATURES as $bom) {
+            if (str_starts_with($prefix, $bom)) {
+                fseek($handle, strlen($bom));
+                return;
+            }
         }
+        // No BOM — rewind so we don't swallow the first 4 bytes of content.
+        rewind($handle);
+    }
 
-        $len = strlen($value);
-        if ($len === 0) {
-            return $value;
+    /**
+     * Attaches a PHP stream filter that transcodes non-UTF-8 input to UTF-8
+     * on the fly. No-op when the input is already UTF-8 or no encoding was
+     * configured.
+     *
+     * @param resource $handle
+     * @throws Exception\UnableOpenFileException
+     */
+    private function appendEncodingFilter($handle): void
+    {
+        if ($this->inputEncoding === null || $this->inputEncoding === '') {
+            return;
         }
-
-        $c0 = $value[0];
-        $maybeTyped =
-            $c0 === '"' || $c0 === "'"
-            || $c0 === '-' || $c0 === '+' || $c0 === '.' || $c0 === ','
-            || ($c0 >= '0' && $c0 <= '9')
-            || $len === 4 || $len === 5;
-
-        return $maybeTyped ? Enum\Type::matchByString($value) : $value;
+        if (strcasecmp($this->inputEncoding, 'UTF-8') === 0) {
+            return;
+        }
+        $filter = @stream_filter_append(
+            $handle,
+            sprintf('convert.iconv.%s/UTF-8', $this->inputEncoding),
+            STREAM_FILTER_READ
+        );
+        if ($filter === false) {
+            throw new Exception\UnableOpenFileException(
+                sprintf('Unsupported input encoding "%s" for iconv conversion.', $this->inputEncoding)
+            );
+        }
     }
 
     public function isUseHeader(): bool

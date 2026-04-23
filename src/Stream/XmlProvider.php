@@ -2,7 +2,6 @@
 
 namespace FQL\Stream;
 
-use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
 use Traversable;
@@ -80,6 +79,16 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
     }
 
     /**
+     * Converts a `SimpleXMLElement` to its array representation. Leaves every
+     * textual value (attribute, child text, leaf value) as a raw string —
+     * downstream coercion happens lazily in `Enum\Operator::evaluate()` when
+     * the value is compared or in `Sql\Runtime\ExpressionEvaluator` when it
+     * enters an arithmetic / CAST expression. Previously this method invoked
+     * `Type::matchByString()` per attribute and per text node, which on real
+     * XML feeds (tens of thousands of rows, many attributes each) burned
+     * seconds in regex + `is_numeric` probes with zero benefit when the
+     * query only touched a handful of fields.
+     *
      * @param \SimpleXMLElement $element
      * @return string|StreamProviderArrayIteratorValue
      */
@@ -87,36 +96,34 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
     {
         $result = [];
 
-        // Convert attributes to an array under the key '@attributes'
+        // Attributes — cast to string (SimpleXMLElement wraps them), no typing.
         foreach ($element->attributes() as $attributeName => $attributeValue) {
-            $result['@attributes'][$attributeName] = Enum\Type::matchByString($attributeValue);
+            $result['@attributes'][$attributeName] = (string) $attributeValue;
         }
 
-        // Conversion of attributes with namespaces
+        // Attributes with namespaces — same treatment.
         foreach ($element->getNamespaces(true) as $prefix => $namespace) {
             foreach ($element->attributes($namespace) as $attributeName => $attributeValue) {
                 $key = $prefix ? "{$prefix}:{$attributeName}" : $attributeName;
-                $result['@attributes'][$key] = Enum\Type::matchByString($attributeValue);
+                $result['@attributes'][$key] = (string) $attributeValue;
             }
         }
 
-        // Conversion of child elements to an array
+        // Child elements — recurse; leaf children return a plain string which
+        // is stored as-is (no `matchByString`).
         foreach ($element->children() as $childName => $childElement) {
             $childArray = $this->itemToArray($childElement);
             if (isset($result[$childName])) {
-                // If multiple elements with the same name exist, create an array
                 if (!is_array($result[$childName]) || !isset($result[$childName][0])) {
                     $result[$childName] = [$result[$childName]];
                 }
                 $result[$childName][] = $childArray;
             } else {
-                $result[$childName] = is_string($childArray) ? Enum\Type::matchByString($childArray) : (
-                    empty($childArray) ? '' : $childArray
-                );
+                $result[$childName] = $childArray;
             }
         }
 
-        // Conversion of child elements with namespaces
+        // Child elements with namespaces.
         foreach ($element->getNamespaces(true) as $prefix => $namespace) {
             foreach ($element->children($namespace) as $childName => $childElement) {
                 $key = $prefix ? "{$prefix}:{$childName}" : $childName;
@@ -132,15 +139,16 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
             }
         }
 
-        // If the element has no children and attributes, return a simple value
+        // Leaf element with only a text value — return the raw string.
         $value = trim((string) $element);
         if ($value !== '' && empty($result)) {
-            return Enum\Type::castValue($value, Enum\Type::STRING);
+            return $value;
         }
 
-        // If the element has children or attributes but also a text value, add it as 'value'
+        // Mixed content (children/attributes + text) — record the text under
+        // the sentinel key `value` as a raw string.
         if ($value !== '') {
-            $result['value'] = Enum\Type::matchByString($value);
+            $result['value'] = $value;
         }
 
         return $result;
