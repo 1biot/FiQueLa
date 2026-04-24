@@ -754,9 +754,14 @@ class Stream extends ResultsProvider implements Aggregable
         }
 
         foreach ($this->selectedFields as $finalField => $fieldData) {
-            $fieldName = ($this->isQuoted($finalField) || $this->isBacktick($finalField))
+            // The output-row key is purely a human-readable label, so strip
+            // every backtick (not just the outer pair) — a chained path like
+            // `` `info`.`orderID`.note `` would otherwise leak inner backticks
+            // into the result key. Single/double quotes keep the legacy
+            // outer-only behavior because they always wrap the whole alias.
+            $fieldName = $this->isQuoted($finalField)
                 ? $this->removeQuotes($finalField)
-                : $finalField;
+                : $this->removeAllBackticks($finalField);
             if ($fieldName === Query::SELECT_ALL) {
                 $result = array_merge($result, $item);
                 continue;

@@ -17,6 +17,7 @@ use FQL\Stream\Neon;
 use FQL\Stream\Xls;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
+use FQL\Sql;
 use FQL\Traits;
 
 class Query implements Interface\Query
@@ -268,7 +269,22 @@ class Query implements Interface\Query
         // INTO
         $queryParts[] = $this->intoToString();
 
-        return trim(str_replace("\t", "  ", implode('', $queryParts))) . $this->unionsToString();
+        $raw = trim(str_replace("\t", "  ", implode('', $queryParts))) . $this->unionsToString();
+
+        // Round-trip through the AST-based formatter so the fluent Query and
+        // an FQL string of the same query render with identical layout. The
+        // trait-level `*ToString()` methods still produce a valid SQL source;
+        // the formatter just normalises indent, keyword casing and wraps
+        // SELECT fields / sub-queries consistently. If the assembled string
+        // can't be parsed (e.g. an incomplete query printed for debugging,
+        // or a special `[invalid join format]` marker bubbled up from a
+        // JoinException) we fall back to the raw assembly so the dump stays
+        // readable instead of blowing up.
+        try {
+            return Sql\Provider::format($raw);
+        } catch (\Throwable) {
+            return $raw;
+        }
     }
 
     private function validateUnionColumns(): void

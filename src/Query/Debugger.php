@@ -245,6 +245,16 @@ class Debugger
 
     public static function queryToOutput(string $query): void
     {
+        // Pretty-print before highlighting so inline user SQL (e.g. a whole
+        // statement pasted on a single line) and Query::__toString() output
+        // render with the same, consistent multi-line layout. If the input
+        // isn't a full parseable statement (debug fragments, partial SQL)
+        // fall back to the original string.
+        try {
+            $query = Sql\Provider::format($query);
+        } catch (\Throwable) {
+            // keep the raw input
+        }
         echo '> ' . str_replace(PHP_EOL, PHP_EOL . '> ', self::highlightSQL($query)) . PHP_EOL;
     }
 

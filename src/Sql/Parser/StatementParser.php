@@ -130,7 +130,14 @@ final class StatementParser
 
                 case TokenType::KEYWORD_LIMIT:
                     $stream->consume();
-                    $limit = $this->limitParser->parseLimit($stream, $peek->position);
+                    $parsed = $this->limitParser->parseLimit($stream, $peek->position);
+                    // Preserve an offset that arrived via a preceding standalone
+                    // OFFSET clause — `OFFSET 5 LIMIT 10` used to silently lose
+                    // the offset because parseLimit returned a fresh node with
+                    // offset = null that overwrote the merged one.
+                    $limit = $limit !== null && $limit->offset !== null && $parsed->offset === null
+                        ? new LimitClauseNode($parsed->limit, $limit->offset, $parsed->position)
+                        : $parsed;
                     break;
 
                 case TokenType::KEYWORD_OFFSET:
