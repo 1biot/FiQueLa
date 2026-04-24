@@ -4,104 +4,61 @@ namespace FQL\Functions\Aggregate;
 
 use FQL\Enum\Type;
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Functions\Core\AggregateFunction;
 
-class Max extends SingleFieldAggregateFunction
+final class Max implements AggregateFunction
 {
-    /**
-     * @inheritDoc
-     * @throws UnexpectedValueException
-     */
-    public function __invoke(array $items): mixed
+    public static function name(): string
     {
-        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
-        $values = [];
-
-        foreach ($items as $item) {
-            $value = $this->getFieldValue($this->field, $item);
-            if (is_string($value)) {
-                $value = Type::matchByString($value);
-            }
-
-            if (!is_numeric($value)) {
-                throw new UnexpectedValueException(
-                    sprintf(
-                        'Field "%s" value is not numeric: %s',
-                        $this->field,
-                        $value
-                    )
-                );
-            }
-
-            if (!$this->isDistinctValue($value, $seen)) {
-                continue;
-            }
-
-            $values[] = $value;
-        }
-
-        return max($values);
+        return 'MAX';
     }
 
-    public function initAccumulator(): mixed
+    /**
+     * @param array{distinct?: bool} $options
+     * @return array{max: int|float|null, hasValue: bool}
+     */
+    public static function initial(array $options = []): array
     {
-        if (!$this->distinct) {
-            return null;
-        }
-
+        // DISTINCT is a no-op for MAX — retained in options for API parity
+        // but intentionally ignored.
+        unset($options['distinct']);
         return [
-            'value' => null,
-            'seen' => [],
+            'max' => null,
+            'hasValue' => false,
         ];
     }
 
     /**
-     * @inheritDoc
+     * @param array{max: int|float|null, hasValue: bool} $acc
+     * @return array{max: int|float|null, hasValue: bool}
+     * @throws UnexpectedValueException
      */
-    public function accumulate(mixed $accumulator, array $item): mixed
+    public static function accumulate(mixed $acc, mixed $value): array
     {
-        $value = $this->getFieldValue($this->field, $item);
+        if ($value === null) {
+            return $acc;
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
-
         if (!is_numeric($value)) {
             throw new UnexpectedValueException(
-                sprintf(
-                    'Field "%s" value is not numeric: %s',
-                    $this->field,
-                    $value
-                )
+                sprintf('MAX value is not numeric: %s', var_export($value, true))
             );
         }
-
-        if ($this->distinct) {
-            if (!$this->isDistinctValue($value, $accumulator['seen'])) {
-                return $accumulator;
-            }
-
-            if ($accumulator['value'] === null) {
-                $accumulator['value'] = $value;
-                return $accumulator;
-            }
-
-            $accumulator['value'] = max($accumulator['value'], $value);
-            return $accumulator;
+        $numeric = $value + 0;
+        if (!$acc['hasValue'] || $numeric > $acc['max']) {
+            $acc['max'] = $numeric;
+            $acc['hasValue'] = true;
         }
-
-        if ($accumulator === null) {
-            return $value;
-        }
-
-        return max($accumulator, $value);
+        return $acc;
     }
 
-    public function finalize(mixed $accumulator): mixed
+    /**
+     * @param array{max: int|float|null, hasValue: bool} $acc
+     */
+    public static function finalize(mixed $acc): int|float|null
     {
-        if ($this->distinct) {
-            return $accumulator['value'];
-        }
-
-        return $accumulator;
+        return $acc['hasValue'] ? $acc['max'] : null;
     }
 }

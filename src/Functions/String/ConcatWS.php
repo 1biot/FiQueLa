@@ -2,39 +2,22 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class ConcatWS extends MultipleFieldsFunction
+final class ConcatWS implements ScalarFunction
 {
-    public function __construct(private readonly string $separator, string ...$fields)
+    public static function name(): string
     {
-        parent::__construct(...$fields);
-    }
-    /**
-     * @inheritDoc
-     * @return string
-     */
-    public function __invoke(array $item, array $resultItem): mixed
-    {
-        $result = [];
-        foreach ($this->fields as $field) {
-            $field = preg_match('/^\s+$/', $field) ? $field : trim($field);
-            $result[] = $this->getFieldValue($field, $item, $resultItem) ?? $field;
-        }
-        return implode($this->separator, $result);
+        return 'CONCAT_WS';
     }
 
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
+    public static function execute(mixed $separator, mixed ...$values): string
     {
-        return sprintf(
-            '%s("%s", %s)',
-            $this->getName(),
-            $this->separator,
-            implode(', ', $this->fields)
-        );
+        $separator = (string) ($separator ?? '');
+        $parts = [];
+        foreach ($values as $value) {
+            $parts[] = $value ?? '';
+        }
+        return implode($separator, $parts);
     }
 }

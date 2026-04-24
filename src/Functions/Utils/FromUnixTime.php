@@ -2,32 +2,22 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions;
+use FQL\Functions\Core\ScalarFunction;
 
-class FromUnixTime extends Functions\Core\SingleFieldFunction
+final class FromUnixTime implements ScalarFunction
 {
-    public function __construct(string $field, private readonly string $format = 'c')
+    public static function name(): string
     {
-        parent::__construct($field);
+        return 'FROM_UNIXTIME';
     }
 
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $timestamp, string $format = 'c'): ?string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
-        if (!is_numeric($value)) {
+        if (!is_numeric($timestamp)) {
             return null;
         }
 
-        $dateTime = (new \DateTimeImmutable())->setTimestamp((int) $value);
-        return $dateTime->format($this->format);
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            'FROM_UNIXTIME(%s, "%s")',
-            $this->field,
-            $this->format
-        );
+        $dateTime = (new \DateTimeImmutable())->setTimestamp((int) $timestamp);
+        return $dateTime->format($format);
     }
 }

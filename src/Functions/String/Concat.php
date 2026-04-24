@@ -2,24 +2,17 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Exception\UnexpectedValueException;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Concat extends ConcatWS
+final class Concat implements ScalarFunction
 {
-    public function __construct(string ...$fields)
+    public static function name(): string
     {
-        parent::__construct('', ...$fields);
+        return 'CONCAT';
     }
 
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
+    public static function execute(mixed ...$values): string
     {
-        return sprintf(
-            '%s(%s)',
-            $this->getName(),
-            implode(', ', $this->fields)
-        );
+        return ConcatWS::execute('', ...$values);
     }
 }

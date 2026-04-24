@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-82.56%25-yellow)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_761-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90.15%25-lightgreen)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1276-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
@@ -39,13 +39,7 @@ with streaming support, explain/debug tooling, and strongly typed operators.
 - [Installation](#2-installation)
 - [Supported Formats](#3-supported-formats)
 - [Getting Started](#4-getting-started)
-- [Documentation](#5-documentation)
-  - [Opening Files](docs/opening-files.md)
-  - [Fluent API](docs/fluent-api.md)
-  - [File Query Language](docs/file-query-language.md)
-  - [Fetching Data](docs/fetching-data.md)
-  - [Query Life Cycle](docs/query-life-cycle.md)
-  - [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
+- [Documentation](https://docs.fiquela.io)
   - [API Reference](docs/api-reference.md)
 - [Examples](#6-examples)
 - [Ecosystem](#7-ecosystem)
@@ -90,11 +84,10 @@ composer require tracy/tracy
 
 ### Dependencies
 
-- **`league/csv`**: Required for CSV file support.
+- **`openspout/openspout`**: Required for XLSX and ODS file support. (CSV runs on native `fgetcsv` / `fputcsv` — no library wrapping.)
 - **`halaxa/json-machine`**: Required for JSON stream support.
 - **`symfony/yaml`**: Required for YAML file support.
 - **`nette/neon`**: Required for NEON file support.
-- **`openspout/openspout`**: Required for XLSX and ODS file support.
 - **`tracy/tracy`**: Optional for using Debugger
 
 ## 3. Supported Formats
@@ -191,14 +184,8 @@ Array
 
 ## 5. Documentation
 
-For more details about **F**i**Q**ue**L**a and her capabilities, explore the documentation sections.
+For more details about **F**i**Q**ue**L**a and her capabilities, explore the [documentation](https://docs.fiquela.io).
 
-- [Opening Files](docs/opening-files.md)
-- [Fluent API](docs/fluent-api.md)
-- [File Query Language](docs/file-query-language.md)
-- [Fetching Data](docs/fetching-data.md)
-- [Query Life Cycle](docs/query-life-cycle.md)
-- [Query Inspection and Benchmarking](docs/query-inspection-and-benchmarking.md)
 - [API Reference](docs/api-reference.md)
 
 ## 6. Examples
@@ -226,8 +213,8 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 =========================
 ### Debugger started: ###
 =========================
-> Memory usage (MB): 1.3191 (emalloc)
-> Memory peak usage (MB): 1.7326 (emalloc)
+> Memory usage (MB): 1.2757 (emalloc)
+> Memory peak usage (MB): 1.7195 (emalloc)
 ------------------------------
 > Execution time (s): 8.5E-5
 > Execution time (ms): 0.085
@@ -240,12 +227,12 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ### SQL query: ###
 ==================
 > SELECT
->   ean ,
->   defaultCategory ,
->   EXPLODE(defaultCategory, " > ") AS categoryArray ,
->   price ,
->   ROUND(price, 2) AS price_rounded ,
->   MOD(price, 100) AS modulo_100 ,
+>   ean,
+>   defaultCategory,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray,
+>   price,
+>   ROUND(price, 2) AS price_rounded,
+>   MOD(price, 100) AS modulo_100,
 >   MOD(price, 54) AS modulo_54
 > FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
@@ -254,31 +241,31 @@ Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/ru
 ### Results: ###
 ================
 > Result class: FQL\Results\InMemory
-> Results size memory (KB): 3.55
+> Results size memory (KB): 3.7
 > Result exists: true
 > Result count: 15
 ========================
 ### Fetch first row: ###
 ========================
 array (7)
-   'ean' => 5010232964877
+   'ean' => '5010232964877'
    'defaultCategory' => 'Testování > Drogerie'
    'categoryArray' => array (2)
    |  0 => 'Testování'
    |  1 => 'Drogerie'
-   'price' => 121.0
+   'price' => '121,00'
    'price_rounded' => 121.0
    'modulo_100' => 21.0
    'modulo_54' => 13.0
 
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1451 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.5017 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 0.040016
-> Execution time (ms): 40.016
-> Execution time (µs): 40016
-> Execution memory peak usage (MB): 1.4936
+> Execution time (s): 0.02835
+> Execution time (ms): 28.35
+> Execution time (µs): 28350
+> Execution memory peak usage (MB): 2.0284
 ========================
 ### Benchmark Query: ###
 ========================
@@ -287,12 +274,12 @@ array (7)
 ### SQL query: ###
 ==================
 > SELECT
->   ean ,
->   defaultCategory ,
->   EXPLODE(defaultCategory, " > ") AS categoryArray ,
->   price ,
->   ROUND(price, 2) AS price_rounded ,
->   MOD(price, 100) AS modulo_100 ,
+>   ean,
+>   defaultCategory,
+>   EXPLODE(defaultCategory, " > ") AS categoryArray,
+>   price,
+>   ROUND(price, 2) AS price_rounded,
+>   MOD(price, 100) AS modulo_100,
 >   MOD(price, 54) AS modulo_54
 > FROM csv(products-w-1250.csv, "windows-1250", ";").*
 > GROUP BY defaultCategory
@@ -300,40 +287,40 @@ array (7)
 =========================
 ### STREAM BENCHMARK: ###
 =========================
-> Size (KB): 2.78
+> Size (KB): 6.02
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1347 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.4909 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 36.402098
-> Execution time (ms): 36402.098
-> Execution time (µs): 36402098
+> Execution time (s): 10.177616
+> Execution time (ms): 10177.616
+> Execution time (µs): 10177616
 > Execution memory peak usage (MB): 0
 ============================
 ### IN_MEMORY BENCHMARK: ###
 ============================
-> Size (KB): 3.55
+> Size (KB): 3.7
 > Count: 15
 > Iterated results: 37 500
 >>> SPLIT TIME <<<
-> Memory usage (MB): 3.1451 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.5017 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Execution time (s): 0.01743
-> Execution time (ms): 17.43
-> Execution time (µs): 17430
+> Execution time (s): 0.007384
+> Execution time (ms): 7.384
+> Execution time (µs): 7384
 > Execution memory peak usage (MB): 0
 =======================
 ### Debugger ended: ###
 =======================
-> Memory usage (MB): 3.1343 (emalloc)
-> Memory peak usage (MB): 3.2262 (emalloc)
+> Memory usage (MB): 3.4903 (emalloc)
+> Memory peak usage (MB): 3.7479 (emalloc)
 ------------------------------
-> Final execution time (s): 36.459756
-> Final execution time (ms): 36459.756
-> Final execution time (µs): 36459756
+> Final execution time (s): 10.213475
+> Final execution time (ms): 10213.475
+> Final execution time (µs): 10213475
 ```
 
 ## 7. Ecosystem
@@ -387,9 +374,9 @@ to load all data into memory. It may cause memory issues for large datasets. But
 - [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
 - [x] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ ~~- Instead of this, it will comes support
 for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.~~
+- [x] ~~**Documentation**: Create detailed guides and examples for advanced use cases.~~ - [docs.fiquela.io](https://docs.fiquela.io)
+- [x] **Tests**: Increase test coverage (90%+).
 - [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
-- [ ] **Documentation**: Create detailed guides and examples for advanced use cases.
-- [ ] **Tests**: Increase test coverage (90%+).
 - [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 
 

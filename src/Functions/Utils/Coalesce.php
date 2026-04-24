@@ -2,23 +2,20 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Coalesce extends MultipleFieldsFunction
+final class Coalesce implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return string
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        foreach ($this->fields as $field) {
-            $field = trim($field);
-            $value = $this->getFieldValue($field, $item, $resultItem);
+        return 'COALESCE';
+    }
+
+    public static function execute(mixed ...$values): mixed
+    {
+        foreach ($values as $value) {
             if ($value !== null) {
                 return $value;
-            } elseif ($this->isQuoted($field)) {
-                return $this->removeQuotes($field);
             }
         }
 

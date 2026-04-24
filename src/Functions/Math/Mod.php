@@ -4,54 +4,37 @@ namespace FQL\Functions\Math;
 
 use FQL\Enum\Type;
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Mod extends SingleFieldFunction
+final class Mod implements ScalarFunction
 {
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __construct(string $field, private readonly int $divisor)
+    public static function name(): string
     {
-        parent::__construct($field);
-        if ($this->divisor === 0) {
-            throw new UnexpectedValueException(sprintf('%s: Divisor cannot be zero', $this));
-        }
+        return 'MOD';
     }
 
     /**
      * @throws UnexpectedValueException
      */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, int $divisor): int|float
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        if ($divisor === 0) {
+            throw new UnexpectedValueException('Divisor cannot be zero');
+        }
+
+        if ($value === null) {
+            $value = '';
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
 
         if (!is_numeric($value) && is_string($value)) {
             throw new UnexpectedValueException(
-                sprintf(
-                    'Field "%s" value is not numeric: %s',
-                    $this->field,
-                    $value
-                )
+                sprintf('Value is not numeric: %s', $value)
             );
         }
 
-        return fmod($value, $this->divisor);
-    }
-
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, %s)',
-            $this->getName(),
-            $this->field,
-            $this->divisor
-        );
+        return fmod($value, $divisor);
     }
 }

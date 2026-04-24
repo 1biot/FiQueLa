@@ -2,24 +2,20 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\NoFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class CurrentDate extends NoFieldFunction
+final class CurrentDate implements ScalarFunction
 {
-    public function __construct(private readonly bool $numeric = false)
+    public static function name(): string
     {
+        return 'CURDATE';
     }
 
-    public function __invoke(): string|int
+    public static function execute(bool $numeric = false): int|string
     {
         $today = new \DateTime();
-        return $this->numeric
+        return $numeric
             ? (int) $today->format('Ymd')
             : $today->format('Y-m-d');
-    }
-
-    public function __toString(): string
-    {
-        return sprintf('CURDATE(%s)', $this->numeric ? 'true' : 'false');
     }
 }

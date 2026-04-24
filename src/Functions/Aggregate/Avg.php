@@ -4,81 +4,68 @@ namespace FQL\Functions\Aggregate;
 
 use FQL\Enum\Type;
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldAggregateFunction;
+use FQL\Functions\Core\AggregateFunction;
 
-class Avg extends SingleFieldAggregateFunction
+final class Avg implements AggregateFunction
 {
-    /**
-     * @inheritDoc
-     * @return int|float
-     * @throws UnexpectedValueException
-     */
-    public function __invoke(array $items): mixed
+    public static function name(): string
     {
-        $countItems = count($items);
-        if ($countItems === 0) {
-            return 0;
-        }
-
-        return array_sum(array_map(function ($item) {
-            $value = $this->getFieldValue($this->field, $item);
-            if (is_string($value)) {
-                $value = Type::matchByString($value);
-            }
-
-            if (!is_numeric($value)) {
-                throw new UnexpectedValueException(
-                    sprintf(
-                        'Field "%s" value is not numeric: %s',
-                        $this->field,
-                        $value
-                    )
-                );
-            }
-
-            return $value;
-        }, $items)) / count($items);
+        return 'AVG';
     }
 
-    public function initAccumulator(): mixed
+    /**
+     * @param array{distinct?: bool} $options
+     * @return array{sum: int|float, count: int, distinct: bool, seen: list<mixed>}
+     */
+    public static function initial(array $options = []): array
     {
         return [
             'sum' => 0,
             'count' => 0,
+            'distinct' => (bool) ($options['distinct'] ?? false),
+            'seen' => [],
         ];
     }
 
     /**
-     * @inheritDoc
+     * @param array{sum: int|float, count: int, distinct: bool, seen: list<mixed>} $acc
+     * @return array{sum: int|float, count: int, distinct: bool, seen: list<mixed>}
+     * @throws UnexpectedValueException
      */
-    public function accumulate(mixed $accumulator, array $item): mixed
+    public static function accumulate(mixed $acc, mixed $value): array
     {
-        $value = $this->getFieldValue($this->field, $item);
+        if ($value === null) {
+            return $acc;
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
-
         if (!is_numeric($value)) {
             throw new UnexpectedValueException(
-                sprintf(
-                    'Field "%s" value is not numeric: %s',
-                    $this->field,
-                    $value
-                )
+                sprintf('AVG value is not numeric: %s', var_export($value, true))
             );
         }
-
-        $accumulator['sum'] += $value;
-        $accumulator['count']++;
-        return $accumulator;
+        if ($acc['distinct']) {
+            foreach ($acc['seen'] as $seenValue) {
+                if ($seenValue === $value) {
+                    return $acc;
+                }
+            }
+            $acc['seen'][] = $value;
+        }
+        $acc['sum'] += $value;
+        $acc['count']++;
+        return $acc;
     }
 
-    public function finalize(mixed $accumulator): mixed
+    /**
+     * @param array{sum: int|float, count: int, distinct: bool, seen: list<mixed>} $acc
+     */
+    public static function finalize(mixed $acc): int|float
     {
-        if ($accumulator['count'] === 0) {
+        if ($acc['count'] === 0) {
             return 0;
         }
-
-        return $accumulator['sum'] / $accumulator['count'];
+        return $acc['sum'] / $acc['count'];
     }
 }

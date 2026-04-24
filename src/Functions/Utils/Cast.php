@@ -3,17 +3,17 @@
 namespace FQL\Functions\Utils;
 
 use FQL\Enum\Type;
-use FQL\Functions\Core\BaseFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Cast extends BaseFunction
+final class Cast implements ScalarFunction
 {
-    public function __construct(private readonly string $field, private readonly Type $as)
+    public static function name(): string
     {
+        return 'CAST';
     }
 
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, Type $targetType): mixed
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem);
         if ($value === null) {
             return null;
         }
@@ -22,31 +22,13 @@ class Cast extends BaseFunction
             $value = Type::matchByString($value);
         }
 
-        if ($this->as === Type::NUMBER) {
+        if ($targetType === Type::NUMBER) {
             return is_numeric($value) ? $value : 0;
         }
 
-        return Type::castValue($value, $this->as === Type::TRUE || $this->as === Type::FALSE ? Type::BOOLEAN : $this->as);
-    }
-
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s AS %s)',
-            $this->getName(),
-            $this->field,
-            $this->getSqlType()
+        return Type::castValue(
+            $value,
+            $targetType === Type::TRUE || $targetType === Type::FALSE ? Type::BOOLEAN : $targetType
         );
-    }
-
-    private function getSqlType(): string
-    {
-        return match ($this->as) {
-            Type::FLOAT => 'DOUBLE',
-            Type::INTEGER => 'INT',
-            Type::TRUE, Type::FALSE, Type::BOOLEAN => 'BOOLEAN',
-            default => strtoupper($this->as->value),
-        };
     }
 }

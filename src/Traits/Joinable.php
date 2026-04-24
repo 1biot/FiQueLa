@@ -155,6 +155,9 @@ trait Joinable
             );
         }
 
-        return implode("\n", $joinStrings);
+        // Each entry already begins with `PHP_EOL` — join with an empty
+        // string so consecutive JOINs render adjacent (`INNER JOIN …\nLEFT
+        // JOIN …`) instead of producing a stray blank line between them.
+        return implode('', $joinStrings);
     }
 }

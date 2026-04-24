@@ -2,27 +2,20 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions;
-use FQL\Traits;
+use FQL\Functions\Core\ScalarFunction;
 
-class ArrayCombine extends Functions\Core\MultipleFieldsFunction
+final class ArrayCombine implements ScalarFunction
 {
-    use Traits\Helpers\StringOperations;
-
-    public function __construct(private string $keysArrayField, private string $valueArrayField)
+    public static function name(): string
     {
-        parent::__construct($keysArrayField, $valueArrayField);
+        return 'ARRAY_COMBINE';
     }
 
     /**
-     * @inheritDoc
      * @return array<int|string, mixed>|null
      */
-    public function __invoke(array $item, array $resultItem): ?array
+    public static function execute(mixed $keys, mixed $values): ?array
     {
-        $keys = $this->getFieldValue($this->keysArrayField, $item, $resultItem);
-        $values = $this->getFieldValue($this->valueArrayField, $item, $resultItem);
-
         if (
             !is_array($keys)
             || !is_array($values)
@@ -30,14 +23,22 @@ class ArrayCombine extends Functions\Core\MultipleFieldsFunction
             return null;
         }
 
-        if ($this->isAssoc($keys)) {
+        if (self::isAssocStatic($keys)) {
             $keys = array_values($keys);
         }
 
-        if ($this->isAssoc($values)) {
+        if (self::isAssocStatic($values)) {
             $values = array_values($values);
         }
 
         return array_combine($keys, $values);
+    }
+
+    /**
+     * @param array<int|string, mixed> $array
+     */
+    private static function isAssocStatic(array $array): bool
+    {
+        return array_keys($array) !== range(0, count($array) - 1);
     }
 }

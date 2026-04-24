@@ -2,23 +2,19 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\NoFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Now extends NoFieldFunction
+final class Now implements ScalarFunction
 {
-    public function __construct(private readonly bool $numeric = false)
+    public static function name(): string
     {
+        return 'NOW';
     }
 
-    public function __toString(): string
-    {
-        return sprintf('%s(%s)', $this->getName(), $this->numeric ? 'true' : 'false');
-    }
-
-    public function __invoke(): string|int
+    public static function execute(bool $numeric = false): int|string
     {
         $today = new \DateTime();
-        return $this->numeric
+        return $numeric
             ? (int) $today->format('YmdHis')
             : $today->format('Y-m-d H:i:s');
     }

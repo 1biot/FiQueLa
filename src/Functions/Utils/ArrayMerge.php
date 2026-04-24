@@ -2,34 +2,27 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions;
-use FQL\Traits;
+use FQL\Functions\Core\ScalarFunction;
 
-class ArrayMerge extends Functions\Core\MultipleFieldsFunction
+final class ArrayMerge implements ScalarFunction
 {
-    use Traits\Helpers\StringOperations;
-
-    public function __construct(private string $keysArrayField, private string $valueArrayField)
+    public static function name(): string
     {
-        parent::__construct($keysArrayField, $valueArrayField);
+        return 'ARRAY_MERGE';
     }
 
     /**
-     * @inheritDoc
      * @return array<int|string, mixed>|null
      */
-    public function __invoke(array $item, array $resultItem): ?array
+    public static function execute(mixed $first, mixed $second): ?array
     {
-        $keys = $this->getFieldValue($this->keysArrayField, $item, $resultItem);
-        $values = $this->getFieldValue($this->valueArrayField, $item, $resultItem);
-
         if (
-            !is_array($keys)
-            || !is_array($values)
+            !is_array($first)
+            || !is_array($second)
         ) {
             return null;
         }
 
-        return array_merge($keys, $values);
+        return array_merge($first, $second);
     }
 }

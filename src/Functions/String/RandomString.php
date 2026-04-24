@@ -2,39 +2,30 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\NoFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class RandomString extends NoFieldFunction
+final class RandomString implements ScalarFunction
 {
     private const DEFAULT_CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-    public function __construct(
-        private readonly int $length = 10
-    ) {
+    public static function name(): string
+    {
+        return 'RANDOM_STRING';
     }
 
-    public function __invoke(): mixed
+    public static function execute(int $length = 10): string
     {
-        if ($this->length < 1) {
+        if ($length < 1) {
             throw new \InvalidArgumentException('Length must be greater than 0.');
         }
 
         $charsetLength = strlen(self::DEFAULT_CHARSET);
         $randomString = '';
-        for ($i = 0; $i < $this->length; $i++) {
+        for ($i = 0; $i < $length; $i++) {
             $randomIndex = random_int(0, $charsetLength - 1); // Securely selects a random index.
             $randomString .= self::DEFAULT_CHARSET[$randomIndex];
         }
 
         return $randomString;
-    }
-
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
-    {
-        return sprintf('%s(%s)', $this->getName(), $this->length);
     }
 }

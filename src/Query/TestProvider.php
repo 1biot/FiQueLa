@@ -19,14 +19,18 @@ use FQL\Traits\Unionable;
 
 /**
  * Class TestProvider implements traits for Query and empty results when fetching data. We need to test for traits only.
+ *
+ * Excluded from coverage — this is a test scaffolding class used to exercise
+ * the trait composition in isolation, not production code.
+ *
  * @phpstan-import-type SelectedFields from Select
+ * @codeCoverageIgnore
  */
 class TestProvider implements Query
 {
     use Select {
         asSelect as private traitAsSelect;
         select as private traitSelect;
-        addFieldFunction as private traitAddFieldFunction;
     }
     use From {
         from as private traitFrom;
@@ -56,16 +60,6 @@ class TestProvider implements Query
     {
         $this->lastClause = null;
         return $this->traitSelect(...$fields);
-    }
-
-    /**
-     * @param Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
-     */
-    private function addFieldFunction(
-        Functions\Core\BaseFunction|Functions\Core\AggregateFunction|Functions\Core\NoFieldFunction|Functions\Core\BaseFunctionByReference $function
-    ): Query {
-        $this->lastClause = null;
-        return $this->traitAddFieldFunction($function);
     }
 
     public function from(string $query): Query

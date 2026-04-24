@@ -11,13 +11,7 @@
 - [Exceptions](#exceptions)
 - [Interfaces](#interfaces)
   - [Aggregable](#aggregable)
-  - [IncrementalAggregate](#incrementalaggregate)
-  - [Invokable](#invokable)
-  - [InvokableAggregate](#invokableaggregate)
-  - [InvokableByReference](#invokablebyreference)
-  - [InvokableNoField](#invokablenofield)
   - [JoinHashmap](#joinhashmap)
-  - [Parser](#parser)
   - [Query](#query)
   - [Results](#results)
   - [Stream](#stream)
@@ -57,15 +51,43 @@
   - [XlsxWriter](#xlsxwriter)
   - [OdsWriter](#odswriter)
 - [SQL](#sql)
-  - [Sql](#sql-class)
+  - [Provider](#sql-provider)
+  - [Compiler](#compiler)
+  - [Token](#token-namespace)
+    - [TokenType](#tokentype)
+    - [Token](#token-class)
+    - [Position](#position)
+    - [TokenStream](#tokenstream)
+    - [Tokenizer](#tokenizer)
+  - [Ast](#ast)
+    - [Nodes](#ast-nodes)
+    - [Expressions](#ast-expressions)
+    - [Enums](#ast-enums)
+  - [Parser](#sql-parser)
+    - [Parser](#parser-class)
+    - [ParseException](#parseexception)
+  - [Builder](#sql-builder)
+    - [QueryBuilder](#querybuilder)
+    - [QueryBuildingVisitor](#querybuildingvisitor)
+    - [ExpressionCompiler](#expressioncompiler)
+    - [FileQueryResolver](#filequeryresolver)
+  - [Runtime](#sql-runtime)
+    - [ExpressionEvaluator](#expressionevaluator)
+    - [FunctionInvoker](#functioninvoker)
+  - [Formatter](#sql-formatter)
+  - [Highlighter](#sql-highlighter)
+  - [Lint](#sql-lint)
+  - [Support](#sql-support)
 - [Conditions](#conditions)
   - [Condition](#condition)
   - [SimpleCondition](#simplecondition)
+  - [ExpressionCondition](#expressioncondition)
   - [GroupCondition](#groupcondition)
   - [WhereConditionGroup](#whereconditiongroup)
   - [HavingConditionGroup](#havingconditiongroup)
 - [Functions](#functions)
   - [Core](#core)
+  - [FunctionRegistry](#functionregistry)
   - [Aggregate](#aggregate)
   - [Math](#math)
   - [String](#string-functions)
@@ -256,6 +278,10 @@ _public static_ **listValues():** `Type[]`
 | `OrderByException` | `InvalidArgumentException` |
 | `SelectException` | `InvalidArgumentException` |
 | `SortException` | `InvalidArgumentException` |
+| `UnknownFunctionException` | `UnexpectedValueException` |
+| `FunctionRegistrationException` | `InvalidArgumentException` |
+
+`UnknownFunctionException` is thrown by `FunctionInvoker` at runtime when a function name is not found in `FunctionRegistry`. `FunctionRegistrationException` is thrown by `FunctionRegistry` when registration fails — duplicate name, non-existent class, or class that does not implement `ScalarFunction` or `AggregateFunction`.
 
 ---
 
@@ -275,48 +301,6 @@ _public_ **min(**_string_ `$key`**):** `float`
 
 _public_ **max(**_string_ `$key`**):** `float`
 
-### IncrementalAggregate
-
-`FQL\Interface\IncrementalAggregate`
-
-_public_ **initAccumulator():** `mixed`
-
-_public_ **accumulate(**_mixed_ `$accumulator`**,** _array_ `$item`**):** `mixed`
-
-_public_ **finalize(**_mixed_ `$accumulator`**):** `mixed`
-
-### Invokable
-
-`FQL\Interface\Invokable`
-
-_public_ **getName():** `string`
-
-_public_ **__invoke(**_array_ `$item`**,** _array_ `$resultItem`**):** `mixed`
-
-### InvokableAggregate
-
-`FQL\Interface\InvokableAggregate`
-
-_public_ **getName():** `string`
-
-_public_ **__invoke(**_array_ `$items`**):** `mixed`
-
-### InvokableByReference
-
-`FQL\Interface\InvokableByReference`
-
-_public_ **getName():** `string`
-
-_public_ **__invoke(**_array_ `$item`**,** _array_ `&$resultItem`**):** `mixed`
-
-### InvokableNoField
-
-`FQL\Interface\InvokableNoField`
-
-_public_ **getName():** `string`
-
-_public_ **__invoke():** `mixed`
-
 ### JoinHashmap
 
 `FQL\Interface\JoinHashmap`
@@ -332,14 +316,6 @@ _public_ **has(**_string|int_ `$key`**):** `bool`
 _public_ **getStructure():** `array`
 
 _public_ **clear():** `void`
-
-### Parser
-
-`FQL\Interface\Parser`
-
-_public_ **parseWithQuery(**_Query_ `$query`**,** _?int_ `$startPosition = null`**):** `Query`
-
-_public_ **parse():** `Results`
 
 ### Query
 
@@ -571,6 +547,8 @@ _public_ **endGroup():** `Query`
 
 _public_ **groupBy(**_string_ `...$fields`**):** `Query`
 
+Accepts plain field names or SQL expression strings (e.g. `groupBy('year(date)')` — parsed via `Sql\Provider::parseExpression()`).
+
 _public_ **count(**_?string_ `$field = null`**,** _bool_ `$distinct = false`**):** `Query`
 
 _public_ **sum(**_string_ `$field`**,** _bool_ `$distinct = false`**):** `Query`
@@ -586,6 +564,8 @@ _public_ **groupConcat(**_string_ `$field`**,** _string_ `$separator = ','`**,**
 #### Sorting
 
 _public_ **orderBy(**_string_ `$field`**,** _Sort_ `$direction = Sort::ASC`**):** `Query`
+
+Accepts plain field names or SQL expression strings (e.g. `orderBy('length(name)', Sort::DESC)` — parsed via `Sql\Provider::parseExpression()`).
 
 _public_ **sortBy(**_string_ `$field`**,** _Sort_ `$direction = Sort::ASC`**):** `Query`
 
@@ -956,7 +936,11 @@ _abstract public_ **provideSource():** `string`
 
 `FQL\Stream\Csv` _extends_ `AbstractStream`
 
-Reads CSV files using `league/csv`. Supports encoding, custom delimiters.
+Reads CSV files with native PHP primitives (`fopen` + `fgetcsv`) — no library wrapper, no per-cell object allocations. Values are yielded as raw strings and typed lazily in `Enum\Operator::evaluate()` when compared. Features:
+
+- Automatic BOM detection and skip for UTF-8, UTF-16 LE/BE, UTF-32 LE/BE before the encoding filter attaches.
+- Non-UTF-8 input encoding via PHP stream filter `convert.iconv.<encoding>/UTF-8` — single-pass conversion at I/O layer, no user-land iconv-per-cell loop.
+- Configurable single-character `delimiter`, `useHeader` toggle, tolerant handling of short/long rows (padded or truncated to header length).
 
 _public static_ **open(**_string_ `$path`**):** `self`
 
@@ -1105,6 +1089,13 @@ Creates a writer instance based on the FileQuery format.
 
 `FQL\Stream\Writers\CsvWriter` _implements_ `Interface\Writer`
 
+Writes CSV with native `fopen` + `fputcsv` — no library wrapper. FileQuery parameters:
+
+- `delimiter` (single char, default `,`)
+- `enclosure` (single char, default `"`)
+- `encoding` (default `utf-8`; non-UTF-8 values trigger a per-cell iconv pass on the way out — small write-side volume makes this cheaper than piping `php://filter`)
+- `bom` (default `"0"` — set to `"1"` to prepend a UTF-8 BOM for Excel / legacy consumers)
+
 _public_ **__construct(**_FileQuery_ `$fileQuery`**)**
 
 _public_ **write(**_array_ `$row`**):** `void`
@@ -1179,25 +1170,483 @@ _public_ **getFileQuery():** `FileQuery`
 
 **namespace:** `FQL\Sql`
 
-### Sql (class)
+The SQL layer is a layered pipeline: source string → tokens → AST → `Interface\Query`.
+Every layer has its own sub-namespace and is independently usable (tokens feed the
+highlighter, AST feeds the formatter, the runtime evaluator walks the AST against
+real rows).
 
-`FQL\Sql\Sql` _extends_ `SqlLexer` _implements_ `Interface\Parser`
+### SQL Provider
 
-Parses FQL SQL strings into query objects.
+`FQL\Sql\Provider`
 
-_public_ **__construct(**_string_ `$sql`**,** _?string_ `$basePath = null`**)**
+Public entry point for the SQL pipeline.
 
-_public_ **parse():** `Interface\Results`
+_public static_ **compile(**_string_ `$sql`**,** _?string_ `$basePath = null`**):** `Compiler`
 
-Parses and executes the FQL SQL, returning results directly.
+Full pipeline: source → tokens → AST → Query. `Query\Provider::fql()` delegates here.
 
-_public_ **toQuery(**_?int_ `$startPosition = null`**):** `Interface\Query`
+_public static_ **tokenize(**_string_ `$sql`**,** _bool_ `$includeTrivia = true`**):** `Token\TokenStream`
 
-Parses the FQL SQL into a query object without executing it.
+Convenience wrapper around the tokenizer — returns a stream positioned at the beginning.
 
-_public_ **parseWithQuery(**_Interface\Query_ `$query`**,** _?int_ `$startPosition = null`**):** `Interface\Query`
+_public static_ **highlight(**_string_ `$sql`**,** _Highlighter\HighlighterKind_ `$kind = Highlighter\HighlighterKind::BASH`**):** `string`
 
-Applies SQL clause tokens to an existing query object.
+Produces an ANSI- or HTML-coloured version of the source.
+
+_public static_ **format(**_string_ `$sql`**,** _?Formatter\FormatterOptions_ `$options = null`**):** `string`
+
+AST-driven pretty-print. One clause per line, multi-field SELECTs wrap onto separate lines (configurable).
+
+_public static_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `Lint\LintReport`
+
+Static analysis of an FQL string — returns a [`LintReport`](#sql-lint) of issues that wouldn't surface until execution (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files when `$checkFilesystem = true`). Parse failures collapse to a single `syntax-error` entry.
+
+```php
+$report = Sql\Provider::lint('SELECT LOEWR(name) FROM json(products.json)');
+if ($report->hasErrors()) {
+    foreach ($report as $issue) {
+        echo $issue, PHP_EOL;   // [ERROR] unknown-function at line 1, column 8 — …
+    }
+}
+```
+
+_public static_ **parseExpression(**_string_ `$fragment`**):** `Ast\Expression\ExpressionNode`
+
+Parses a single SQL expression fragment into an AST node. Used internally by fluent helpers (`groupBy`, `orderBy`, `lower`, `round`, aggregate helpers, etc.) when the argument string contains function calls or arithmetic rather than a plain field name.
+
+```php
+$node = Sql\Provider::parseExpression('year(date)');
+$node = Sql\Provider::parseExpression('price * 0.9');
+```
+
+_public static_ **parseCondition(**_string_ `$fragment`**):** `Ast\Expression\ConditionGroupNode`
+
+Parses a condition fragment string into a `ConditionGroupNode`. Used by `if()`, `whenCase()`, and similar helpers that accept condition strings.
+
+```php
+$node = Sql\Provider::parseCondition('price > 100 AND status = "active"');
+```
+
+### Compiler
+
+`FQL\Sql\Compiler`
+
+Orchestrator returned by `Provider::compile()`. Caches intermediate artefacts for the same SQL input.
+
+_public_ **__construct(**_string_ `$sql`**,** _?string_ `$basePath = null`**,** _Token\Tokenizer_ `$tokenizer = new Tokenizer()`**,** _?Builder\QueryBuilder_ `$builder = null`**)**
+
+_public_ **toQuery():** `Interface\Query`
+
+Runs the full pipeline and returns the built query.
+
+_public_ **applyTo(**_Interface\Query_ `$query`**):** `Interface\Query`
+
+Applies the parsed AST onto an existing `Interface\Query` without re-opening the source stream. Replaces the legacy `Sql::parseWithQuery()`.
+
+_public_ **toAst():** `Ast\Node\SelectStatementNode`
+
+Parses without building.
+
+_public_ **toTokenStream(**_bool_ `$includeTrivia = false`**):** `Token\TokenStream`
+
+_public_ **toTokens():** `Token\Token[]`
+
+_public_ **getBasePath():** `?string`
+
+### Token Namespace
+
+**namespace:** `FQL\Sql\Token`
+
+#### TokenType
+
+`FQL\Sql\Token\TokenType` _(string backed enum)_
+
+Classifies every lexical element. Key groups:
+
+| Group | Cases |
+|-------|-------|
+| Structural | `PAREN_OPEN`, `PAREN_CLOSE`, `COMMA`, `STAR` |
+| Keywords | `KEYWORD_SELECT`, `KEYWORD_FROM`, `KEYWORD_WHERE`, `KEYWORD_GROUP`, `KEYWORD_BY`, `KEYWORD_HAVING`, `KEYWORD_ORDER`, `KEYWORD_LIMIT`, `KEYWORD_OFFSET`, `KEYWORD_UNION`, `KEYWORD_ALL`, `KEYWORD_INTO`, `KEYWORD_DESCRIBE`, `KEYWORD_EXPLAIN`, `KEYWORD_ANALYZE`, `KEYWORD_DISTINCT`, `KEYWORD_EXCLUDE`, `KEYWORD_INNER`, `KEYWORD_LEFT`, `KEYWORD_RIGHT`, `KEYWORD_FULL`, `KEYWORD_OUTER`, `KEYWORD_JOIN`, `KEYWORD_ON`, `KEYWORD_AS`, `KEYWORD_ASC`, `KEYWORD_DESC`, `KEYWORD_CASE`, `KEYWORD_WHEN`, `KEYWORD_THEN`, `KEYWORD_ELSE`, `KEYWORD_END`, `KEYWORD_AND`, `KEYWORD_OR`, `KEYWORD_XOR`, `KEYWORD_NOT`, `KEYWORD_IS`, `KEYWORD_IN`, `KEYWORD_LIKE`, `KEYWORD_BETWEEN`, `KEYWORD_REGEXP`, `KEYWORD_AGAINST` |
+| Identifiers / literals | `IDENTIFIER`, `IDENTIFIER_QUOTED`, `FUNCTION_NAME`, `STRING_LITERAL`, `NUMBER_LITERAL`, `BOOLEAN_LITERAL`, `NULL_LITERAL` |
+| Operators | `OP_EQ`, `OP_EQ_STRICT`, `OP_NEQ`, `OP_NEQ_STRICT`, `OP_LT`, `OP_LTE`, `OP_GT`, `OP_GTE`, `OP_PLUS`, `OP_MINUS`, `OP_SLASH`, `OP_PERCENT` |
+| Source | `FILE_QUERY` (captures `format(path).path` as a single token, metadata holds parsed `FileQuery`) |
+| Trivia | `WHITESPACE`, `COMMENT_LINE`, `COMMENT_BLOCK`, `EOF` |
+
+_public_ **isTrivia():** `bool`
+
+_public_ **isKeyword():** `bool`
+
+_public_ **isLiteral():** `bool`
+
+_public_ **isOperator():** `bool`
+
+#### Token (class)
+
+`FQL\Sql\Token\Token` _(readonly)_
+
+Immutable lexical token. `value` is the normalised form (keywords upper-cased, strings without quotes), `raw` is the verbatim lexeme (used by highlighters).
+
+| Property | Type |
+|----------|------|
+| `$type` | `TokenType` |
+| `$value` | `string` |
+| `$raw` | `string` |
+| `$position` | `Position` |
+| `$length` | `int` |
+| `$metadata` | `mixed` (e.g. parsed `FileQuery` for `FILE_QUERY`) |
+
+_public_ **is(**_TokenType_ `$type`**):** `bool`
+
+_public_ **isAnyOf(**_TokenType_ `...$types`**):** `bool`
+
+_public_ **__toString():** `string`
+
+#### Position
+
+`FQL\Sql\Token\Position` _(readonly)_
+
+Zero-based `offset`, one-based `line` / `column` for human-friendly diagnostics.
+
+_public_ **__construct(**_int_ `$offset`**,** _int_ `$line`**,** _int_ `$column`**)**
+
+_public_ **__toString():** `string`
+
+#### TokenStream
+
+`FQL\Sql\Token\TokenStream` _implements_ `\Iterator`, `\Countable`
+
+Cursor over `Token[]`. In the default mode transparently skips trivia; opt-in `includeTrivia` mode retains whitespace/comments for highlighters and formatters.
+
+_public_ **__construct(**_Token[]_ `$tokens`**,** _bool_ `$includeTrivia = false`**)**
+
+_public_ **peek(**_int_ `$offset = 0`**):** `Token`
+
+_public_ **peekType(**_int_ `$offset = 0`**):** `TokenType`
+
+_public_ **consume():** `Token`
+
+_public_ **consumeIf(**_TokenType_ `...$types`**):** `?Token`
+
+_public_ **expect(**_TokenType_ `...$types`**):** `Token` — throws `Parser\ParseException`.
+
+_public_ **mark():** `int`
+
+_public_ **rewindTo(**_int_ `$marker`**):** `void`
+
+_public_ **isAtEnd():** `bool`
+
+_public_ **includesTrivia():** `bool`
+
+_public_ **toArray():** `Token[]`
+
+#### Tokenizer
+
+`FQL\Sql\Token\Tokenizer`
+
+Single-pass character-scanning lexer.
+
+_public_ **tokenize(**_string_ `$sql`**):** `Token[]`
+
+Handles: keyword detection, `FILE_QUERY` lookahead in `FROM`/`INTO`/`DESCRIBE`/`JOIN` contexts, dotted identifiers (including `@` XML-attribute and kebab-case names), signed numeric literals, unterminated string/comment errors with location info, and arithmetic operators (`+ - * / %`).
+
+### Ast
+
+**namespace:** `FQL\Sql\Ast`
+
+AST nodes are immutable readonly value objects produced by the parser. All implement `AstNode` (interface exposing `position(): Position`).
+
+#### Ast Nodes
+
+`FQL\Sql\Ast\Node\*` — statement and clause nodes.
+
+| Node | Fields |
+|------|--------|
+| `SelectStatementNode` | `from`, `fields`, `distinct`, `joins`, `where`, `groupBy`, `having`, `orderBy`, `limit`, `unions`, `into`, `describe`, `explain` |
+| `FromClauseNode` | `source: ExpressionNode`, `alias: ?string` |
+| `JoinClauseNode` | `type: JoinType`, `source: ExpressionNode`, `alias: string`, `on: ConditionExpressionNode` |
+| `WhereClauseNode` | `conditions: ConditionGroupNode` |
+| `HavingClauseNode` | `conditions: ConditionGroupNode` |
+| `GroupByClauseNode` | `fields: ExpressionNode[]` |
+| `OrderByClauseNode` | `items: OrderByItemNode[]` |
+| `OrderByItemNode` | `expression: ExpressionNode`, `direction: Sort` |
+| `LimitClauseNode` | `limit: int`, `offset: ?int` |
+| `UnionClauseNode` | `query: SelectStatementNode`, `all: bool` |
+| `IntoClauseNode` | `target: FileQueryNode` |
+| `SelectFieldNode` | `expression: ExpressionNode`, `alias: ?string`, `excluded: bool` |
+
+#### Ast Expressions
+
+`FQL\Sql\Ast\Expression\*` — expression nodes (implement `ExpressionNode extends AstNode`).
+
+| Node | Fields / purpose |
+|------|------------------|
+| `ColumnReferenceNode` | `name: string`, `quoted: bool` |
+| `LiteralNode` | `value: mixed`, `type: Enum\Type`, `raw: string` |
+| `StarNode` | SELECT `*` marker |
+| `FunctionCallNode` | `name: string`, `arguments: ExpressionNode[]`, `distinct: bool` |
+| `BinaryOpNode` | `left`, `operator: BinaryOperator`, `right` (arithmetic `+ - * / %`) |
+| `CastExpressionNode` | `value: ExpressionNode`, `targetType: Enum\Type` |
+| `CaseExpressionNode` | `branches: WhenBranchNode[]`, `else: ?ExpressionNode` |
+| `WhenBranchNode` | `condition: ConditionGroupNode`, `then: ExpressionNode` |
+| `ConditionExpressionNode` | `left`, `operator: Enum\Operator`, `right: ExpressionNode\|Enum\Type\|ExpressionNode[]` |
+| `ConditionGroupNode` | `entries: [{logical: LogicalOperator, condition: ConditionExpressionNode\|ConditionGroupNode}]` |
+| `MatchAgainstNode` | `fields: ColumnReferenceNode[]`, `searchQuery: string`, `mode: Enum\Fulltext` |
+| `SubQueryNode` | `query: SelectStatementNode` |
+| `FileQueryNode` | `fileQuery: FileQuery`, `raw: string` |
+
+#### Ast Enums
+
+| Enum | Cases |
+|------|-------|
+| `JoinType` | `INNER`, `LEFT`, `RIGHT`, `FULL` |
+| `ExplainMode` | `NONE`, `EXPLAIN`, `EXPLAIN_ANALYZE` |
+| `BinaryOperator` | `ADD` (`+`), `SUBTRACT` (`-`), `MULTIPLY` (`*`), `DIVIDE` (`/`), `MODULO` (`%`) |
+
+`BinaryOperator` also exposes `precedence(): int` (standard SQL / C-family: `* / %` > `+ -`) and `functionName(): string` (maps to `ADD`/`SUB`/`MULTIPLY`/`DIVIDE`/`MOD`).
+
+### SQL Parser
+
+**namespace:** `FQL\Sql\Parser`
+
+Recursive-descent parser split into per-clause classes. Consumers use the `Parser` façade or the `Compiler` wrapper.
+
+#### Parser (class)
+
+`FQL\Sql\Parser\Parser`
+
+_public_ **__construct(**_StatementParser_ `$statementParser`**)**
+
+_public static_ **create():** `self` — default configuration with every clause parser wired up.
+
+_public_ **parse(**_Token\TokenStream_ `$stream`**):** `Ast\Node\SelectStatementNode`
+
+Individual clause / expression parsers are also part of the namespace: `StatementParser`, `SelectClauseParser`, `FromClauseParser`, `JoinClauseParser`, `WhereClauseParser`, `HavingClauseParser`, `GroupByClauseParser`, `OrderByClauseParser`, `LimitOffsetParser`, `UnionParser`, `IntoParser`, `ExpressionParser` (Pratt-style infix arithmetic), `ConditionParser`, `ConditionGroupParser`, and a shared `ClauseBoundary` helper predicate.
+
+#### ParseException
+
+`FQL\Sql\Parser\ParseException` _extends_ `Exception\UnexpectedValueException`
+
+Carries the offending token and the expected token types for rich positioned diagnostics (line + column).
+
+_public_ **__construct(**_Token\Token_ `$token`**,** _TokenType[]_ `$expected`**,** _string_ `$message`**)**
+
+_public static_ **unexpected(**_Token\Token_ `$actual`**,** _TokenType_ `...$expected`**):** `self`
+
+_public static_ **context(**_Token\Token_ `$actual`**,** _string_ `$context`**):** `self`
+
+### SQL Builder
+
+**namespace:** `FQL\Sql\Builder`
+
+Converts an AST into an `Interface\Query`. The visitor stringifies AST nodes back to SQL expression strings and calls the standard fluent methods (`select()`, `groupBy()`, `orderBy()`, etc.) — no privileged internal paths.
+
+#### QueryBuilder
+
+`FQL\Sql\Builder\QueryBuilder`
+
+_public_ **__construct(**_?string_ `$basePath = null`**)**
+
+_public_ **build(**_Ast\Node\SelectStatementNode_ `$ast`**):** `Interface\Query`
+
+_public_ **applyTo(**_Ast\Node\SelectStatementNode_ `$ast`**,** _Interface\Query_ `$query`**):** `Interface\Query`
+
+_public_ **visitor():** `QueryBuildingVisitor`
+
+#### QueryBuildingVisitor
+
+`FQL\Sql\Builder\QueryBuildingVisitor`
+
+Walks an AST and constructs a Query. Expressions are stringified by `ExpressionCompiler` and fed into fluent helpers — `select()`, `groupBy()`, `orderBy()`, and the typed aggregate helpers — so every query path, fluent or SQL-driven, flows through the same `Sql\Provider::parseExpression()` round-trip. WHERE/HAVING produce `Conditions\ExpressionCondition` wired to the runtime evaluator.
+
+_public_ **__construct(**_ExpressionCompiler_ `$compiler`**,** _FileQueryResolver_ `$fileQueryResolver`**,** _Runtime\ExpressionEvaluator_ `$evaluator = new ExpressionEvaluator()`**,** _Runtime\FunctionInvoker_ `$invoker = new FunctionInvoker()`**)**
+
+_public_ **build(**_Ast\Node\SelectStatementNode_ `$ast`**):** `Interface\Query`
+
+_public_ **applyTo(**_Ast\Node\SelectStatementNode_ `$ast`**,** _Interface\Query_ `$query`**):** `Interface\Query`
+
+#### ExpressionCompiler
+
+`FQL\Sql\Builder\ExpressionCompiler`
+
+Serialises AST nodes back to FQL-string form for APIs that take strings (`whenCase`, `elseCase`, `IF` condition) and for SimpleCondition scalar values.
+
+_public_ **renderExpression(**_Ast\Expression\ExpressionNode_ `$node`**):** `string`
+
+_public_ **renderLiteral(**_Ast\Expression\LiteralNode_ `$node`**):** `string`
+
+_public_ **renderCondition(**_Ast\Expression\ConditionExpressionNode_ `$condition`**):** `string`
+
+_public_ **renderConditionGroup(**_Ast\Expression\ConditionGroupNode_ `$group`**):** `string`
+
+_public_ **scalarRightValue(**_ExpressionNode\|Enum\Type\|ExpressionNode[]_ `$right`**,** _Enum\Operator_ `$operator`**):** `array|float|int|string|Enum\Type`
+
+#### FileQueryResolver
+
+`FQL\Sql\Builder\FileQueryResolver`
+
+Thin wrapper around `Utils\FileQueryPathValidator` that applies a `basePath` to every FileQuery produced by the AST.
+
+_public_ **__construct(**_?string_ `$basePath = null`**)**
+
+_public_ **resolve(**_Query\FileQuery_ `$fileQuery`**,** _bool_ `$mustExist = true`**):** `Query\FileQuery`
+
+_public_ **getBasePath():** `?string`
+
+### SQL Runtime
+
+**namespace:** `FQL\Sql\Runtime`
+
+The runtime layer evaluates AST expressions against a concrete stream row — powers nested functions (`UPPER(LOWER(name))`), arithmetic (`price * 0.9`), function arguments (`ROUND(5 * price, 2)`), aggregate expressions (`SUM(price * qty)`), and expression-driven WHERE / HAVING / GROUP BY / ORDER BY.
+
+#### ExpressionEvaluator
+
+`FQL\Sql\Runtime\ExpressionEvaluator`
+
+Walks the AST and evaluates every node against `$item` (source row) and `$resultItem` (already-projected columns, used as fallback for chained SELECT references and HAVING). Column references use `EnhancedNestedArrayAccessor` (dot / backtick / `[]` navigation). Binary arithmetic applies SQL-style null propagation and null on zero-division. Aggregate calls are detected and handled separately during the grouping phase via the `AggregateFunction` interface (`initial`/`accumulate`/`finalize`).
+
+_public_ **__construct(**_FunctionInvoker_ `$functions = new FunctionInvoker()`**)**
+
+_public_ **evaluate(**_Ast\Expression\ExpressionNode_ `$node`**,** _array_ `$item`**,** _array_ `$resultItem = []`**):** `mixed`
+
+_public_ **evaluateCondition(**_Ast\Expression\ConditionExpressionNode_ `$condition`**,** _array_ `$item`**,** _array_ `$resultItem = []`**):** `bool`
+
+_public_ **evaluateGroup(**_Ast\Expression\ConditionGroupNode_ `$group`**,** _array_ `$item`**,** _array_ `$resultItem = []`**):** `bool`
+
+#### FunctionInvoker
+
+`FQL\Sql\Runtime\FunctionInvoker`
+
+Thin dispatcher over `Functions\FunctionRegistry`. Resolves the function class for a given name and calls `Class::execute(...$args)`. Scalar and aggregate names are distinguished via `FunctionRegistry::isAggregate()`. Throws `Exception\UnknownFunctionException` when the name is not registered.
+
+_public_ **__construct()**
+
+_public_ **has(**_string_ `$name`**):** `bool`
+
+_public_ **isAggregate(**_string_ `$name`**):** `bool`
+
+_public_ **invoke(**_string_ `$name`**,** _mixed[]_ `$args`**):** `mixed`
+
+### SQL Formatter
+
+**namespace:** `FQL\Sql\Formatter`
+
+AST-driven pretty-printer.
+
+`FQL\Sql\Formatter\SqlFormatter`
+
+_public_ **__construct(**_FormatterOptions_ `$options = new FormatterOptions()`**)**
+
+_public_ **format(**_string_ `$sql`**):** `string`
+
+_public_ **formatStatement(**_Ast\Node\SelectStatementNode_ `$ast`**,** _int_ `$depth = 0`**):** `string`
+
+`FQL\Sql\Formatter\FormatterOptions` _(readonly)_
+
+| Field | Default |
+|-------|---------|
+| `$indent` | `'    '` |
+| `$uppercaseKeywords` | `true` |
+| `$fieldsPerLine` | `true` |
+| `$newline` | `"\n"` |
+
+### SQL Highlighter
+
+**namespace:** `FQL\Sql\Highlighter`
+
+Token-based syntax highlighter. `HighlighterKind` enum exposes `BASH` and `HTML`.
+
+| Class | Purpose |
+|-------|---------|
+| `Highlighter` _(interface)_ | `highlight(string): string`, `highlightTokens(TokenStream): string` |
+| `Theme` _(interface)_ | `styleStart(TokenType): string`, `styleEnd(TokenType): string`, `escape(string): string` |
+| `ThemedHighlighter` | Generic implementation; `BashHighlighter` / `HtmlHighlighter` extend it with the default theme |
+| `BashTheme` | ANSI escape codes (bold cyan keywords, magenta functions, green strings, ...) |
+| `HtmlTheme` | `<span class="fql-…">` wrappers with `htmlspecialchars`-escaped content |
+
+### SQL Lint
+
+**namespace:** `FQL\Sql\Lint`
+
+Static analyser for FQL strings — surfaces issues that only pop up at execution time (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files). Built on the same parser pipeline as `compile()` / `highlight()` / `format()`; all rules walk the AST, so a failing parse short-circuits with a single `syntax-error` issue.
+
+`FQL\Sql\Lint\Severity` _enum_ — `ERROR`, `WARNING`, `INFO` (`isAtLeast(Severity)`).
+
+`FQL\Sql\Lint\LintIssue` _(readonly value object)_
+
+_public_ **__construct(**_Severity_ `$severity`**,** _string_ `$rule`**,** _string_ `$message`**,** _?Position_ `$position = null`**)**
+
+_public_ **__toString():** `string` — `[ERROR] unknown-function at line 1, column 8 — Unknown function "LOEWR".`
+
+_public_ **toArray():** `array{severity, rule, message, line, column, offset}` — JSON-friendly projection.
+
+`FQL\Sql\Lint\LintReport` _(implements `IteratorAggregate`, `Countable`)_
+
+Immutable collection of `LintIssue` returned by `Linter::lint()`.
+
+_public readonly_ `list<LintIssue>` **$issues**
+
+_public_ **hasErrors():** `bool`, **hasWarnings():** `bool`, **count():** `int`
+
+_public_ **filterBySeverity(**_Severity_ `$min`**):** `LintReport` — new report containing issues at `$min` or higher.
+
+_public_ **with(**_LintIssue|list<LintIssue>_ `$additional`**):** `LintReport`
+
+_public_ **toArray():** `list<array>`
+
+`FQL\Sql\Lint\Linter`
+
+_public_ **__construct(**_?list<Rule>_ `$rules = null`**)** — `null` uses `defaultRules()`.
+
+_public static_ **defaultRules():** `list<Rule>` — `UnknownFunctionRule`, `DuplicateAliasRule`, `MissingFromRule`, `FileNotFoundRule`.
+
+_public_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `LintReport`
+
+Typical usage goes through [`Sql\Provider::lint()`](#sql-provider). Construct your own `Linter` when you want a reduced rule set or need to inject a custom `FunctionInvoker` into `UnknownFunctionRule`.
+
+**Built-in rules** (`FQL\Sql\Lint\Rule\*`):
+
+| Class | ID | Severity | Checks |
+|-------|----|----------|--------|
+| `UnknownFunctionRule` | `unknown-function` | ERROR | Every `FunctionCallNode::$name` is known to the runtime `FunctionInvoker` (scalar or aggregate). |
+| `DuplicateAliasRule` | `duplicate-alias` | ERROR | No two SELECT fields share the same explicit alias (`SELECT a AS x, b AS x`). |
+| `MissingFromRule` | `missing-from` | WARNING | SELECT has a `FROM` clause. Not an error because `Compiler::applyTo()` legitimately omits it. |
+| `FileNotFoundRule` | `file-not-found` | ERROR | Opt-in (`$checkFilesystem = true`): every `FROM <format>(path)` path exists and is readable. |
+
+Parse failures emit a single `syntax-error` issue (severity `ERROR`) sourced from `ParseException::$token->position`; semantic rules don't run without a valid AST.
+
+`FQL\Sql\Lint\Rule` _(interface)_
+
+_public_ **id():** `string` — stable identifier used in `LintIssue::$rule` and future CLI filters.
+
+_public_ **severity():** `Severity`
+
+_public_ **check(**_LintContext_ `$ctx`**):** `list<LintIssue>`
+
+`FQL\Sql\Lint\LintContext` _(readonly)_ — carries `SelectStatementNode $ast`, `string $source`, and `bool $checkFilesystem`.
+
+`FQL\Sql\Lint\AstWalker`
+
+_public static_ **findAll(**_object_ `$node`**,** _class-string<T>_ `$type`**):** `Generator<T>` — recursive AST traversal used by rules to collect every descendant of a given node class.
+
+### SQL Support
+
+**namespace:** `FQL\Sql\Support`
+
+Small helpers used by internal consumers (migrated from the legacy `SqlLexer`).
+
+`FQL\Sql\Support\FieldListSplitter`
+
+Char-level comma splitter that respects parentheses, brackets, and single/double/backtick quotes.
+
+_public static_ **split(**_string_ `...$fields`**):** `string[]`
+
+_public static_ **splitAlias(**_string_ `$spec`**):** `array{field: string, alias: ?string}`
+
+`FQL\Sql\Support\ConditionStringParser`
+
+Parses an FQL condition fragment (e.g. `a > 1 AND b IS NULL`) into a populated `BaseConditionGroup`. Used by `Functions\Utils\SelectIf` and the `if()`/`whenCase()` fluent helpers internally.
+
+_public static_ **populate(**_string_ `$conditionString`**,** _Conditions\BaseConditionGroup_ `$target`**):** `Conditions\BaseConditionGroup`
 
 ---
 
@@ -1227,6 +1676,20 @@ _abstract public_ **render():** `string`
 A single condition: `field operator value`.
 
 _public_ **__construct(**_LogicalOperator_ `$logicalOperator`**,** _string_ `$field`**,** _Operator_ `$operator`**,** _array|float|int|string|Type_ `$value`**)**
+
+_public_ **evaluate(**_array_ `$item`**,** _bool_ `$nestingValues`**):** `bool`
+
+_public_ **render():** `string`
+
+### ExpressionCondition
+
+`FQL\Conditions\ExpressionCondition` _extends_ `Condition`
+
+A condition backed by AST expressions on both sides, evaluated per row by `Sql\Runtime\ExpressionEvaluator`. Used by the FQL/SQL pipeline whenever WHERE/HAVING references a function call, arithmetic, CASE, or any non-trivial expression. Fluent API continues to emit `SimpleCondition`.
+
+Right-hand side may be an `ExpressionNode`, an array of `ExpressionNode` (for `IN`, `BETWEEN`), or a `Type` enum (for `IS NULL`/`IS NOT NULL`). The `$nestingValues` parameter from `Condition::evaluate()` is ignored — the evaluator resolves nested paths internally via `accessNestedValue()`.
+
+_public_ **__construct(**_LogicalOperator_ `$logicalOperator`**,** _ExpressionNode_ `$left`**,** _Operator_ `$operator`**,** _ExpressionNode|Type|array_ `$right`**,** _?ExpressionEvaluator_ `$evaluator = null`**)**
 
 _public_ **evaluate(**_array_ `$item`**,** _bool_ `$nestingValues`**):** `bool`
 
@@ -1272,22 +1735,122 @@ Root condition group for `HAVING` clauses.
 
 **namespace:** `FQL\Functions`
 
+Every function class is a pure static implementation — no instance state, no `__invoke`, no constructor arguments. `Sql\Runtime\FunctionInvoker` calls `Class::execute(...$args)` with already-evaluated AST arguments. All function classes implement either `ScalarFunction` or `AggregateFunction` from `FQL\Functions\Core`.
+
 ### Core
 
-Base classes for building query functions.
+Two interfaces define the function contract. There are no shared base classes.
 
-| Class | Extends | Description |
-|-------|---------|-------------|
-| `BaseFunction` | — | Base for single-invocation functions (`Invokable`) |
-| `BaseFunctionByReference` | — | Base for functions that modify result row by reference (`InvokableByReference`) |
-| `SingleFieldFunction` | `BaseFunction` | Function operating on a single field |
-| `SingleFieldFunctionByReference` | `BaseFunctionByReference` | By-reference function on a single field |
-| `MultipleFieldsFunction` | `BaseFunction` | Function operating on multiple fields |
-| `NoFieldFunction` | — | Function with no field input (`InvokableNoField`) |
-| `AggregateFunction` | — | Base for aggregate functions (`InvokableAggregate`, `IncrementalAggregate`) |
-| `SingleFieldAggregateFunction` | `AggregateFunction` | Aggregate function on a single field with DISTINCT support |
+#### ScalarFunction
+
+`FQL\Functions\Core\ScalarFunction`
+
+_public_ **name():** `string`
+
+Returns the canonical SQL name of the function (case-insensitive, e.g. `LOWER`). This is the only method required by the interface; each class defines its own `execute(...)` signature with typed parameters appropriate to its arity.
+
+```php
+// Example scalar implementation
+class Lower implements ScalarFunction {
+    public function name(): string { return 'LOWER'; }
+    public static function execute(string $value): string { return strtolower($value); }
+}
+```
+
+#### AggregateFunction
+
+`FQL\Functions\Core\AggregateFunction`
+
+_public_ **name():** `string`
+
+_public_ **initial(**_array_ `$options = []`**):** `mixed`
+
+Returns the initial accumulator state. The `$options` array may contain `distinct` (bool) and `separator` (string, for `GROUP_CONCAT`).
+
+_public_ **accumulate(**_mixed_ `$acc`**,** _mixed_ `$value`**):** `mixed`
+
+Folds one evaluated value into the accumulator.
+
+_public_ **finalize(**_mixed_ `$acc`**):** `mixed`
+
+Produces the final scalar result from the accumulator.
+
+```php
+// Example aggregate usage (handled internally by Stream::applyGrouping)
+$fn = new Sum();
+$acc = $fn->initial();
+foreach ($values as $v) {
+    $acc = $fn->accumulate($acc, $v);
+}
+$result = $fn->finalize($acc); // float
+```
+
+### FunctionRegistry
+
+`FQL\Functions\FunctionRegistry`
+
+Global static registry for all scalar and aggregate function classes. Bootstrapped from `src/Functions/functions.neon` on first access. Results are compiled to `fiquela-functions.compiled.php` (not committed). Cache location priority: `setCacheDir()` > library directory > system temp > in-memory only.
+
+Function names are case-insensitive. Registering a duplicate name throws `Exception\FunctionRegistrationException`.
+
+_public static_ **register(**_class-string_ `$class`**):** `void`
+
+Registers a class implementing `ScalarFunction` or `AggregateFunction`. Throws if already registered or class does not implement a required interface.
+
+_public static_ **override(**_class-string_ `$class`**):** `void`
+
+Registers a class, replacing any existing registration for that function name.
+
+_public static_ **unregister(**_string_ `$name`**):** `void`
+
+Removes a registered function by name.
+
+_public static_ **loadConfig(**_string_ `$neonPath`**):** `void`
+
+Loads additional function registrations from a NEON file. Format mirrors `src/Functions/functions.neon`.
+
+_public static_ **setCacheDir(**_?string_ `$dir`**):** `void`
+
+Sets the directory for the compiled cache file. Pass `null` to disable file caching.
+
+_public static_ **getScalar(**_string_ `$name`**):** `class-string<ScalarFunction>`
+
+Returns the class name for a registered scalar function. Throws `Exception\UnknownFunctionException` if not found.
+
+_public static_ **getAggregate(**_string_ `$name`**):** `class-string<AggregateFunction>`
+
+Returns the class name for a registered aggregate function. Throws `Exception\UnknownFunctionException` if not found.
+
+_public static_ **has(**_string_ `$name`**):** `bool`
+
+Returns `true` if the name is registered (scalar or aggregate).
+
+_public static_ **isAggregate(**_string_ `$name`**):** `bool`
+
+Returns `true` if the name is registered as an aggregate function.
+
+_public static_ **all():** `array`
+
+Returns the full map of registered names to class strings.
+
+_public static_ **reset():** `void`
+
+Clears all registrations and resets to the bootstrapped state. Intended for test teardown.
+
+```php
+// Register a custom function
+FunctionRegistry::register(MyCustomScalar::class);
+
+// Override a built-in
+FunctionRegistry::override(MyRound::class);
+
+// Load project-level config
+FunctionRegistry::loadConfig('/app/config/functions.neon');
+```
 
 ### Aggregate
+
+All aggregate classes implement `AggregateFunction` (`initial`/`accumulate`/`finalize`). They are static-only; `Stream::applyGrouping` drives the accumulation cycle directly. `GROUP_CONCAT` reads `separator` and `distinct` from the `$options` array passed to `initial()`.
 
 | Class | SQL | Description |
 |-------|-----|-------------|
@@ -1329,6 +1892,7 @@ Base classes for building query functions.
 | `Replace` | `REPLACE(field, search, rep)` | Replace substring |
 | `Reverse` | `REVERSE(field)` | Reverse string |
 | `RightPad` | `RPAD(field, len, char)` | Right pad |
+| `Substr` | `SUBSTR(field, start, len)` | SQL alias for `SUBSTRING`; delegates to `Substring::execute` |
 | `Substring` | `SUBSTRING(field, start, len)` | Extract substring |
 | `Upper` | `UPPER(field)` | Uppercase |
 
@@ -1341,6 +1905,7 @@ Base classes for building query functions.
 | `ArrayMerge` | `ARRAY_MERGE(a, b)` | Merge arrays |
 | `ArraySearch` | `ARRAY_SEARCH(field, needle)` | Search in array |
 | `Cast` | `CAST(field AS type)` | Type cast |
+| `CaseBuilder` | _(internal)_ | Accumulator for `case()->whenCase()->elseCase()->endCase()` fluent chain; produces `CaseExpressionNode` |
 | `Coalesce` | `COALESCE(a, b, ...)` | First non-null |
 | `CoalesceNotEmpty` | `COALESCE_NE(a, b, ...)` | First non-empty |
 | `ColSplit` | `COL_SPLIT(field, fmt, key)` | Split array to columns |
@@ -1357,7 +1922,6 @@ Base classes for building query functions.
 | `Month` | `MONTH(date)` | Month |
 | `Now` | `NOW()` | Current datetime |
 | `RandomBytes` | `RANDOM_BYTES(len)` | Random bytes |
-| `SelectCase` | `CASE WHEN ... THEN ... END` | Case statement |
 | `SelectIf` | `IF(cond, true, false)` | Conditional |
 | `SelectIfNull` | `IFNULL(field, default)` | Null fallback |
 | `SelectIsNull` | `ISNULL(field)` | Null check |
@@ -1398,15 +1962,46 @@ _public_ **exclude(**_string_ `...$fields`**):** `Interface\Query`
 
 _public_ **as(**_string_ `$alias`**):** `Interface\Query` — context-aware alias: after `select()`/function → aliases last field, after `from()` → aliases FROM source, after `join()` → aliases last join.
 
-_public_ **custom(**_SingleFieldFunction|MultipleFieldsFunction|NoFieldFunction_ `$function`**):** `Interface\Query`
+Plain fluent `select('field')` internally wraps the name into a synthetic `Sql\Ast\Expression\ColumnReferenceNode` so runtime evaluation flows through `Sql\Runtime\ExpressionEvaluator` — a single path shared with SQL-driven queries. `*` and `foo.*` wildcards retain their specialised handling in `Results\Stream`.
 
-All function methods (`concat`, `lower`, `upper`, `round`, `count`, `sum`, `avg`, `min`, `max`, `groupConcat`, etc.) are defined here. See [Interface\Query](#query) for the complete list.
+Each scalar helper (`lower`, `upper`, `round`, `concat`, `substring`, etc.) and each aggregate helper (`sum`, `avg`, `count`, `min`, `max`, `groupConcat`) accepts an SQL expression string and parses it via `Sql\Provider::parseExpression()`. This means the argument may be a plain field name, a function call, or an arithmetic expression:
+
+```php
+$query->lower('upper(name)');
+$query->round('price * qty', 2);
+$query->sum('price + vat');
+$query->groupBy('year(date)');
+$query->where('lower(status)', Op::EQ, '"active"');
+```
+
+The CASE helper chain uses `FQL\Functions\Utils\CaseBuilder` internally. Each condition and expression argument is parsed on entry:
+
+```php
+$query
+    ->case()
+    ->whenCase('price > 100', '"expensive"')
+    ->whenCase('price > 50',  '"medium"')
+    ->elseCase('"cheap"')
+    ->endCase()
+    ->as('price_tier');
+```
+
+The `if()`, `ifNull()`, and `isNull()` helpers also parse their condition/expression arguments as SQL expression strings.
+
+All function methods are defined here. See [Interface\Query](#query) for the complete list.
 
 ### Conditions (trait)
 
 `FQL\Traits\Conditions`
 
 Provides WHERE, HAVING, AND, OR, XOR conditions with grouping support.
+
+The `$key` (left-side) argument of `where()`, `having()`, `and()`, `or()`, and `xor()` is parsed as an SQL expression via `Sql\Provider::parseExpression()`. This means any function call or arithmetic expression is valid on the left side:
+
+```php
+$query->where('lower(name)', Op::EQUAL, '"alice"');
+$query->where('price * qty', Op::GREATER_THAN, 1000);
+```
 
 _public_ **blockConditions():** `void`
 
@@ -1484,6 +2079,12 @@ _public_ **isGroupableEmpty():** `bool`
 
 _public_ **groupBy(**_string_ `...$fields`**):** `self`
 
+Accepts plain field names or SQL expression strings — each argument is parsed via `Sql\Provider::parseExpression()` and stored as an `ExpressionNode`. Plain field names produce a `ColumnReferenceNode`; function calls or arithmetic produce the corresponding compound node.
+
+```php
+$query->groupBy('category', 'year(date)');
+```
+
 ### Sortable
 
 `FQL\Traits\Sortable`
@@ -1495,6 +2096,13 @@ _public_ **isSortableEmpty():** `bool`
 _public_ **sortBy(**_string_ `$field`**,** _?Sort_ `$type = null`**):** `Query`
 
 _public_ **orderBy(**_string_ `$field`**,** _?Sort_ `$type = null`**):** `Query`
+
+Accepts plain field names or SQL expression strings — parsed via `Sql\Provider::parseExpression()`. Each entry in `$orderings` stores an `ExpressionNode` plus direction.
+
+```php
+$query->orderBy('length(name)', Sort::DESC);
+$query->orderBy('price * qty');
+```
 
 _public_ **asc():** `Query`
 

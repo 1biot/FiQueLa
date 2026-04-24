@@ -3,21 +3,23 @@
 namespace FQL\Functions\String;
 
 use FQL\Enum\Type;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Upper extends SingleFieldFunction
+final class Upper implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return string
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
+        return 'UPPER';
+    }
+
+    public static function execute(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
         if (!is_string($value)) {
             $value = Type::castValue($value, Type::STRING);
         }
-
         return mb_strtoupper($value);
     }
 }

@@ -2,17 +2,24 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class ArrayFilter extends SingleFieldFunction
+final class ArrayFilter implements ScalarFunction
 {
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $array = $this->getFieldValue($this->field, $item, $resultItem);
-        if (!is_array($array)) {
+        return 'ARRAY_FILTER';
+    }
+
+    /**
+     * @return array<int, mixed>|null
+     */
+    public static function execute(mixed $value): ?array
+    {
+        if (!is_array($value)) {
             return null;
         }
 
-        return array_values(array_filter($array));
+        return array_values(array_filter($value));
     }
 }

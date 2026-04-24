@@ -578,10 +578,11 @@ interface Query extends \Stringable
     public function endGroup(): Query;
 
     /**
-     * Specify the fields to group by in the query.
-     * @param string ...$fields The fields to group by.
+     * Specify the fields or SQL expressions to group by. Each argument is parsed
+     * as a full SQL expression (`'year(date)'`, `'coalesce(status, "x")'`).
      */
     public function groupBy(string ...$fields): Query;
+
     public function count(?string $field = null, bool $distinct = false): Query;
     public function sum(string $field, bool $distinct = false): Query;
     public function avg(string $field): Query;

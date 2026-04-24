@@ -44,6 +44,18 @@ trait StringOperations
         return substr($input, 1, -1);
     }
 
+    /**
+     * Strips every backtick from the input. Use this for human-readable
+     * identifiers (e.g. result-row keys) where backticks were only present
+     * as tokenizer-level escape boundaries — unlike {@see removeQuotes()},
+     * which only chops the outer pair and is correct for path-walker
+     * inputs that need inner backticks preserved (`` `info`.`orderID` ``).
+     */
+    public function removeAllBackticks(string $input): string
+    {
+        return str_replace('`', '', $input);
+    }
+
     public function extractPlainText(string $input): string
     {
         // remove code blocks (multi-line and single-line)

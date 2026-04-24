@@ -4,23 +4,23 @@ namespace FQL\Functions\Math;
 
 use FQL\Enum\Type;
 use FQL\Exception\UnexpectedValueException;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Round extends SingleFieldFunction
+final class Round implements ScalarFunction
 {
-    public function __construct(string $field, private readonly int $precision = 0)
+    public static function name(): string
     {
-        parent::__construct($field);
+        return 'ROUND';
     }
 
     /**
-     * @inheritDoc
      * @throws UnexpectedValueException
-     * @return float
      */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, int $precision = 0): float
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? '';
+        if ($value === null) {
+            $value = '';
+        }
         if (is_string($value)) {
             $value = Type::matchByString($value);
         }
@@ -31,27 +31,10 @@ final class Round extends SingleFieldFunction
 
         if (!is_numeric($value) && is_string($value)) {
             throw new UnexpectedValueException(
-                sprintf(
-                    'Field "%s" value is not numeric: %s',
-                    $this->field,
-                    $value
-                )
+                sprintf('Value is not numeric: %s', $value)
             );
         }
 
-        return round($value, $this->precision);
-    }
-
-    /**
-     * @throws UnexpectedValueException
-     */
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, %d)',
-            $this->getName(),
-            $this->field,
-            $this->precision
-        );
+        return round($value, $precision);
     }
 }

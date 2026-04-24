@@ -3,27 +3,27 @@
 namespace FQL\Functions\String;
 
 use FQL\Enum\Type;
-use FQL\Exception\InvalidArgumentException;
-use FQL\Functions\Core\SingleFieldFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-final class Reverse extends SingleFieldFunction
+final class Reverse implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return string
-     * @throws InvalidArgumentException
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem) ?? $this->field;
+        return 'REVERSE';
+    }
+
+    public static function execute(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
         if (!is_string($value)) {
             $value = Type::castValue($value, Type::STRING);
         }
-
-        return $this->mbStrRev($value);
+        return self::mbStrRev($value);
     }
 
-    private function mbStrRev(string $string): string
+    private static function mbStrRev(string $string): string
     {
         $r = '';
         for ($i = mb_strlen($string); $i >= 0; $i--) {

@@ -1,0 +1,88 @@
+# Built-in FQL function registry.
+#
+# Source of truth for the FunctionRegistry bootstrap. Each entry is a fully
+# qualified class name implementing ScalarFunction or AggregateFunction
+# (the latter is renamed to AggregateFunction at the end of this refactor).
+#
+# The runtime caches the resolved name -> class map to
+# `fiquela-functions.compiled.php`. Contributors adding a new function need to:
+#   1. Write the class (implements ScalarFunction / AggregateFunction).
+#   2. Add the FQCN under the matching section here.
+# The cache regenerates automatically on the next test run / request.
+
+scalar:
+    # Hashing
+    - FQL\Functions\Hashing\Md5
+    - FQL\Functions\Hashing\Sha1
+
+    # Math
+    - FQL\Functions\Math\Add
+    - FQL\Functions\Math\Ceil
+    - FQL\Functions\Math\Divide
+    - FQL\Functions\Math\Floor
+    - FQL\Functions\Math\Mod
+    - FQL\Functions\Math\Multiply
+    - FQL\Functions\Math\Round
+    - FQL\Functions\Math\Sub
+
+    # String
+    - FQL\Functions\String\Base64Decode
+    - FQL\Functions\String\Base64Encode
+    - FQL\Functions\String\Concat
+    - FQL\Functions\String\ConcatWS
+    - FQL\Functions\String\Explode
+    - FQL\Functions\String\Fulltext
+    - FQL\Functions\String\Implode
+    - FQL\Functions\String\LeftPad
+    - FQL\Functions\String\Locate
+    - FQL\Functions\String\Lower
+    - FQL\Functions\String\RandomString
+    - FQL\Functions\String\Replace
+    - FQL\Functions\String\Reverse
+    - FQL\Functions\String\RightPad
+    - FQL\Functions\String\Substring
+    - FQL\Functions\String\Substr
+    - FQL\Functions\String\Upper
+
+    # Utils — arrays
+    - FQL\Functions\Utils\ArrayCombine
+    - FQL\Functions\Utils\ArrayFilter
+    - FQL\Functions\Utils\ArrayMerge
+    - FQL\Functions\Utils\ArraySearch
+    - FQL\Functions\Utils\ColSplit
+
+    # Utils — casting / coalesce / conditional
+    - FQL\Functions\Utils\Cast
+    - FQL\Functions\Utils\Coalesce
+    - FQL\Functions\Utils\CoalesceNotEmpty
+    - FQL\Functions\Utils\SelectIf
+    - FQL\Functions\Utils\SelectIfNull
+    - FQL\Functions\Utils\SelectIsNull
+
+    # Utils — dates
+    - FQL\Functions\Utils\CurrentDate
+    - FQL\Functions\Utils\CurrentTime
+    - FQL\Functions\Utils\CurrentTimestamp
+    - FQL\Functions\Utils\DateAdd
+    - FQL\Functions\Utils\DateDiff
+    - FQL\Functions\Utils\DateFormat
+    - FQL\Functions\Utils\DateSub
+    - FQL\Functions\Utils\Day
+    - FQL\Functions\Utils\FromUnixTime
+    - FQL\Functions\Utils\Month
+    - FQL\Functions\Utils\Now
+    - FQL\Functions\Utils\StrToDate
+    - FQL\Functions\Utils\Year
+
+    # Utils — misc
+    - FQL\Functions\Utils\Length
+    - FQL\Functions\Utils\RandomBytes
+    - FQL\Functions\Utils\Uuid
+
+aggregate:
+    - FQL\Functions\Aggregate\Avg
+    - FQL\Functions\Aggregate\Count
+    - FQL\Functions\Aggregate\GroupConcat
+    - FQL\Functions\Aggregate\Max
+    - FQL\Functions\Aggregate\Min
+    - FQL\Functions\Aggregate\Sum

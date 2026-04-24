@@ -14,10 +14,8 @@
     "ext-iconv": "*",
     "openspout/openspout": "^4.28",
     "halaxa/json-machine": "^1.2",
-    "league/csv": "^9.28",
     "symfony/yaml": "^7.0",
-    "nette/neon": "^3.4",
-    "nette/utils": "^4.1"
+    "nette/neon": "^3.4"
   },
   "require-dev": {
     "phpstan/phpstan-nette": "^1.3",
@@ -113,6 +111,9 @@
     "example:describe": [
       "php -f examples/describe.php"
     ],
+    "example:highlight": [
+      "php examples/highlight.php 'SELECT id, COUNT(*) AS cnt FROM json(data.json) WHERE price > 100 AND name IS NOT NULL'"
+    ],
     "example:logFormat": [
       "php -f examples/logFormat.php"
     ],
@@ -128,7 +129,8 @@
       "@example:yaml",
       "@example:logFormat",
       "@example:explain",
-      "@example:describe"
+      "@example:describe",
+      "@example:highlight"
     ]
   }
 }

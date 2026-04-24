@@ -163,4 +163,41 @@ class EnhancedNestedArrayAccessorTest extends TestCase
         $this->assertSame([null], $this->accessNestedValue($data, 'b[]', false));
         $this->assertNull($this->accessNestedValue($data, 'c[]', false));
     }
+
+    public function testWildcardExpansion(): void
+    {
+        $data = ['a' => 1, 'b' => 2, 'c' => 3];
+        $result = $this->accessNestedValue($data, '*');
+        // Wildcard returns the full map when terminal; values preserved.
+        $this->assertSame([1, 2, 3], array_values($result));
+    }
+
+    public function testWildcardWithSubPath(): void
+    {
+        $data = [
+            'item1' => ['name' => 'A', 'price' => 10],
+            'item2' => ['name' => 'B', 'price' => 20],
+        ];
+        $result = $this->accessNestedValue($data, '*.name');
+        $this->assertSame('A', $result['item1']);
+        $this->assertSame('B', $result['item2']);
+    }
+
+    public function testWildcardOnScalarThrowsInThrowMode(): void
+    {
+        $this->expectException(\FQL\Exception\InvalidArgumentException::class);
+        $this->accessNestedValue(['x' => 'scalar'], 'x.*', true);
+    }
+
+    public function testWildcardOnScalarReturnsNullInNonThrowMode(): void
+    {
+        $this->assertNull($this->accessNestedValue(['x' => 'scalar'], 'x.*', false));
+    }
+
+    public function testDeepMissingKeyThrowsWithFieldName(): void
+    {
+        $this->expectException(\FQL\Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Field "missing"');
+        $this->accessNestedValue(['a' => ['b' => 1]], 'a.missing', true);
+    }
 }

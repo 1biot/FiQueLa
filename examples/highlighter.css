@@ -1,0 +1,28 @@
+/*
+ * Starter theme for the HtmlHighlighter output. Class names line up with
+ * FQL\Sql\Highlighter\HtmlTheme; override in your own stylesheet to taste.
+ */
+
+pre.fql {
+    background: #f6f8fa;
+    border-radius: 6px;
+    padding: 1em;
+    color: #24292e;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre.fql code .fql-keyword           { color: #005cc5; font-weight: 600; }
+pre.fql code .fql-keyword-logical   { color: #b08800; font-weight: 600; }
+pre.fql code .fql-function          { color: #6f42c1; }
+pre.fql code .fql-identifier        { color: #24292e; }
+pre.fql code .fql-identifier-quoted { color: #24292e; font-style: italic; }
+pre.fql code .fql-file-query        { color: #032f62; font-weight: 600; }
+pre.fql code .fql-string            { color: #22863a; }
+pre.fql code .fql-number            { color: #005cc5; }
+pre.fql code .fql-boolean           { color: #005cc5; font-weight: 600; }
+pre.fql code .fql-null              { color: #005cc5; font-weight: 600; }
+pre.fql code .fql-operator          { color: #d73a49; }
+pre.fql code .fql-punctuation       { color: #6a737d; }
+pre.fql code .fql-comment           { color: #6a737d; font-style: italic; }

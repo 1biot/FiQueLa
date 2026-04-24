@@ -2,30 +2,23 @@
 
 namespace FQL\Functions\Utils;
 
-final class CoalesceNotEmpty extends Coalesce
+use FQL\Functions\Core\ScalarFunction;
+
+final class CoalesceNotEmpty implements ScalarFunction
 {
-    /**
-     * @inheritDoc
-     * @return string
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function name(): string
     {
-        foreach ($this->fields as $field) {
-            $field = trim($field);
-            $value = $this->getFieldValue($field, $item, $resultItem) ?? '';
+        return 'COALESCE_NE';
+    }
+
+    public static function execute(mixed ...$values): mixed
+    {
+        foreach ($values as $value) {
             if (!empty($value)) {
                 return $value;
             }
         }
 
         return '';
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            'COALESCE_NE(%s)',
-            implode(', ', $this->fields)
-        );
     }
 }

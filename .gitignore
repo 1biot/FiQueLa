@@ -10,3 +10,7 @@ CLAUDE.md
 **/.DS_Store
 AGENTS.md
 examples/test.php
+
+# Runtime-generated FunctionRegistry cache (neon → PHP map).
+fiquela-functions.compiled.php
+src/Functions/fiquela-functions.compiled.php

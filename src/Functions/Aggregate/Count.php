@@ -2,92 +2,65 @@
 
 namespace FQL\Functions\Aggregate;
 
-use FQL\Exception\InvalidArgumentException;
-use FQL\Functions\Core\SingleFieldAggregateFunction;
-use FQL\Interface\Query;
+use FQL\Functions\Core\AggregateFunction;
 
-class Count extends SingleFieldAggregateFunction
+/**
+ * COUNT aggregate.
+ *
+ * Unlike the other aggregates, COUNT has two flavours:
+ *  - `COUNT(*)`  — counts every row, null or not. The evaluator passes the row
+ *    itself (typically the assoc array) as `$value`; since it is never `null`,
+ *    the default accumulate path increments unconditionally.
+ *  - `COUNT(expr)` — counts non-null evaluation results.
+ *
+ * DISTINCT is supported for expression form only.
+ */
+final class Count implements AggregateFunction
 {
-    public function __construct(?string $field = null, bool $distinct = false)
+    public static function name(): string
     {
-        if ($field === null || $field === '') {
-            $field = Query::SELECT_ALL;
-        }
-
-        parent::__construct($field, $distinct);
-
-        if ($this->distinct && $this->field === Query::SELECT_ALL) {
-            throw new InvalidArgumentException('DISTINCT is not supported with COUNT(*)');
-        }
-    }
-    public function __invoke(array $items): mixed
-    {
-        if ($this->field === Query::SELECT_ALL) {
-            return count($items);
-        }
-
-        $seen = $this->distinct ? $this->resetDistinctSeen() : [];
-        $count = 0;
-        foreach ($items as $item) {
-            $value = $this->getFieldValue($this->field, $item, false);
-            if ($value === null) {
-                continue;
-            }
-
-            if (!$this->isDistinctValue($value, $seen)) {
-                continue;
-            }
-
-            $count++;
-        }
-
-        return $count;
+        return 'COUNT';
     }
 
-    public function initAccumulator(): mixed
+    /**
+     * @param array{distinct?: bool} $options
+     * @return array{count: int, distinct: bool, seen: list<mixed>}
+     */
+    public static function initial(array $options = []): array
     {
-        if (!$this->distinct) {
-            return 0;
-        }
-
         return [
-            'value' => 0,
+            'count' => 0,
+            'distinct' => (bool) ($options['distinct'] ?? false),
             'seen' => [],
         ];
     }
 
     /**
-     * @inheritDoc
+     * @param array{count: int, distinct: bool, seen: list<mixed>} $acc
+     * @return array{count: int, distinct: bool, seen: list<mixed>}
      */
-    public function accumulate(mixed $accumulator, array $item): mixed
+    public static function accumulate(mixed $acc, mixed $value): array
     {
-        if ($this->field === Query::SELECT_ALL) {
-            return $accumulator + 1;
+        if ($value === null) {
+            return $acc;
         }
-
-        $value = $this->getFieldValue($this->field, $item, false);
-        if ($value !== null) {
-            if ($this->distinct) {
-                if (!$this->isDistinctValue($value, $accumulator['seen'])) {
-                    return $accumulator;
+        if ($acc['distinct']) {
+            foreach ($acc['seen'] as $seenValue) {
+                if ($seenValue === $value) {
+                    return $acc;
                 }
-
-                $accumulator['value']++;
-                return $accumulator;
             }
-
-            return $accumulator + 1;
+            $acc['seen'][] = $value;
         }
-
-        return $accumulator;
+        $acc['count']++;
+        return $acc;
     }
 
-    public function finalize(mixed $accumulator): mixed
+    /**
+     * @param array{count: int, distinct: bool, seen: list<mixed>} $acc
+     */
+    public static function finalize(mixed $acc): int
     {
-        if ($this->distinct) {
-            return $accumulator['value'];
-        }
-
-        return $accumulator;
+        return $acc['count'];
     }
 }

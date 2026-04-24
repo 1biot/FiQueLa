@@ -1,5 +1,117 @@
 # Changelog
 
+## [3.0.0]
+
+> Major rewrite of the SQL parser and the fluent API. The fluent helpers
+> now accept SQL expression strings everywhere, function dispatch moves
+> to a global registry, and CSV runs on native PHP primitives.
+
+### Highlights
+
+- **Expression-first fluent API**: `$query->sum('price + vat')`,
+  `$query->groupBy('year(date)')`, `$query->where('lower(name)', Op::EQ, 'alice')`,
+  `$query->select('round(price * 1.21, 2) AS gross')` all work end-to-end.
+  The fluent API and the FQL parser share one code path.
+- **`Sql\Provider` facade** — `compile`, `tokenize`, `format`, `highlight`,
+  `lint`, `parseExpression`, `parseCondition`.
+- **Global `FunctionRegistry`** — built-ins shipped via
+  `src/Functions/functions.neon`, runtime cache, and a public
+  `register / unregister / override / loadConfig` API for user code.
+- **Native-PHP CSV** reader/writer with stream-filter encoding conversion
+  and BOM detection.
+- **Lazy value typing** in CSV/XML readers — strings stay strings until
+  a comparison or arithmetic actually needs a typed value.
+- **Static analyser** (`Sql\Provider::lint()`) and **AST formatter**
+  (`Sql\Provider::format()`).
+- **Backtick path chains and `[]` array iteration** in identifiers
+  (`` `info`.`orderID` ``, `products.product[]`, `` `Název Zboží.cz` ``).
+
+### Added
+
+- `FQL\Sql\Provider` — facade with `compile`, `tokenize`, `format`,
+  `highlight`, `lint`, `parseExpression`, `parseCondition`.
+- `FQL\Sql\Lint` — static analyser. `Linter`, `LintReport`, `LintIssue`,
+  `Severity`, `Rule` interface, plus built-in rules `UnknownFunctionRule`,
+  `DuplicateAliasRule`, `MissingFromRule`, `FileNotFoundRule` (opt-in).
+- `FQL\Functions\FunctionRegistry` — global static registry. Bootstraps
+  from `src/Functions/functions.neon`, caches resolved class map,
+  exposes `register(class-string)`, `override`, `unregister`,
+  `loadConfig`, `getScalar`, `getAggregate`, `has`, `isAggregate`,
+  `all`, `reset`, `setCacheDir`.
+- `FQL\Functions\Core\ScalarFunction` and
+  `FQL\Functions\Core\AggregateFunction` interfaces. Every built-in
+  function implements one of these and exposes only `name()` plus a
+  static `execute(...)` (or `initial / accumulate / finalize` for
+  aggregates).
+- `FQL\Conditions\ExpressionCondition` — WHERE/HAVING with AST operands,
+  evaluated by the runtime expression evaluator.
+- `FQL\Exception\UnknownFunctionException`,
+  `FQL\Exception\FunctionRegistrationException`.
+- New SQL pipeline: `FQL\Sql\Token` (Tokenizer + TokenStream),
+  `FQL\Sql\Ast` (AST nodes), `FQL\Sql\Parser` (recursive-descent),
+  `FQL\Sql\Builder` (AST → Query), `FQL\Sql\Runtime` (expression
+  evaluator + function invoker), `FQL\Sql\Highlighter` (BASH + HTML
+  themes), `FQL\Sql\Formatter`. Public surface is the `Sql\Provider`
+  facade above.
+- Infix arithmetic (`+ - * / %`) at any expression position; nested
+  function calls in every clause.
+
+### Changed
+
+- **Fluent helpers parse SQL expression strings.** `select`, `groupBy`,
+  `orderBy`, `where`, `having`, plus every scalar / aggregate helper
+  (`lower`, `round`, `concat`, `sum`, `avg`, `count`, `min`, `max`,
+  `groupConcat`, `dateAdd`, `cast`, `if`, `ifNull`, …) route their
+  field arguments through `Sql\Provider::parseExpression()`.
+- **`Query\Provider::fql()`** runs on the new pipeline. Parse errors are
+  `Sql\Parser\ParseException` (subclass of `UnexpectedValueException`)
+  carrying the offending token and line/column info.
+- **`Query::__toString()`** routes through the AST formatter, so a fluent
+  Query and a parsed FQL string of the same query render identically.
+- **CSV reader / writer rewritten on native `fgetcsv` / `fputcsv`** —
+  no library wrapper. New FileQuery params: `enclosure` (default `"`)
+  and `bom` (`"0"`/`"1"`, opt-in BOM emission). Existing `encoding`,
+  `delimiter`, `useHeader` work unchanged. Reader detects UTF-8 /
+  UTF-16 LE/BE / UTF-32 LE/BE BOMs and skips them; non-UTF-8 input is
+  transcoded via a PHP stream filter (`convert.iconv.<src>/UTF-8`).
+- **CSV and XML providers yield raw strings.** Type coercion happens
+  lazily in `Enum\Operator::evaluate()` (loose comparisons + `IS`
+  predicates + `IN` + `BETWEEN`) and in `Sql\Runtime\ExpressionEvaluator`
+  (arithmetic + CAST). Strict ops (`===` / `!==`) are intentionally
+  not coerced. Empty CSV cells satisfy `IS NULL`.
+- **`SELECT name AS alias` in `select()`** is now first-class:
+  `$query->select('name AS n')` returns one aliased field. Legacy
+  behaviour produced three fields (`name`, `AS`, `n`).
+- **`Functions\*::applyValue()` / `applyValues()`** renamed to a unified
+  **`execute(...)`**. Every built-in function class is a static-only
+  utility container — no constructor, no `__invoke`.
+- **Infix arithmetic and nested function calls work in every clause** —
+  `SELECT price * 0.9`, `SUM(price * qty)`, `ORDER BY LENGTH(name)`,
+  `GROUP BY YEAR(date)`, `WHERE LOWER(name) = 'alice'`.
+
+### Removed (BREAKING) — migration
+
+| Removed | Replacement |
+|---|---|
+| `FQL\Sql\Sql` | `Sql\Provider::compile($sql)` → `Compiler` |
+| `FQL\Sql\SqlLexer` | `Sql\Token\Tokenizer` |
+| `FQL\Interface\Parser` | `Sql\Compiler` directly |
+| `FQL\Functions\Core\BaseFunction`, `BaseFunctionByReference`, `SingleFieldFunction`, `SingleFieldFunctionByReference`, `MultipleFieldsFunction`, `NoFieldFunction`, `SingleFieldAggregateFunction`, abstract `AggregateFunction` | `Functions\Core\ScalarFunction` + `Functions\Core\AggregateFunction` interfaces |
+| `FQL\Interface\Invokable`, `InvokableAggregate`, `InvokableByReference`, `InvokableNoField`, `IncrementalAggregate` | new function contracts in `Functions\Core` |
+| `Interface\Query::custom(Function $fn)` | `FunctionRegistry::register(MyFn::class)` at bootstrap |
+| `Interface\Query::addExpression()`, `groupByExpression()`, `orderByExpression()`, `addAggregateExpression()` | fluent helpers accept SQL strings directly |
+| `Functions\Utils\SelectCase` (instance builder) | `case() / whenCase() / elseCase() / endCase()` chain (still works, parses through the evaluator) |
+| `Functions\*::applyValue()` / `applyValues()` | `Functions\*::execute()` |
+| `league/csv` dependency | dropped — native `fgetcsv` / `fputcsv` |
+
+### Performance
+
+- Native CSV reader: **~12× faster** on a 10k-row benchmark
+  (832 ms → 65 ms) by dropping per-cell object allocation.
+- Lazy value typing on CSV / XML: **~6.7× speedup** on a 100 MB CSV
+  (100 s → 15 s) by skipping `matchByString()` for cells no query touches.
+- Test coverage raised to **90 %** (1276 tests).
+
 ## [2.12.0]
 
 ### Added

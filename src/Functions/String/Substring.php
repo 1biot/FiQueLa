@@ -2,37 +2,21 @@
 
 namespace FQL\Functions\String;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class Substring extends MultipleFieldsFunction
+final class Substring implements ScalarFunction
 {
-    public function __construct(private string $field, private int $start, private ?int $length = null)
+    public static function name(): string
     {
-        parent::__construct($field, (string) $start, (string) $length);
+        return 'SUBSTRING';
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function __invoke(array $item, array $resultItem): mixed
+    public static function execute(mixed $value, int $start, ?int $length = null): ?string
     {
-        $value = $this->getFieldValue($this->field, $item, $resultItem);
         if (!(is_scalar($value) || $value === null)) {
             return null;
         }
 
-        return mb_substr((string) $value, $this->start, $this->length);
-    }
-
-    public function __toString(): string
-    {
-        $lengthPart = $this->length !== null ? ", {$this->length}" : '';
-        return sprintf(
-            '%s(%s, %d%s)',
-            $this->getName(),
-            $this->field,
-            $this->start,
-            $lengthPart
-        );
+        return mb_substr((string) $value, $start, $length);
     }
 }

@@ -2,56 +2,43 @@
 
 namespace FQL\Functions\Utils;
 
-use FQL\Functions\Core\MultipleFieldsFunction;
+use FQL\Functions\Core\ScalarFunction;
 
-class DateSub extends MultipleFieldsFunction
+final class DateSub implements ScalarFunction
 {
-    public function __construct(private readonly string $dateField, private readonly string $interval)
+    public static function name(): string
     {
-        parent::__construct($dateField, $interval);
+        return 'DATE_SUB';
     }
 
-    public function __invoke(array $item, array $resultItem): ?string
+    public static function execute(mixed $date, string $interval): ?string
     {
-        $dateValue = $this->getFieldValue($this->dateField, $item, $resultItem) ?? $this->dateField;
-        $intervalValue = $this->getFieldValue($this->interval, $item, $resultItem) ?? $this->interval;
-
-        if (!is_string($dateValue) || !is_string($intervalValue) || strtotime($dateValue) === false) {
+        if (!is_string($date) || strtotime($date) === false) {
             return null;
         }
 
-        $intervalValue = trim($intervalValue);
-        if ($intervalValue === '') {
+        $interval = trim($interval);
+        if ($interval === '') {
             return null;
         }
 
-        if (str_starts_with($intervalValue, '+')) {
-            $intervalValue = '-' . ltrim(substr($intervalValue, 1));
-        } elseif (!str_starts_with($intervalValue, '-')) {
-            $intervalValue = '-' . $intervalValue;
+        if (str_starts_with($interval, '+')) {
+            $interval = '-' . ltrim(substr($interval, 1));
+        } elseif (!str_starts_with($interval, '-')) {
+            $interval = '-' . $interval;
         }
 
         try {
-            $date = new \DateTimeImmutable($dateValue);
+            $d = new \DateTimeImmutable($date);
         } catch (\Exception) {
             return null;
         }
 
-        $modified = $date->modify($intervalValue);
+        $modified = $d->modify($interval);
         if (!$modified instanceof \DateTimeImmutable) {
             return null;
         }
 
         return $modified->format('Y-m-d H:i:s');
-    }
-
-    public function __toString(): string
-    {
-        return sprintf(
-            '%s(%s, "%s")',
-            $this->getName(),
-            $this->dateField,
-            $this->interval
-        );
     }
 }
