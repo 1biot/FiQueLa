@@ -107,9 +107,17 @@ enum Operator: string
             )),
             self::LIKE, self::NOT_LIKE, self::REGEXP, self::NOT_REGEXP => sprintf('%s %s "%s"', $value, $this->value, $right),
             self::BETWEEN, self::NOT_BETWEEN => sprintf('%s %s %s', $value, $this->value, implode(' AND ', $right)),
+            // Print the field name verbatim — including any backticks. Stripping
+            // the outer pair via removeQuotes() corrupts chained quoted paths
+            // like `` `info`.`invoiceNumber` `` into `info`.`invoiceNumber` (an
+            // unbalanced lexeme), so when the rendered SQL is round-tripped
+            // through the parser (e.g. by QueryBuildingVisitor → fluent
+            // select() → parseExpression()) the IF / WHERE / HAVING expression
+            // collapses to garbage. Identifiers without backticks render the
+            // same either way, so dropping the conditional is a strict win.
             default => sprintf(
                 '%s %s %s',
-                $this->isBacktick($value) ? $this->removeQuotes($value) : $value,
+                $value,
                 $this->value,
                 is_string($right)
                     ? ($this->isBacktick($right) ? $right : "'$right'")

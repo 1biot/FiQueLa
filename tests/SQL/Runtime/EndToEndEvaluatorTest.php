@@ -229,4 +229,29 @@ class EndToEndEvaluatorTest extends TestCase
             $this->assertArrayHasKey('brand', $row);
         }
     }
+
+    /**
+     * Regression: `IF(<backtick-chained-path> IS ARRAY, ...)` used to evaluate
+     * to NULL on every row because the QueryBuildingVisitor stringified the
+     * IF expression via ExpressionCompiler and Operator::render() chopped the
+     * outer pair from `` `brand`.`name` ``, producing an unparseable lexeme.
+     * The re-parse failed silently and the IF collapsed to a stray
+     * ColumnReferenceNode at SELECT-time. Lock the fix end-to-end.
+     */
+    public function testIfWithBacktickChainedPathReturnsBranchValue(): void
+    {
+        $rows = $this->runSql(
+            'SELECT IF(`brand`.`name` IS ARRAY, "fallback", `brand`.`name`) AS brand '
+            . 'FROM json(%s).data.products LIMIT 3'
+        );
+        $this->assertCount(3, $rows);
+        // brand.name is a scalar string for every product fixture row, so
+        // IS ARRAY is false → IF returns the else branch (the brand name).
+        // Pre-fix, every brand was null because the IF re-parse blew up.
+        foreach ($rows as $row) {
+            $this->assertNotNull($row['brand']);
+            $this->assertIsString($row['brand']);
+            $this->assertNotSame('fallback', $row['brand']);
+        }
+    }
 }

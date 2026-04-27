@@ -312,4 +312,40 @@ class ExpressionCompilerTest extends TestCase
         );
         $this->assertSame('true', $value);
     }
+
+    /**
+     * Regression: rendering a condition with a backtick-quoted chained path on the
+     * left side used to chop the outer pair via removeQuotes(), corrupting
+     * `` `info`.`invoiceNumber` `` into `info`.`invoiceNumber` (an unbalanced
+     * lexeme). When QueryBuildingVisitor stringifies an `IF(... IS ARRAY, …)`
+     * expression and feeds it back into `$query->select()`, the broken left
+     * side blows up the re-parse and the IF collapses to garbage — the user
+     * observed `null` in every result row instead of the expected branch
+     * value. Keep the backticks verbatim so the round-trip is lossless.
+     */
+    public function testRenderConditionPreservesBacktickChainedPath(): void
+    {
+        $node = new ConditionExpressionNode(
+            $this->column('`info`.`invoiceNumber`'),
+            Enum\Operator::IS,
+            Enum\Type::ARRAY,
+            $this->pos
+        );
+        $rendered = $this->compiler->renderCondition($node);
+        $this->assertStringContainsString('`info`.`invoiceNumber`', $rendered);
+
+        // Round-trip: the rendered fragment must re-parse into an equivalent
+        // condition (left side keeps the chained backtick path, operator IS,
+        // right side Type::ARRAY).
+        $reparsed = \FQL\Sql\Provider::parseExpression(
+            sprintf('IF(%s, "yes", "no")', $rendered)
+        );
+        $this->assertInstanceOf(\FQL\Sql\Ast\Expression\FunctionCallNode::class, $reparsed);
+        $this->assertSame('IF', $reparsed->name);
+        $this->assertInstanceOf(ConditionExpressionNode::class, $reparsed->arguments[0]);
+        $this->assertInstanceOf(ColumnReferenceNode::class, $reparsed->arguments[0]->left);
+        $this->assertSame('`info`.`invoiceNumber`', $reparsed->arguments[0]->left->name);
+        $this->assertSame(Enum\Operator::IS, $reparsed->arguments[0]->operator);
+        $this->assertSame(Enum\Type::ARRAY, $reparsed->arguments[0]->right);
+    }
 }
