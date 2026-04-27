@@ -139,9 +139,18 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
             }
         }
 
-        // Leaf element with only a text value — return the raw string.
+        // Leaf element — no attributes, no children. Return the textual value
+        // verbatim, including the empty string for `<foo/>` / `<foo></foo>`.
+        // The empty leaf used to surface as `[]`, which forced consumers to
+        // probe with `IS ARRAY` / `is_array()` instead of the natural
+        // `IS NULL` / `= ''` and broke comparisons that expect a scalar
+        // (`IF(field IS ARRAY, ...)` was the canonical workaround). Empty
+        // string is the semantically right shape for an absent value:
+        // - `IS NULL` matches it (Operator::evaluateIs treats '' as null);
+        // - `= ''` matches it directly;
+        // - SQL-style IF/CASE branches on it like on any other string.
         $value = trim((string) $element);
-        if ($value !== '' && empty($result)) {
+        if (empty($result)) {
             return $value;
         }
 
