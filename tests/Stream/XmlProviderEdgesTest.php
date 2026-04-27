@@ -98,17 +98,63 @@ XML;
         $this->assertArrayHasKey('x:label', $rows[0]);
     }
 
-    public function testEmptyElementReturnsEmptyArray(): void
+    public function testEmptyLeafElementReturnsEmptyString(): void
     {
+        // `<a></a>` and `<a/>` both surface as the empty string — same shape
+        // as a populated leaf element, just with no value. Pre-3.0.x the
+        // empty form leaked as `[]`, which forced consumers to probe with
+        // `IS ARRAY` / `is_array()` instead of the natural `IS NULL` / `= ''`.
         $xml = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <catalog>
     <product></product>
+    <product/>
     <product>Alice</product>
 </catalog>
 XML;
         file_put_contents($this->tmp, $xml);
         $rows = iterator_to_array(Xml::open($this->tmp)->getStreamGenerator('catalog.product'), false);
+        $this->assertCount(3, $rows);
+        $this->assertSame('', $rows[0]);
+        $this->assertSame('', $rows[1]);
+        $this->assertSame('Alice', $rows[2]);
+    }
+
+    public function testEmptyNestedLeafElementReturnsEmptyString(): void
+    {
+        // Nested empty leaf inside a populated parent: `<info><x/></info>`
+        // becomes `['x' => '']`, not `['x' => []]`. Locks the IF/IS-ARRAY
+        // user scenario — `info.invoiceNumber` is an empty string when the
+        // XML element is absent of value, so `IS NULL` / `= ''` match
+        // directly instead of needing a workaround.
+        $xml = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<items>
+    <item><info><invoiceNumber/></info></item>
+    <item><info><invoiceNumber>20260149</invoiceNumber></info></item>
+</items>
+XML;
+        file_put_contents($this->tmp, $xml);
+        $rows = iterator_to_array(Xml::open($this->tmp)->getStreamGenerator('items.item'), false);
         $this->assertCount(2, $rows);
+        $this->assertSame(['info' => ['invoiceNumber' => '']], $rows[0]);
+        $this->assertSame(['info' => ['invoiceNumber' => '20260149']], $rows[1]);
+    }
+
+    public function testEmptyElementWithAttributesKeepsAttributes(): void
+    {
+        // `<foo id="1"/>` — empty content but has attributes. The element
+        // is no longer a pure leaf; we keep the @attributes structure as
+        // before so consumers can still read them.
+        $xml = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <product id="1"/>
+</catalog>
+XML;
+        file_put_contents($this->tmp, $xml);
+        $rows = iterator_to_array(Xml::open($this->tmp)->getStreamGenerator('catalog.product'), false);
+        $this->assertCount(1, $rows);
+        $this->assertSame(['@attributes' => ['id' => '1']], $rows[0]);
     }
 }

@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.0.1]
+
+> Bug-fix release. Three issues that surfaced together when the user wrote
+> `IF(\`info\`.\`invoiceNumber\` IS ARRAY, '', info.invoiceNumber)` on XML data:
+> the IF always returned `null`, the result-row key carried stray backticks,
+> and an empty XML element looked like `[]` instead of an absent value.
+
+### Fixed
+
+- **`IF(...)` with a backtick-chained path in the condition returned `null`
+  on every row.** `QueryBuildingVisitor` round-trips each SELECT expression
+  through `ExpressionCompiler::renderExpression()` → `$query->select(string)`
+  → `Sql\Provider::parseExpression()`, and the renderer's `Operator::render()`
+  used to strip the outer backticks of the left operand via `removeQuotes()`.
+  For a chained path like `` `info`.`invoiceNumber` `` that produced
+  `` info`.`invoiceNumber `` (an unbalanced lexeme), the re-parse silently
+  collapsed the IF to a stray `ColumnReferenceNode`, and the runtime
+  evaluator never saw the IF function call at all — hence the universal
+  `null`. `Operator::render()` now emits the field name verbatim;
+  identifiers without backticks render the same either way.
+- **Empty XML leaf elements now return `''` instead of `[]`.**
+  `XmlProvider::itemToArray()` used to surface `<foo/>` and `<foo></foo>`
+  as an empty array, forcing consumers to probe with `IS ARRAY` /
+  `is_array()` to detect missing values. The empty leaf is now an empty
+  string, so `IS NULL`, `= ''`, and `IF(field IS NULL, …)` work directly
+  the way SQL users expect. Elements with attributes (`<foo id="1"/>`)
+  still keep their `@attributes` structure, mixed content
+  (`<foo id="1">text</foo>`) still surfaces text under the `value` key,
+  and populated leaves (`<foo>text</foo>`) still return `"text"`.
+
 ## [3.0.0]
 
 > Major rewrite of the SQL parser and the fluent API. The fluent helpers
