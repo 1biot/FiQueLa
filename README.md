@@ -1,394 +1,379 @@
-# FiQueLa: File Query Language 
+# FiQueLa — File Query Language
 
-> _[fi-kju-ela]_
+> _[fi-kju-ela]_ · Query files like a database. No database required.
 
 ![Packagist Version](https://img.shields.io/packagist/v/1biot/fiquela)
 [![CI](https://github.com/1biot/fiquela/actions/workflows/ci.yml/badge.svg)](https://github.com/1biot/fiquela/actions/workflows/ci.yml)
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-90.16%25-lightgreen)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1280-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90.22%25-lightgreen)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1286-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
-**F**i**Q**ue**L**a lets you query files like a database, with SQL-like syntax or a fluent PHP API.
-Filter, join, group, aggregate, and transform data from **XML**, **XLS**, **ODS**, **CSV**, **JSON**, **NDJSON**,
-**YAML**, **NEON**, and **HTTP access logs** without setting up a database. It is built for real-world data processing
-with streaming support, explain/debug tooling, and strongly typed operators.
+**FiQueLa** brings SQL querying to structured files. Filter, join, group, aggregate, and export data from XML, CSV, JSON, NDJSON, YAML, NEON, XLSX, ODS, and HTTP access logs — using familiar SQL syntax or a fluent PHP API.
 
-**Features**:
+```sql
+SELECT brand, COUNT(id) AS products, AVG(price) AS avg_price
+FROM csv(catalog.csv, delimiter: ";").*
+WHERE in_stock = "yes" AND price > 100
+GROUP BY brand
+HAVING products > 5
+ORDER BY avg_price DESC
+LIMIT 10
+```
 
-- 📂 **Supports multiple formats**: Work seamlessly with XML, CSV, JSON, NDJSON, YAML, NEON, XLS, and HTTP access logs.
-- 🛠️ **SQL-inspired syntax**: Perform `SELECT`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY` and more.
-- ✍️ **Flexible querying**: Write SQL-like strings or use the fluent API.
-- 📊 **Powerful expressions and functions**: Use `CASE WHEN`, `IF`, grouped conditions, `XOR`, `REGEXP`, aggregates, and utility functions.
-- 🚀 **Stream-first processing**: Optimized for large JSON, XML, and CSV files with low memory pressure where possible.
-- 🧑‍💻 **Developer-Friendly**: Map results to DTOs for easier data manipulation.
-- ⭐ **Unified API across all supported formats**: Use a consistent API for all your data needs.
+---
 
-### Why FiQueLa
+## Why FiQueLa?
 
-- Query files with familiar SQL concepts while keeping everything in PHP.
-- Join data across sources and formats in one query.
-- Handle advanced logic with nested condition groups and statement functions.
-- Inspect execution using explain output and debugger tooling.
+- **No database setup** — query files directly, just PHP and Composer
+- **Familiar SQL** — `SELECT`, `WHERE`, `JOIN`, `GROUP BY`, `HAVING`, `ORDER BY`, `UNION`, `INTO` and more
+- **Cross-format joins** — join a CSV against an XML feed against a JSON file in one query
+- **Stream-first** — large files are processed row by row with low memory overhead
+- **Expression evaluator** — arithmetic, functions, and nested expressions everywhere
 
-**Table of Contents**:
+---
 
-- [Overview](#1-overview)
-- [Installation](#2-installation)
-- [Supported Formats](#3-supported-formats)
-- [Getting Started](#4-getting-started)
-- [Documentation](https://docs.fiquela.io)
-  - [API Reference](docs/api-reference.md)
-- [Examples](#6-examples)
-- [Ecosystem](#7-ecosystem)
-  - [FiQueLa CLI](#fiquela-cli)
-  - [FiQueLa API](#fiquela-api)
-  - [FiQueLa Studio](#fiquela-studio)
-- [Known issues](#8-known-issues)
-- [Roadmap](#9-roadmap)
-- [Contributions](#10-contributions)
+## Supported Formats
 
-## 1. Overview
+| Format          | Key        | Read | Write (INTO) |
+|-----------------|------------|------|--------------|
+| CSV             | `csv`      | ✅    | ✅            |
+| XML             | `xml`      | ✅    | ✅            |
+| JSON (stream)   | `jsonFile` | ✅    | ✅            |
+| JSON            | `json`     | ✅    | ✅            |
+| NDJSON          | `ndJson`   | ✅    | ✅            |
+| XLSX            | `xls`      | ✅    | ✅            |
+| ODS             | `ods`      | ✅    | ✅            |
+| YAML            | `yaml`     | ✅    | —            |
+| NEON            | `neon`     | ✅    | —            |
+| HTTP access log | `log`      | ✅    | —            |
+| Directory       | `dir`      | ✅    | —            |
 
-Why limit SQL to databases when it can be just as effective for structured files?
-**F**i**Q**ue**L**a brings SQL-like querying to file-based data and keeps your workflow fully in PHP.
+---
 
-Key highlights:
-- **Universal querying**: Filter, sort, join, and aggregate data across multiple file formats.
-- **Real SQL-like behavior**: Use `GROUP BY`, `HAVING`, nested conditions, `CASE WHEN`, `IF`, and many built-in functions.
-- **Flexible integration**: Query through fluent API or SQL-like strings, whichever matches your use case.
-- **Operational tooling**: Use debugger and explain plans to understand performance and execution.
-
-Use **F**i**Q**ue**L**a to:
-- Simplify data extraction and analysis from structured files.
-- Combine data from multiple sources with ease.
-- Create lightweight data processing pipelines without a full-fledged database.
-
-**F**i**Q**ue**L**a empowers developers to unlock the potential of file-based data with the familiar and expressive language of SQL.
-
-## 2. Installation
-
-Install via [Composer](https://getcomposer.org/):
+## Installation
 
 ```bash
 composer require 1biot/fiquela
 ```
 
-Install packages for optional features:
+Requires PHP 8.2+ with `ext-fileinfo`, `ext-json`,  `ext-mbstring`, `ext-xmlreader`, `ext-simplexml`, `ext-libxml` and
+`ext-iconv`.
 
-```bash
-composer require tracy/tracy
-```
+---
 
-### Dependencies
+## Quick Start
 
-- **`openspout/openspout`**: Required for XLSX and ODS file support. (CSV runs on native `fgetcsv` / `fputcsv` — no library wrapping.)
-- **`halaxa/json-machine`**: Required for JSON stream support.
-- **`symfony/yaml`**: Required for YAML file support.
-- **`nette/neon`**: Required for NEON file support.
-- **`tracy/tracy`**: Optional for using Debugger
-
-## 3. Supported Formats
-
-| Format      | Name                    | Class                   | File Support | String Support |
-|-------------|-------------------------|-------------------------|--------------|----------------|
-| `csv`       | CSV                     | `FQL\Stream\Csv`        | ✅            | ❌              |
-| `xml`       | XML                     | `FQL\Stream\Xml`        | ✅            | ❌              |
-| `xls`       | XLS/XLSX                | `FQL\Stream\Xls`        | ✅            | ❌              |
-| `ods`       | ODS                     | `FQL\Stream\Ods`        | ✅            | ❌              |
-| `jsonFile`  | JSON Stream             | `FQL\Stream\JsonStream` | ✅            | ❌              |
-| `ndJson`    | Newline Delimited JSON  | `FQL\Stream\NDJson`     | ✅            | ❌              |
-| `json`      | JSON (json_decode)      | `FQL\Stream\Json`       | ✅            | ✅              |
-| `yaml`      | YAML                    | `FQL\Stream\Yaml`       | ✅            | ✅              |
-| `neon`      | NEON                    | `FQL\Stream\Neon`       | ✅            | ✅              |
-| `log`       | HTTP Access Log         | `FQL\Stream\AccessLog`  | ✅            | ❌              |
-
-
-### Directory provider
-
-Is special provider `FQL\Stream\Dir` class. It allows you to use directory as a source.
-You can query all files recursively by queries.
-
-## 4. Getting Started
-
-Here’s a quick example of how **F**i**Q**ue**L**a can simplify your data queries:
+**FQL string** — write queries just like SQL:
 
 ```php
-use FQL\Enum;
-use FQL\Query;
+use FQL\Query\Provider;
 
-$results = Query\Provider::fromFileQuery('(./path/to/file.xml).SHOP.SHOPITEM')
-    ->selectAll()
-    ->where('EAN', Enum\Operator::EQUAL, '1234567891011')
-    ->or('PRICE', Enum\Operator::LESS_THAN_OR_EQUAL, 200)
-    ->orderBy('PRICE')->desc()
-    ->limit(10)
+$results = Provider::fql("
+    SELECT name, brand, ROUND(price, 2) AS price
+    FROM xml(feed.xml).SHOP.SHOPITEM
+    WHERE price > 100 AND in_stock = 'yes'
+    ORDER BY price DESC
+    LIMIT 20
+")->execute()->fetchAll();
+```
+
+**Fluent API** — chain PHP methods:
+
+```php
+use FQL\Enum\Operator;
+use FQL\Query\Provider;
+
+$results = Provider::fromFileQuery('xml(feed.xml).SHOP.SHOPITEM')
+    ->select('name', 'brand')
+    ->round('price', 2)->as('price')
+    ->where('price', Operator::GREATER_THAN, 100)
+    ->and('in_stock', Operator::EQUAL, 'yes')
+    ->orderBy('price')->desc()
+    ->limit(20)
     ->execute()
     ->fetchAll();
-
-print_r(iterator_to_array($results));
 ```
 
-This query returns rows that match either a specific EAN or a price threshold, sorted by price and limited to 10 records.
+---
 
-Or using the FQL syntax:
+## Core Features
+
+### Joins — across files and formats
+
+Join data from different files and formats in a single query. Left, right, inner, full outer, and subquery joins are all supported.
+
+```sql
+SELECT p.name, p.price, c.name AS category
+FROM csv(products.csv).* AS p
+LEFT JOIN json(categories.json).categories AS c
+    ON p.category_id = c.id
+WHERE p.price > 500
+ORDER BY p.price DESC
+```
 
 ```php
-use FQL\Query;
+use \FQL\Enum\Operator;
+use \FQL\Query\Provider;
 
-$query = <<<FQL
-    SELECT *
-    FROM xml(./path/to/file.xml).SHOP.SHOPITEM
-    WHERE
-        EAN = "1234567891011"
-        OR PRICE <= 200
-    ORDER BY PRICE DESC
-    LIMIT 10
-FQL;
-$results = Query\Provider::fql($query)
-    ->execute()
-    ->fetchAll();
+$products   = Provider::fromFileQuery('csv(products.csv).*');
+$categories = Provider::fromFileQuery('json(categories.json).categories');
 
-print_r(iterator_to_array($results));
-````
+$results = $products
+    ->select('name', 'price')
+    ->select('c.name')->as('category')
+    ->leftJoin($categories, 'c')
+        ->on('category_id', Operator::EQUAL, 'id')
+    ->where('price', Operator::GREATER_THAN, 500)
+    ->orderBy('price')->desc()
+    ->execute();
+```
 
+### UNION — merge results from multiple sources
 
-Output:
+Combine results from different files, formats, or filter conditions. `UNION` deduplicates, `UNION ALL` keeps every row.
+
+```sql
+SELECT id, name, price, "warehouse_a" AS source
+FROM csv(warehouse_a.csv).*
+WHERE price < 100
+UNION ALL
+SELECT id, name, price, "warehouse_b" AS source
+FROM xml(warehouse_b.xml).ITEMS.ITEM
+WHERE price < 100
+```
+
+### Expression Evaluator
+
+FiQueLa 3.0 evaluates arithmetic, function calls, and nested expressions anywhere — in `SELECT`, `WHERE`, `HAVING`, `ORDER BY`, and `ON` conditions.
+
+```sql
+-- arithmetic in SELECT
+SELECT name, price * 1.21 AS price_with_vat, price * qty AS total
+
+-- function call on left-hand side of WHERE
+SELECT * FROM csv(users.csv).* WHERE LOWER(email) LIKE "%@example.com"
+
+-- arithmetic in WHERE
+SELECT * FROM csv(orders.csv).* WHERE price * (1 + vat_rate) > 1000
+
+-- aggregate expression in HAVING
+SELECT brand, SUM(price * qty) AS revenue
+FROM csv(items.csv).*
+GROUP BY brand
+HAVING SUM(price * qty) > 50000
+```
+
+### Aggregation
+
+Full `GROUP BY` with aggregate functions, `HAVING` filtering, and `DISTINCT` support.
+
+```sql
+SELECT
+    category,
+    COUNT(id) AS products,
+    SUM(price) AS revenue,
+    AVG(price) AS avg_price,
+    MIN(price) AS cheapest,
+    MAX(price) AS most_expensive,
+    GROUP_CONCAT(DISTINCT name, " | ") AS product_list
+FROM json(products.json).products
+GROUP BY category
+HAVING products > 10
+ORDER BY revenue DESC
+```
+
+### Rich Filtering
+
+```sql
+-- type checking
+WHERE price IS NUMBER AND tags IS ARRAY AND deleted_at IS NULL
+
+-- pattern matching
+WHERE name LIKE "%wireless%" AND sku REGEXP "^[A-Z]{2}-\d{4}$"
+
+-- ranges and lists
+WHERE price BETWEEN 100 AND 500
+AND status IN ("active", "pending")
+
+-- nested condition groups
+WHERE price > 100
+  AND (stock > 0 OR featured = true)
+  AND (category = "electronics" OR discount > 0.2)
+```
+
+### Export with INTO
+
+Write query results directly to a file. Directories are created automatically; existing files are never silently overwritten.
+
+```sql
+-- filter and export to a different format
+SELECT name, price, brand
+FROM xml(feed.xml).SHOP.SHOPITEM
+WHERE price > 500
+ORDER BY price DESC
+INTO csv(exports/premium.csv)
+
+-- convert between formats
+SELECT * FROM csv(data.csv).* INTO json(data.json).root.items
+SELECT * FROM json(data.json).root.items INTO xlsx(data.xlsx).Sheet1.A1
+```
+
+Supported output formats: **CSV**, **JSON**, **NDJSON**, **XML**, **XLSX**, **ODS**.
+
+### Functions
+
+**String:** `CONCAT`, `CONCAT_WS`, `UPPER`, `LOWER`, `SUBSTRING`, `REPLACE`, `LPAD`, `RPAD`, `EXPLODE`, `IMPLODE`, `LOCATE`, `REVERSE`, `MATCH AGAINST`
+
+**Math:** `ROUND`, `CEIL`, `FLOOR`, `MOD`
+
+**Utility:** `IF`, `CASE WHEN`, `COALESCE`, `NULLIF`, `CAST`, `DATE_FORMAT`, `NOW`, `CURDATE`, `RANDOM_STRING`, `BASE64_ENCODE`, `BASE64_DECODE`
+
+**Aggregate:** `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `GROUP_CONCAT` — all with optional `DISTINCT`
+
+### EXPLAIN ANALYZE
+
+Profile query execution without leaving PHP. Every pipeline phase reports row counts, wall time, and memory usage.
+
+```sql
+EXPLAIN ANALYZE
+SELECT brand, COUNT(id) AS products, SUM(price) AS revenue
+FROM csv(catalog.csv, delimiter: ";").*
+GROUP BY brand
+ORDER BY revenue DESC
+```
+
+```
+| phase  | rows_in | rows_out | time_ms  | duration_pct | mem_peak_kb |
+|--------|---------|----------|----------|--------------|-------------|
+| stream | null    | 178 362  | 4 230.1  | 61%          | 14 231.5    |
+| where  | 178 362 | 95 110   | 1 840.3  | 27%          | 14 231.5    |
+| group  | 95 110  | 42       | 810.5    | 12%          | 18 540.2    |
+| sort   | 42      | 42       | 2.1      | <1%          | 18 540.2    |
+```
+
+### HTTP Access Log Parsing
+
+Query Nginx and Apache access logs with standard FQL — filter by status code, group by path, aggregate response times.
+
+```sql
+SELECT path, COUNT(*) AS hits, AVG(timeServeRequest) AS avg_ms
+FROM log(access.log, "nginx_combined").*
+WHERE status >= 400
+GROUP BY path
+ORDER BY hits DESC
+LIMIT 20
+```
+
+Custom log formats via Apache `log_format` pattern:
+
+```sql
+FROM log(access.log, format: "custom", pattern: "%h %t %r %>s %D").*
+```
+
+---
+
+## Two Query Styles
+
+FiQueLa supports both styles interchangeably — pick whichever fits your workflow.
+
+|                 | FQL string             | Fluent API              |
+|-----------------|------------------------|-------------------------|
+| Familiarity     | SQL developers         | PHP developers          |
+| Dynamic queries | String interpolation   | Method chaining         |
+| IDE support     | —                      | Autocomplete, types     |
+| Readability     | High for complex joins | High for simple filters |
+
+---
+
+## Fetching Results
 
 ```php
-Array
-(
-    [0] => Array
-        (
-            [NAME] => "Product 1"
-            [EAN] => "1234567891011"
-            [PRICE] => 300.00
-        )
-    [1] => Array
-        (
-            [NAME] => "Product 2"
-            [EAN] => "1234567891012"
-            [PRICE] => 150.00
-        )
-    [2] => Array
-        (
-            [NAME] => "Product 3"
-            [EAN] => "1234567891013"
-            [PRICE] => 150.00
-        )
-    ...
-)
+$results = $query->execute();
+
+// all rows as array
+$rows = $results->fetchAll();
+
+// first row only
+$row = $results->fetch();
+
+// single scalar value
+$value = $results->fetchSingle('price');
+
+// map to DTO
+$dtos = $results->fetchAll(ProductDTO::class);
+
+// stream row by row (low memory)
+foreach ($results->getIterator() as $row) {
+    // process $row
+}
 ```
 
-## 5. Documentation
+---
 
-For more details about **F**i**Q**ue**L**a and her capabilities, explore the [documentation](https://docs.fiquela.io).
+## Ecosystem
 
-- [API Reference](docs/api-reference.md)
-
-## 6. Examples
-
-Check the examples and run them using Composer. All examples uses `\FQL\Query\Debugger` and methods
-`inspectQuery`, `inspectSql`, `inspectStreamSql` or `benchmarkQuery` to show the results.
+| Project                                                 | Description                                                              |
+|---------------------------------------------------------|--------------------------------------------------------------------------|
+| [**FiQueLa CLI**](https://github.com/1biot/fiquela-cli) | Interactive REPL and command-line querying with paginated table output   |
+| [**FiQueLa API**](https://github.com/1biot/fiquela-api) | RESTful server with JWT auth, file management, query history, and export |
+| [**FiQueLa Studio**](https://studio.fiquela.io)         | Web-based visual query explorer — connect to any FiQueLa API instance    |
 
 ```bash
-composer examples
-# or
-composer example:csv
-composer example:join
-composer example:json
-composer example:neon
-composer example:sql
-composer example:xml
-composer example:yaml
-composer example:explain
-```
-
-Check step **Examples** at [actions](https://github.com/1biot/fiquela/actions/runs/12992585648/job/36232767074) or run
-`composer example:csv` and output will look like this:
-
-```
-=========================
-### Debugger started: ###
-=========================
-> Memory usage (MB): 1.2757 (emalloc)
-> Memory peak usage (MB): 1.7195 (emalloc)
-------------------------------
-> Execution time (s): 8.5E-5
-> Execution time (ms): 0.085
-> Execution time (µs): 85
-> Execution memory peak usage (MB): 0
-=========================
-### Inspecting query: ###
-=========================
-==================
-### SQL query: ###
-==================
-> SELECT
->   ean,
->   defaultCategory,
->   EXPLODE(defaultCategory, " > ") AS categoryArray,
->   price,
->   ROUND(price, 2) AS price_rounded,
->   MOD(price, 100) AS modulo_100,
->   MOD(price, 54) AS modulo_54
-> FROM csv(products-w-1250.csv, "windows-1250", ";").*
-> GROUP BY defaultCategory
-> ORDER BY defaultCategory DESC
-================
-### Results: ###
-================
-> Result class: FQL\Results\InMemory
-> Results size memory (KB): 3.7
-> Result exists: true
-> Result count: 15
-========================
-### Fetch first row: ###
-========================
-array (7)
-   'ean' => '5010232964877'
-   'defaultCategory' => 'Testování > Drogerie'
-   'categoryArray' => array (2)
-   |  0 => 'Testování'
-   |  1 => 'Drogerie'
-   'price' => '121,00'
-   'price_rounded' => 121.0
-   'modulo_100' => 21.0
-   'modulo_54' => 13.0
-
->>> SPLIT TIME <<<
-> Memory usage (MB): 3.5017 (emalloc)
-> Memory peak usage (MB): 3.7479 (emalloc)
-------------------------------
-> Execution time (s): 0.02835
-> Execution time (ms): 28.35
-> Execution time (µs): 28350
-> Execution memory peak usage (MB): 2.0284
-========================
-### Benchmark Query: ###
-========================
-> 2 500 iterations
-==================
-### SQL query: ###
-==================
-> SELECT
->   ean,
->   defaultCategory,
->   EXPLODE(defaultCategory, " > ") AS categoryArray,
->   price,
->   ROUND(price, 2) AS price_rounded,
->   MOD(price, 100) AS modulo_100,
->   MOD(price, 54) AS modulo_54
-> FROM csv(products-w-1250.csv, "windows-1250", ";").*
-> GROUP BY defaultCategory
-> ORDER BY defaultCategory DESC
-=========================
-### STREAM BENCHMARK: ###
-=========================
-> Size (KB): 6.02
-> Count: 15
-> Iterated results: 37 500
->>> SPLIT TIME <<<
-> Memory usage (MB): 3.4909 (emalloc)
-> Memory peak usage (MB): 3.7479 (emalloc)
-------------------------------
-> Execution time (s): 10.177616
-> Execution time (ms): 10177.616
-> Execution time (µs): 10177616
-> Execution memory peak usage (MB): 0
-============================
-### IN_MEMORY BENCHMARK: ###
-============================
-> Size (KB): 3.7
-> Count: 15
-> Iterated results: 37 500
->>> SPLIT TIME <<<
-> Memory usage (MB): 3.5017 (emalloc)
-> Memory peak usage (MB): 3.7479 (emalloc)
-------------------------------
-> Execution time (s): 0.007384
-> Execution time (ms): 7.384
-> Execution time (µs): 7384
-> Execution memory peak usage (MB): 0
-=======================
-### Debugger ended: ###
-=======================
-> Memory usage (MB): 3.4903 (emalloc)
-> Memory peak usage (MB): 3.7479 (emalloc)
-------------------------------
-> Final execution time (s): 10.213475
-> Final execution time (ms): 10213.475
-> Final execution time (µs): 10213475
-```
-
-## 7. Ecosystem
-
-FiQueLa is more than just a PHP library. It comes with a CLI tool, a REST API server, and a web-based query explorer.
-
-### FiQueLa CLI
-
-[**fiquela-cli**](https://github.com/1biot/fiquela-cli) is a command-line tool for querying structured files directly from the terminal. It supports local file querying, remote API connections, and an interactive REPL mode with paginated table output.
-
-```bash
-# Install
+# Install CLI
 curl -fsSL https://raw.githubusercontent.com/1biot/fiquela-cli/main/install.sh | bash
 
-# Query a local file
-fiquela-cli --file=data.csv "SELECT name, price FROM * WHERE price > 100;"
-
-# Interactive mode
+# Interactive REPL
 fiquela-cli --file=data.csv
+
+# Single query
+fiquela-cli "SELECT name, price FROM csv(data.csv).* WHERE price > 100;"
 ```
 
-Requires PHP 8.2+ with readline, curl, and zlib extensions.
+[![Deploy to DigitalOcean](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/1biot/fiquela-api/tree/main?refcode=92025543cb9f)
 
-### FiQueLa API
+---
 
-[**fiquela-api**](https://github.com/1biot/fiquela-api) is a RESTful server for querying structured files over HTTP. It provides file management, query execution, result export (CSV, TSV, JSON), and query history tracking with JWT authentication.
+## Known Limitations
 
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/1biot/fiquela-api/tree/main?refcode=92025543cb9f)
+- `JOIN` and `ORDER BY` load data into memory — plan accordingly for very large datasets
+- `INTO` throws `FileAlreadyExistsException` if the target file already exists
 
-Require credentials configuration via environment variables. Optionally enable S3 backup (Cloudflare R2) for file storage. For more information visit the [repository](https://github.com/1biot/fiquela-api?tab=readme-ov-file#-credentials).
+---
 
-Key endpoints: `POST /api/auth/login` for JWT authentication, `POST /api/v1/query` for executing queries, `GET /api/v1/files` for file management, `GET /api/v1/export/{hash}` for downloading results. All endpoints except login require `Authorization: Bearer <token>`.
+## Roadmap
 
-### FiQueLa Studio
+- [ ] MessagePack format support
+- [ ] Parquet format support
+- [ ] Redis / APCu hashmap cache for JOIN
+- [ ] LSP server for `.fql` files (PhpStorm, VS Code)
 
-[**studio.fiquela.io**](https://studio.fiquela.io) is a web-based visual query explorer for building and running FQL queries interactively. Requires a running [FiQueLa API](#fiquela-api) instance to connect to.
+---
 
-## 8. Known issues
+## Documentation
 
-- ⚠️ Functions `JOIN`, and `ORDER BY` are not memory efficient, because joining data or sorting data requires 
-to load all data into memory. It may cause memory issues for large datasets. But everything else is like ⚡️.
+Full documentation at **[docs.fiquela.io](https://docs.fiquela.io)**
 
-## 9. Roadmap
+- [Quickstart](https://docs.fiquela.io/quickstart)
+- [FQL Syntax](https://docs.fiquela.io/querying/fql-syntax)
+- [Fluent API](https://docs.fiquela.io/querying/fluent-api)
+- [Joins](https://docs.fiquela.io/querying/joins)
+- [Conditions](https://docs.fiquela.io/querying/conditions)
+- [Functions](https://docs.fiquela.io/functions/string-functions)
+- [EXPLAIN ANALYZE](https://docs.fiquela.io/advanced/explain-analyze)
+- [Export with INTO](https://docs.fiquela.io/advanced/export-into)
+- [API Reference](docs/api-reference.md)
 
-- [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
-- [x] ~~**XLS/XLSX**: Add Excel file support.~~
-- [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
-- [x] ~~**Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.~~
-- [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
-- [x] ~~**Tests**: Increase test coverage (80%+).~~
-- [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
-- [x] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ ~~- Instead of this, it will comes support
-for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.~~
-- [x] ~~**Documentation**: Create detailed guides and examples for advanced use cases.~~ - [docs.fiquela.io](https://docs.fiquela.io)
-- [x] **Tests**: Increase test coverage (90%+).
-- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
-- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
+---
 
+## Contributing
 
-## 10. Contributions
+Contributions are welcome! Fork the repo, create a branch, make your changes, and open a pull request. All tests must pass.
 
-If you have suggestions or would like to contribute to these features, feel free to open an issue or a pull request!
-
-**How to contribute:**
-- Fork the repository
-- Create a new branch
-- Make your changes
-- Create a pull request
-- All tests must pass
-- Wait for approval
-- 🚀
+```bash
+composer install
+composer test       # PHP CodeSniffer, PHPStan level 8, PHPUnit
+composer examples   # run example queries
+```
