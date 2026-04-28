@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.2]
+
+### Fixed
+
+- **Scalar functions over array-iterator paths returned `null`.**
+  `LENGTH(products.product[])`, `IMPLODE(products.product[].name)`, and
+  any other scalar function wrapping a `[]` path produced `null` instead
+  of operating on the flattened array. `Select::select()` had a bypass
+  that skipped the SQL parser whenever the field contained `[]`,
+  storing the entire string (e.g. `LENGTH(products.product[])`) as a
+  raw column reference. The runtime then asked `accessNestedValue` to
+  resolve a nonexistent path. The parser actually handles `[]` (both at
+  top level and inside function arguments, with or without backticks),
+  so the bypass is removed; the existing `ParseException` catch covers
+  any genuinely unparseable field.
+
 ## [3.0.1]
 
 > Bug-fix release. Three issues that surfaced together when the user wrote

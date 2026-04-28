@@ -93,6 +93,93 @@ class BacktickPathTest extends TestCase
         $this->assertSame([['items' => ['A', 'B']]], $rows);
     }
 
+    public function testLengthOfArrayPath(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'LENGTH(products.product[]) AS cnt',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'A'],
+                    ['name' => 'B'],
+                    ['name' => 'C'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['cnt' => 3]], $rows);
+    }
+
+    public function testLengthOfArrayPathWithLeafField(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'LENGTH(products.product[].name) AS cnt',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'A'],
+                    ['name' => 'B'],
+                    ['name' => 'C'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['cnt' => 3]], $rows);
+    }
+
+    public function testLengthOfBacktickedArrayPath(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'LENGTH(`products`.`product`[].`name`) AS cnt',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'A'],
+                    ['name' => 'B'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['cnt' => 2]], $rows);
+    }
+
+    public function testImplodeOverArrayPath(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'IMPLODE(products.product[].name) AS list',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'A'],
+                    ['name' => 'B'],
+                    ['name' => 'C'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['list' => 'A,B,C']], $rows);
+    }
+
+    public function testScalarFunctionOverArrayPath(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'UPPER(IMPLODE(products.product[].name)) AS list',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'a'],
+                    ['name' => 'b'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['list' => 'A,B']], $rows);
+    }
+
+    public function testTopLevelArrayPathStillWorks(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'products.product[].name AS names',
+            [
+                ['products' => ['product' => [
+                    ['name' => 'A'],
+                    ['name' => 'B'],
+                ]]],
+            ]
+        );
+        $this->assertSame([['names' => ['A', 'B']]], $rows);
+    }
+
     public function testAliasWithDotInBackticks(): void
     {
         // The alias must come out WITHOUT backticks.
