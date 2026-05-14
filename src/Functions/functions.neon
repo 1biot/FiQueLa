@@ -81,6 +81,7 @@ scalar:
 
 aggregate:
     - FQL\Functions\Aggregate\Avg
+    - FQL\Functions\Aggregate\CollectObject
     - FQL\Functions\Aggregate\Count
     - FQL\Functions\Aggregate\GroupConcat
     - FQL\Functions\Aggregate\Max

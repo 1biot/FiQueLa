@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-90.22%25-lightgreen)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1286-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90.19%25-lightgreen)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1302-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **FiQueLa** brings SQL querying to structured files. Filter, join, group, aggregate, and export data from XML, CSV, JSON, NDJSON, YAML, NEON, XLSX, ODS, and HTTP access logs — using familiar SQL syntax or a fluent PHP API.
@@ -356,15 +356,19 @@ fiquela-cli "SELECT name, price FROM csv(data.csv).* WHERE price > 100;"
 
 Full documentation at **[docs.fiquela.io](https://docs.fiquela.io)**
 
-- [Quickstart](https://docs.fiquela.io/quickstart)
-- [FQL Syntax](https://docs.fiquela.io/querying/fql-syntax)
-- [Fluent API](https://docs.fiquela.io/querying/fluent-api)
-- [Joins](https://docs.fiquela.io/querying/joins)
-- [Conditions](https://docs.fiquela.io/querying/conditions)
-- [Functions](https://docs.fiquela.io/functions/string-functions)
-- [EXPLAIN ANALYZE](https://docs.fiquela.io/advanced/explain-analyze)
-- [Export with INTO](https://docs.fiquela.io/advanced/export-into)
-- [API Reference](docs/api-reference.md)
+- [x] ~~**Operator BETWEEN**: Add operator `BETWEEN` for filtering data and add support for dates and ranges.~~
+- [x] ~~**XLS/XLSX**: Add Excel file support.~~
+- [x] ~~**Custom cast type**: Add support for custom cast type for `SELECT` clause.~~
+- [x] ~~**Add explain method**: Add method `explain()` for explaining query execution from actual query debugger and provide more complex information about query.~~
+- [x] ~~**PHPStan 8**: Fix all PHPStan 8 errors.~~
+- [x] ~~**Tests**: Increase test coverage (80%+).~~
+- [x] ~~**Optimize GROUP BY**: Optimize `GROUP BY` for more memory efficient data processing.~~
+- [x] ~~**DELETE, UPDATE, INSERT**: Support for manipulating data in files.~~ ~~- Instead of this, it will comes support
+for exporting data to files (CSV, NDJson, MessagePack, and more...) by `INTO` clause.~~
+- [x] ~~**Documentation**: Create detailed guides and examples for advanced use cases.~~ - [docs.fiquela.io](https://docs.fiquela.io)
+- [x] ~~**Tests**: Increase test coverage (90%+).~~
+- [ ] **Next file formats**: Add next file formats [MessagePack](https://msgpack.org/), [Parquet](https://parquet.apache.org/docs/file-format/), [INI](https://en.wikipedia.org/wiki/INI_file) and [TOML](https://toml.io/en/)
+- [ ] **Hashmap cache**: Add hashmap cache (Redis, Memcache) for more memory efficient data processing.
 
 ---
 

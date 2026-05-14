@@ -14,6 +14,7 @@ use FQL\Sql\Lint\LintReport;
 use FQL\Sql\Parser\ConditionGroupParser;
 use FQL\Sql\Parser\ConditionParser;
 use FQL\Sql\Parser\ExpressionParser;
+use FQL\Sql\Parser\OrderByClauseParser;
 use FQL\Sql\Parser\ParseException;
 use FQL\Sql\Token\Tokenizer;
 use FQL\Sql\Token\TokenStream;
@@ -136,6 +137,7 @@ final class Provider
         $conditionParser = new ConditionParser($expressionParser);
         $groupParser = new ConditionGroupParser($conditionParser);
         $expressionParser->setConditionGroupParser($groupParser);
+        $expressionParser->setOrderByParser(new OrderByClauseParser($expressionParser));
         return $expressionParser;
     }
 }

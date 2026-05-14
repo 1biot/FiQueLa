@@ -5,7 +5,6 @@ namespace FQL\Sql\Runtime;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Functions;
-use FQL\Query\FileQuery;
 use FQL\Sql\Ast\Expression\BinaryOperator;
 use FQL\Sql\Ast\Expression\BinaryOpNode;
 use FQL\Sql\Ast\Expression\CaseExpressionNode;
@@ -20,6 +19,7 @@ use FQL\Sql\Ast\Expression\LiteralNode;
 use FQL\Sql\Ast\Expression\MatchAgainstNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Expression\SubQueryNode;
+use FQL\Sql\Ast\Expression\WholeRowNode;
 use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 use FQL\Traits\Helpers\StringOperations;
 
@@ -63,6 +63,7 @@ final class ExpressionEvaluator
             $node instanceof LiteralNode => $node->value,
             $node instanceof ColumnReferenceNode => $this->evaluateColumn($node, $item, $resultItem),
             $node instanceof StarNode => '*',
+            $node instanceof WholeRowNode => $item,
             $node instanceof FunctionCallNode => $this->evaluateFunctionCall($node, $item, $resultItem),
             $node instanceof BinaryOpNode => $this->evaluateBinaryOp($node, $item, $resultItem),
             $node instanceof CastExpressionNode => $this->evaluateCast($node, $item, $resultItem),

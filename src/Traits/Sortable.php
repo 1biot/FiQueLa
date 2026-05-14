@@ -4,7 +4,6 @@ namespace FQL\Traits;
 
 use FQL\Enum;
 use FQL\Exception;
-use FQL\Interface\Query;
 use FQL\Sql;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
@@ -37,7 +36,7 @@ trait Sortable
         return $this->orderings === [];
     }
 
-    public function sortBy(string $field, ?Enum\Sort $type = null): Query
+    public function sortBy(string $field, ?Enum\Sort $type = null): static
     {
         if ($this->sortableBlocked) {
             throw new Exception\QueryLogicException('ORDER BY is not allowed in DESCRIBE mode');
@@ -73,22 +72,22 @@ trait Sortable
         return $this;
     }
 
-    public function orderBy(string $field, ?Enum\Sort $type = null): Query
+    public function orderBy(string $field, ?Enum\Sort $type = null): static
     {
         return $this->sortBy($field, $type);
     }
 
-    public function asc(): Query
+    public function asc(): static
     {
         return $this->setLastSortType(Enum\Sort::ASC);
     }
 
-    public function desc(): Query
+    public function desc(): static
     {
         return $this->setLastSortType(Enum\Sort::DESC);
     }
 
-    public function clearOrderings(): Query
+    public function clearOrderings(): static
     {
         $this->orderings = [];
         return $this;
@@ -113,7 +112,7 @@ trait Sortable
         return PHP_EOL . sprintf('ORDER BY %s', implode(', ', $parts));
     }
 
-    private function setLastSortType(Enum\Sort $type): Query
+    private function setLastSortType(Enum\Sort $type): static
     {
         $lastIndex = array_key_last($this->orderings);
         if ($lastIndex === null) {

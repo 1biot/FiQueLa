@@ -1,5 +1,77 @@
 # Changelog
 
+## [3.1.0]
+
+> New aggregate `COLLECT_OBJECT` for `GROUP BY` queries — collects rows in
+> each group into an array of structured objects via an inner mini-SELECT
+> with optional `ORDER BY`. Plugs into the existing aggregate pipeline
+> alongside `COUNT` / `SUM` / `GROUP_CONCAT`; no breaking changes to other
+> aggregates or to the public API.
+
+### Added
+
+- **`COLLECT_OBJECT(...)` aggregate function.** Per `GROUP BY` group, returns
+  `array<array<string, mixed>>` — each row in the group projected through an
+  inner SELECT (with field aliases) and optionally sorted by an inner
+  `ORDER BY` (ASC/DESC, multi-key). Inner items accept scalar functions
+  (`CONCAT`, `ROUND`, `IF`, `COALESCE`, `UPPER`, `LOWER`, …), arithmetic
+  expressions (`price * 1.21 AS price_with_vat`), and aliases.
+  FQL grammar:
+  `COLLECT_OBJECT(expr [AS alias], … [ORDER BY expr [ASC|DESC], …])`.
+- **`FQL\Query\Builder\CollectObject` fluent builder.** Tiny chainable DSL —
+  `select(string ...$fields)` (full FQL expression syntax, accepts inline
+  `"expr AS alias"` and comma-separated lists via `FieldListSplitter`),
+  `as(string $alias)` for the idiomatic main-Query-style aliasing, plus the
+  `orderBy/asc/desc` triple inherited from `Sortable`. Used as
+  `$query->collectObject((new CollectObject())->select('id')->as('i')->orderBy('name'))->as('alias')`.
+- **`FQL\Sql\Ast\Expression\WholeRowNode`.** New AST node that the
+  `ExpressionEvaluator` resolves to the entire source `$item`. Used as the
+  `spec.expression` of `COLLECT_OBJECT`, so the standard
+  `Stream::applyGrouping` path — `$evaluator->evaluate(spec.expression, $item)`
+  followed by `$class::accumulate($acc, $value)` — automatically delivers the
+  whole row as the aggregate's value, with no special case in the Stream
+  pipeline. `CollectObject` is a plain `AggregateFunction` and finalises by
+  running a one-off `Query` over a `ResultStreamProvider` of the collected
+  rows — full SELECT/ORDER BY pipeline reuse, no parallel evaluator state.
+
+### Changed
+
+- `ExpressionEvaluator` learned to evaluate `WholeRowNode` (returns the
+  source `$item`). `Stream` aggregate grouping path is unchanged.
+- **`Traits\Sortable` return types changed from `Query` to `static`.** Same
+  for the corresponding `Interface\Query` signatures (`orderBy`, `sortBy`,
+  `asc`, `desc`). Existing fluent chains on `Query` keep their behaviour
+  (Query continues to return itself); the change unlocks `use Sortable;` in
+  builders that aren't full `Query` objects — `Builder\CollectObject` now
+  inherits the trio instead of duplicating it.
+- `OrderByClauseParser::parseItem()` is now public, enabling `ORDER BY` item
+  reuse inside expression contexts (used by `COLLECT_OBJECT(... ORDER BY …)`).
+- `ExpressionParser` gained a lazy `setOrderByParser()` setter, wired in
+  `Parser::create()` (full FQL statements) and
+  `Sql\Provider::freshExpressionParser()` (fragment parsers used by the
+  fluent API). `ExpressionCompiler` learned to render
+  `CollectObjectExpressionNode` so SELECT round-trip (compile → string →
+  re-parse) works for FQL-string inputs.
+
+### Notes
+
+- **Empty groups** produce no output row (consistent with the other
+  aggregates).
+- **`ORDER BY` inside `COLLECT_OBJECT` recognises projected aliases** —
+  finalisation runs as a full `Query` over the accumulated rows, so the
+  ordering clause sees both source columns and the aliases declared inside
+  `COLLECT_OBJECT(...)`. Standard SQL semantics.
+- **Null values propagate** into the produced objects (unlike `SUM` / `AVG`,
+  which skip them).
+- **Stable sort** preserves accumulation order on ties.
+- **Aggregates inside `COLLECT_OBJECT`** are supported but rarely useful —
+  inner aggregates collapse the accumulated rows to a single output object,
+  so `COLLECT_OBJECT(SUM(x))` yields an array of length 1. Prefer scalar
+  aggregates at the outer level alongside `COLLECT_OBJECT` for per-group
+  summary numbers.
+- **Out of MVP scope** (rejected with a clear exception): `DISTINCT`,
+  `LIMIT`, `WHERE` inside `COLLECT_OBJECT`, and nested `COLLECT_OBJECT`.
+
 ## [3.0.2]
 
 ### Fixed

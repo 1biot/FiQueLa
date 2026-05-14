@@ -37,6 +37,8 @@ final class Parser
         $havingParser = new HavingClauseParser($conditionGroupParser);
         $groupByParser = new GroupByClauseParser($expressionParser);
         $orderByParser = new OrderByClauseParser($expressionParser);
+        // ExpressionParser needs the order-by parser for COLLECT_OBJECT's internal ORDER BY.
+        $expressionParser->setOrderByParser($orderByParser);
         $limitParser = new LimitOffsetParser();
         $unionParser = new UnionParser();
         $intoParser = new IntoParser();

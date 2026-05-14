@@ -8,6 +8,7 @@ use FQL\Sql\Ast\Expression\BinaryOperator;
 use FQL\Sql\Ast\Expression\BinaryOpNode;
 use FQL\Sql\Ast\Expression\CaseExpressionNode;
 use FQL\Sql\Ast\Expression\CastExpressionNode;
+use FQL\Sql\Ast\Expression\CollectObjectExpressionNode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\FunctionCallNode;
@@ -15,6 +16,7 @@ use FQL\Sql\Ast\Expression\LiteralNode;
 use FQL\Sql\Ast\Expression\MatchAgainstNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Expression\WhenBranchNode;
+use FQL\Sql\Ast\Node\OrderByItemNode;
 use FQL\Sql\Token\Token;
 use FQL\Sql\Token\TokenStream;
 use FQL\Sql\Token\TokenType;
@@ -30,9 +32,21 @@ final class ExpressionParser
 {
     private ConditionGroupParser $conditionGroupParser;
 
+    private ?OrderByClauseParser $orderByParser = null;
+
     public function setConditionGroupParser(ConditionGroupParser $parser): void
     {
         $this->conditionGroupParser = $parser;
+    }
+
+    /**
+     * Optional dependency — required only for parsing aggregate calls with internal
+     * ORDER BY clauses (currently `COLLECT_OBJECT`). Wired in lazily because
+     * OrderByClauseParser itself depends on ExpressionParser.
+     */
+    public function setOrderByParser(OrderByClauseParser $parser): void
+    {
+        $this->orderByParser = $parser;
     }
 
     /**
@@ -187,6 +201,12 @@ final class ExpressionParser
             return $this->parseIfCall($stream, $nameToken);
         }
 
+        // Special case: COLLECT_OBJECT(expr [AS alias], … [ORDER BY ...]) — inner
+        // mini-SELECT plus optional ORDER BY. Carries a typed AST envelope.
+        if ($name === 'COLLECT_OBJECT') {
+            return $this->parseCollectObjectCall($stream, $nameToken);
+        }
+
         $stream->expect(TokenType::PAREN_OPEN);
         $distinct = false;
         if ($stream->consumeIf(TokenType::KEYWORD_DISTINCT) !== null) {
@@ -219,6 +239,80 @@ final class ExpressionParser
         $stream->expect(TokenType::PAREN_CLOSE);
 
         return new FunctionCallNode('IF', [$condition, $then, $else], false, $nameToken->position);
+    }
+
+    /**
+     * Parses `COLLECT_OBJECT(expr [AS alias], … [ORDER BY expr [ASC|DESC], …])`.
+     * Wraps the parsed inner SELECT items and ORDER BY into a single
+     * {@see CollectObjectExpressionNode}, then returns it as the lone argument of a
+     * `FunctionCallNode('COLLECT_OBJECT')` so the existing `storeAggregate` pipeline
+     * picks it up.
+     *
+     * @throws ParseException
+     */
+    private function parseCollectObjectCall(TokenStream $stream, Token $nameToken): FunctionCallNode
+    {
+        if ($this->orderByParser === null) {
+            throw ParseException::context(
+                $nameToken,
+                'COLLECT_OBJECT requires OrderByClauseParser to be wired into ExpressionParser'
+            );
+        }
+
+        $stream->expect(TokenType::PAREN_OPEN);
+
+        if ($stream->consumeIf(TokenType::KEYWORD_DISTINCT) !== null) {
+            throw ParseException::context($nameToken, 'COLLECT_OBJECT does not support DISTINCT');
+        }
+
+        $selectItems = [];
+        if ($stream->peekType() === TokenType::PAREN_CLOSE) {
+            throw ParseException::context(
+                $stream->peek(),
+                'COLLECT_OBJECT requires at least one inner SELECT item'
+            );
+        }
+
+        $selectItems[] = $this->parseCollectObjectItem($stream);
+        while ($stream->consumeIf(TokenType::COMMA) !== null) {
+            $selectItems[] = $this->parseCollectObjectItem($stream);
+        }
+
+        $orderings = [];
+        if ($stream->consumeIf(TokenType::KEYWORD_ORDER) !== null) {
+            $stream->expect(TokenType::KEYWORD_BY);
+            $orderings[] = $this->orderByParser->parseItem($stream);
+            while ($stream->peekType() === TokenType::COMMA) {
+                $stream->consume();
+                $orderings[] = $this->orderByParser->parseItem($stream);
+            }
+        }
+
+        $stream->expect(TokenType::PAREN_CLOSE);
+
+        $coNode = new CollectObjectExpressionNode($selectItems, $orderings, $nameToken->position);
+        return new FunctionCallNode('COLLECT_OBJECT', [$coNode], false, $nameToken->position);
+    }
+
+    /**
+     * Parses one inner SELECT item: `expression [AS alias]`.
+     *
+     * @return array{expression: ExpressionNode, alias: string|null}
+     * @throws ParseException
+     */
+    private function parseCollectObjectItem(TokenStream $stream): array
+    {
+        $expression = $this->parseExpression($stream);
+        $alias = null;
+        if ($stream->consumeIf(TokenType::KEYWORD_AS) !== null) {
+            $aliasTok = $stream->peek();
+            if (!$aliasTok->isAnyOf(TokenType::IDENTIFIER, TokenType::IDENTIFIER_QUOTED)) {
+                throw ParseException::context($aliasTok, 'expected COLLECT_OBJECT alias identifier');
+            }
+            $stream->consume();
+            $alias = IdentifierHelper::stripOuterBackticks($aliasTok->value);
+        }
+        return ['expression' => $expression, 'alias' => $alias];
     }
 
     private function conditionParser(): ConditionParser

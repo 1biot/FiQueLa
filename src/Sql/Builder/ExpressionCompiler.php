@@ -6,6 +6,7 @@ use FQL\Enum;
 use FQL\Exception;
 use FQL\Sql\Ast\Expression\BinaryOpNode;
 use FQL\Sql\Ast\Expression\CastExpressionNode;
+use FQL\Sql\Ast\Expression\CollectObjectExpressionNode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ConditionExpressionNode;
 use FQL\Sql\Ast\Expression\ConditionGroupNode;
@@ -86,6 +87,26 @@ final class ExpressionCompiler
         }
         if ($node instanceof \FQL\Sql\Ast\Expression\ConditionExpressionNode) {
             return $this->renderCondition($node);
+        }
+        if ($node instanceof CollectObjectExpressionNode) {
+            $parts = [];
+            foreach ($node->selectItems as $item) {
+                $rendered = $this->renderExpression($item['expression']);
+                if ($item['alias'] !== null) {
+                    $rendered .= ' AS ' . $item['alias'];
+                }
+                $parts[] = $rendered;
+            }
+            $body = implode(', ', $parts);
+            if ($node->orderings !== []) {
+                $orderRendered = [];
+                foreach ($node->orderings as $ord) {
+                    $orderRendered[] = $this->renderExpression($ord->expression)
+                        . ' ' . strtoupper($ord->direction->value);
+                }
+                $body .= ' ORDER BY ' . implode(', ', $orderRendered);
+            }
+            return $body;
         }
         throw new Exception\QueryLogicException(
             sprintf('Cannot render expression of type %s', get_class($node))

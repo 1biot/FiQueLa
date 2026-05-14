@@ -589,11 +589,12 @@ interface Query extends \Stringable
     public function min(string $field, bool $distinct = false): Query;
     public function max(string $field, bool $distinct = false): Query;
     public function groupConcat(string $field, string $separator = ',', bool $distinct = false): Query;
+    public function collectObject(\FQL\Query\Builder\CollectObject $builder): Query;
 
-    public function orderBy(string $field, Sort $direction = Sort::ASC): Query;
-    public function sortBy(string $field, Sort $direction = Sort::ASC): Query;
-    public function asc(): Query;
-    public function desc(): Query;
+    public function orderBy(string $field, Sort $direction = Sort::ASC): static;
+    public function sortBy(string $field, Sort $direction = Sort::ASC): static;
+    public function asc(): static;
+    public function desc(): static;
 
     public function offset(int $offset): Query;
     public function limit(int $limit, ?int $offset = null): Query;
