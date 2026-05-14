@@ -109,15 +109,6 @@ trait Select
                 continue;
             }
 
-            // Legacy path-extraction syntax (`categories[]->name`) is not valid
-            // SQL and the parser would reject it. Fall back to storing as a
-            // plain `ColumnReferenceNode` so the runtime's `accessNestedValue`
-            // handles the traversal.
-            if (str_contains($field, '[]') || str_contains($field, '->')) {
-                $this->storeField($field, $alias, expression: null, aggregate: null);
-                continue;
-            }
-
             try {
                 $node = Sql\Provider::parseExpression($field);
             } catch (\FQL\Sql\Parser\ParseException) {
