@@ -42,9 +42,13 @@ final class OrderByClauseParser
     }
 
     /**
+     * Parses a single `expr [ASC|DESC]` item. Public so callers that need
+     * ORDER BY items inside a non-clause context (e.g. `COLLECT_OBJECT(... ORDER BY ...)`)
+     * can drive the parser without the trailing control-keyword check of `parseClause`.
+     *
      * @throws ParseException
      */
-    private function parseItem(TokenStream $stream): OrderByItemNode
+    public function parseItem(TokenStream $stream): OrderByItemNode
     {
         $startPosition = $stream->peek()->position;
         $expression = $this->expressionParser->parseExpression($stream);

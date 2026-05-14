@@ -358,6 +358,20 @@ trait Select
         );
     }
 
+    public function collectObject(\FQL\Query\Builder\CollectObject $builder): Interface\Query
+    {
+        $node = new \FQL\Sql\Ast\Expression\CollectObjectExpressionNode(
+            $builder->getSelectItems(),
+            $builder->getOrderings(),
+            Position::synthetic()
+        );
+        return $this->storeAggregate(
+            new FunctionCallNode('COLLECT_OBJECT', [$node], false, Position::synthetic()),
+            null,
+            null
+        );
+    }
+
     public function min(string $field, bool $distinct = false): Interface\Query
     {
         return $this->storeAggregate(
@@ -808,6 +822,25 @@ trait Select
             $options['separator'] = (string) $args[1]->value;
         }
 
+        if ($name === 'COLLECT_OBJECT') {
+            $node = $args[0] ?? null;
+            if (!$node instanceof \FQL\Sql\Ast\Expression\CollectObjectExpressionNode) {
+                throw new Exception\UnexpectedValueException(
+                    'COLLECT_OBJECT requires a CollectObjectExpressionNode argument'
+                );
+            }
+            if ($call->distinct) {
+                throw new Exception\InvalidArgumentException(
+                    'DISTINCT is not supported with COLLECT_OBJECT'
+                );
+            }
+            $options['selectItems'] = $this->buildCollectObjectSelectItems($node);
+            $options['orderings'] = $node->orderings;
+            // Evaluating WholeRowNode against the current row yields the row itself,
+            // which is exactly what CollectObject::accumulate needs as the value.
+            $expression = new \FQL\Sql\Ast\Expression\WholeRowNode(Position::synthetic());
+        }
+
         /** @var AggregateSpec $spec */
         $spec = [
             'class' => $class,
@@ -819,6 +852,43 @@ trait Select
         $rendered = $originField ?? $compiler->renderExpression($call);
         $this->storeField($rendered, $alias, expression: null, aggregate: $spec);
         return $this;
+    }
+
+    /**
+     * Resolves inner SELECT items of a `COLLECT_OBJECT(...)` call into the
+     * accumulator-ready shape `{key, expression}`, deriving keys from explicit
+     * aliases or from the rendered expression, and validating against duplicates
+     * and (MVP) nested `COLLECT_OBJECT`.
+     *
+     * @return list<array{key: string, expression: ExpressionNode}>
+     */
+    private function buildCollectObjectSelectItems(
+        \FQL\Sql\Ast\Expression\CollectObjectExpressionNode $node
+    ): array {
+        if ($node->selectItems === []) {
+            throw new Exception\SelectException('COLLECT_OBJECT requires at least one inner SELECT item');
+        }
+
+        $compiler = new ExpressionCompiler();
+        $resolved = [];
+        $seenKeys = [];
+        foreach ($node->selectItems as $item) {
+            $rendered = $compiler->renderExpression($item['expression']);
+            if (stripos($rendered, 'COLLECT_OBJECT(') !== false) {
+                throw new Exception\InvalidArgumentException(
+                    'Nested COLLECT_OBJECT is not supported'
+                );
+            }
+            $key = $item['alias'] ?? $rendered;
+            if (isset($seenKeys[$key])) {
+                throw new Exception\SelectException(
+                    sprintf('COLLECT_OBJECT alias/key collision: "%s"', $key)
+                );
+            }
+            $seenKeys[$key] = true;
+            $resolved[] = ['key' => $key, 'expression' => $item['expression']];
+        }
+        return $resolved;
     }
 
     /**

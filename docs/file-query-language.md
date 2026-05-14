@@ -503,14 +503,15 @@ WHERE
 
 ### Aggregations
 
-| Function        | Description        |
-|-----------------|--------------------|
-| `COUNT`         | Count rows         |
-| `SUM`           | Sum values         |
-| `AVG`           | Average values     |
-| `MIN`           | Minimum value      |
-| `MAX`           | Maximum value      |
-| `GROUP_CONCAT`  | Concatenate values |
+| Function          | Description                                    |
+|-------------------|------------------------------------------------|
+| `COUNT`           | Count rows                                     |
+| `SUM`             | Sum values                                     |
+| `AVG`             | Average values                                 |
+| `MIN`             | Minimum value                                  |
+| `MAX`             | Maximum value                                  |
+| `GROUP_CONCAT`    | Concatenate values                             |
+| `COLLECT_OBJECT`  | Collect rows as an array of structured objects |
 
 Aggregate functions support `DISTINCT` in the same way as SQL, for example `COUNT(DISTINCT id)`.
 
@@ -532,6 +533,93 @@ HAVING
     OR totalPrice > 1000
     OR maxPrice < 500
 ```
+
+### COLLECT_OBJECT
+
+`COLLECT_OBJECT` accumulates source rows within a `GROUP BY` group into an **array of objects**
+(`array<array<string, mixed>>`). Each object contains the fields (and optional aliases) declared
+inside the function. You can apply scalar functions and an inner `ORDER BY` to shape and order the
+collected rows. The result is suitable for producing nested, JSON-like structures directly from FQL.
+
+```sql
+COLLECT_OBJECT(
+    field_expr [AS alias] [, field_expr [AS alias]] ...
+    [ORDER BY order_expr [ASC | DESC] [, order_expr [ASC | DESC]] ...]
+) [AS alias]
+```
+
+**Minimal example** — select a few fields with aliases:
+
+```sql
+SELECT
+    categoryId,
+    categoryName,
+    COLLECT_OBJECT(
+        productId AS id,
+        productName AS name,
+        price
+    ) AS products
+FROM csv(./examples/data/products.csv).*
+GROUP BY categoryId
+```
+
+**Complex example** — scalar functions and multi-key ORDER BY:
+
+```sql
+SELECT
+    categoryId,
+    COLLECT_OBJECT(
+        productId AS id,
+        CONCAT(productName, " (", code, ")") AS label,
+        ROUND(price, 2) AS price
+        ORDER BY price DESC, productName ASC
+    ) AS products
+FROM csv(./examples/data/products.csv).*
+GROUP BY categoryId
+```
+
+**Example output:**
+
+```json
+[
+    {
+        "categoryId": 1,
+        "categoryName": "Phones",
+        "products": [
+            {"id": 100, "name": "iPhone",  "price": 23990.0},
+            {"id": 101, "name": "Samsung", "price": 21990.0}
+        ]
+    }
+]
+```
+
+#### Semantics
+
+- **Empty group** — produces no output row (consistent with all other aggregate functions).
+- **Single-row group** — produces an array of length 1, not a scalar or nullable value.
+- **`null` propagation** — unlike `SUM`/`AVG`, which skip nulls, `COLLECT_OBJECT` stores whatever
+  the expression evaluator returns, including `null`.
+- **Stable sort** — rows with equal sort keys preserve their accumulation (source) order.
+- **ORDER BY recognises projected aliases** — the inner SELECT runs as a real query over the
+  accumulated rows, so `ORDER BY` sees both the source columns and the aliases declared inside
+  `COLLECT_OBJECT(...)`. Standard SQL semantics:
+
+  ```sql
+  COLLECT_OBJECT(
+      ROUND(price, 2) AS roundedPrice
+      ORDER BY roundedPrice DESC
+  ) AS products
+  ```
+
+#### Limitations (outside MVP)
+
+The following features are not supported. Attempting to use them raises a `ParseException` or
+`InvalidArgumentException` at parse/build time:
+
+- `DISTINCT` inside `COLLECT_OBJECT`
+- `LIMIT` inside `COLLECT_OBJECT`
+- `WHERE` inside `COLLECT_OBJECT`
+- Nested `COLLECT_OBJECT(COLLECT_OBJECT(...))`
 
 ## 8. Sorting and Filtering
 

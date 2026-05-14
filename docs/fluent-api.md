@@ -459,7 +459,7 @@ AND (
 ## 5. Grouping and Aggregations
 
 Use the `groupBy()` method to group the data in your query results. You can use the `having()` method to filter the grouped data.
-Also, you can use these aggregations functions `count()`, `sum()`, `avg()`, `min()`, `max()` and `groupConcat()` methods to aggregate the data.
+Also, you can use these aggregations functions `count()`, `sum()`, `avg()`, `min()`, `max()`, `groupConcat()` and `collectObject()` methods to aggregate the data.
 `count()`, `sum()`, `min()`, `max()` and `groupConcat()` accept a `bool $distinct` parameter.
 
 `groupBy()` is last method that using dot notation for nested fields.
@@ -472,14 +472,15 @@ $query->groupBy('category.id');
 
 ### Aggregations
 
-| Function      | Description                 |
-|---------------|-----------------------------|
-| `count`       | Count rows                  |
-| `sum`         | Sum values                  |
-| `avg`         | Average values              |
-| `min`         | Minimum value               |
-| `max`         | Maximum value               |
-| `groupConcat` | Concatenate values          |
+| Function        | Description                                    |
+|-----------------|------------------------------------------------|
+| `count`         | Count rows                                     |
+| `sum`           | Sum values                                     |
+| `avg`           | Average values                                 |
+| `min`           | Minimum value                                  |
+| `max`           | Maximum value                                  |
+| `groupConcat`   | Concatenate values                             |
+| `collectObject` | Collect rows as an array of structured objects |
 
 **Example:**
 
@@ -502,6 +503,117 @@ $query->count('category.id', true)->as('COUNT_DISTINCT')
     ->max('price', true)->as('MAX_DISTINCT')
     ->groupConcat('name', ',', true)->as('GROUP_CONCAT_DISTINCT');
 ```
+
+### COLLECT_OBJECT
+
+`collectObject()` accumulates source rows within a `GROUP BY` group into an **array of objects**
+(`array<array<string, mixed>>`). Build the inner projection using `CollectObject` — a small
+fluent builder with three surfaces: `select(...)` for inner SELECT items, `as(...)` to alias the
+last selected item (mirrors the main Query pattern), and the `orderBy/asc/desc` trio inherited
+from `Sortable` for optional inner ordering.
+
+**Minimal example** — plain field selection with aliases:
+
+```php
+use FQL\Query\Builder\CollectObject;
+
+$query->collectObject(
+    (new CollectObject())
+        ->select('productId')->as('id')
+        ->select('productName')->as('name')
+        ->select('price')
+)->as('products')
+    ->groupBy('categoryId');
+```
+
+**Complex example** — scalar functions and multi-key ORDER BY:
+
+```php
+use FQL\Query\Builder\CollectObject;
+
+$query->select('categoryId')
+    ->collectObject(
+        (new CollectObject())
+            ->select('productId')->as('id')
+            ->select('CONCAT(productName, " (", code, ")")')->as('label')
+            ->select('ROUND(price, 2)')->as('price')
+            ->orderBy('price')->desc()
+            ->orderBy('productName')->asc()
+    )->as('products')
+    ->groupBy('categoryId');
+```
+
+**Combined with other aggregations:**
+
+```php
+use FQL\Query\Builder\CollectObject;
+
+$query->select('categoryId', 'categoryName')
+    ->count('productId')->as('total')
+    ->sum('price')->as('totalPrice')
+    ->collectObject(
+        (new CollectObject())
+            ->select('productId')->as('id')
+            ->select('productName')->as('name')
+            ->select('ROUND(price, 2)')->as('price')
+            ->orderBy('price')->desc()
+    )->as('products')
+    ->groupBy('categoryId');
+```
+
+**Compact form** — `select()` also accepts inline aliases and comma-separated multi-field
+strings via `FieldListSplitter`, so a whole projection can fit in a single call:
+
+```php
+(new CollectObject())
+    ->select('productId AS id, productName AS name, ROUND(price, 2) AS price')
+    ->orderBy('price')->desc()
+```
+
+#### CollectObject builder methods
+
+| Method                        | Description                                                                                                         |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `select(string ...$fields)`   | Add one or more inner SELECT items. Each argument can be a single expression, an `expr AS alias`, or a comma list.  |
+| `as(string $alias)`           | Alias the most recently added select item. Throws `LogicException` if called before any `select()`.                 |
+| `orderBy($field, ?Sort $dir)` | Add an ORDER BY key (default `ASC`). Inherited from `Sortable`.                                                     |
+| `asc()`                       | Set the last ORDER BY key to ascending.                                                                             |
+| `desc()`                      | Set the last ORDER BY key to descending.                                                                            |
+
+Any scalar function known to the parser — `CONCAT`, `ROUND`, `IF`, `COALESCE`, `UPPER`, `LOWER`,
+arithmetic, … — works inside the `select()` string:
+
+```php
+(new CollectObject())
+    ->select('IF(stock > 0, "in stock", "sold out")')->as('availability')
+```
+
+#### Semantics
+
+- **Empty group** — produces no output row (consistent with all other aggregate functions).
+- **Single-row group** — produces an array of length 1, not a scalar or nullable value.
+- **`null` propagation** — unlike `sum()`/`avg()`, which skip nulls, `collectObject()` stores
+  whatever the expression evaluator returns, including `null`.
+- **Stable sort** — rows with equal sort keys preserve their accumulation (source) order.
+- **`orderBy()` recognises projected aliases** — internally the builder runs a full Query over
+  the accumulated rows, so `orderBy()` can reference both source columns and aliases declared
+  via `->as(...)` (or inline `AS` inside the `select()` string). Standard SQL semantics:
+
+  ```php
+  (new CollectObject())
+      ->select('ROUND(price, 2)')->as('roundedPrice')
+      ->orderBy('roundedPrice')->desc()
+  ```
+
+#### Limitations (outside MVP)
+
+The following features are not supported. Attempting to use them raises an
+`InvalidArgumentException` at build time:
+
+- `DISTINCT` inside the `CollectObject` builder
+- `LIMIT` inside the `CollectObject` builder
+- `WHERE` inside the `CollectObject` builder
+- Nested `collectObject()` calls inside another `CollectObject`
 
 ## 6. Sorting
 

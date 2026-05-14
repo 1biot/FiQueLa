@@ -46,14 +46,15 @@ final class FunctionRegistryTest extends TestCase
     public function testBootstrapLoadsBuiltinsFromNeon(): void
     {
         // Built-in neon is shipped with the library and must register all 60+
-        // scalar functions and all 6 aggregates.
+        // scalar functions and all 7 aggregates.
         $all = FunctionRegistry::all();
         $this->assertArrayHasKey('scalar', $all);
         $this->assertArrayHasKey('aggregate', $all);
         $this->assertGreaterThan(50, count($all['scalar']));
-        $this->assertSame(6, count($all['aggregate']));
+        $this->assertSame(7, count($all['aggregate']));
         $this->assertArrayHasKey('LOWER', $all['scalar']);
         $this->assertArrayHasKey('SUM', $all['aggregate']);
+        $this->assertArrayHasKey('COLLECT_OBJECT', $all['aggregate']);
     }
 
     public function testCaseInsensitiveLookup(): void
