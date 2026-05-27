@@ -1,5 +1,87 @@
 # Changelog
 
+## [3.2.0]
+
+> Top-level `WITH name AS (...)` Common Table Expressions — a single `WITH`
+> keyword declares any number of comma-separated, forward-chaining CTEs that
+> the main `SELECT` and its `JOIN`/`UNION` branches can reference by name.
+> Each CTE is materialised once into an in-memory stream and shared across
+> references. Fluent API gets a matching `with()` registry. No breaking
+> changes.
+
+### Added
+
+- **`WITH name AS (SELECT ...) [, name2 AS (SELECT ...) ...]` clause.** Parser
+  accepts a `WITH` block before any top-level `SELECT` (including
+  `EXPLAIN [ANALYZE] WITH ...`). Later CTEs may reference earlier ones
+  (forward-only chaining). Duplicate names and `WITH RECURSIVE` produce
+  targeted `ParseException`s. References to undefined CTE names in `FROM`/
+  `JOIN` raise a parser error that lists the declared names — typos surface
+  before the builder ever opens a file.
+- **`FQL\Sql\Ast\Node\CommonTableExpressionNode`** and
+  **`FQL\Sql\Ast\Expression\CteReferenceNode`** AST shapes; `SelectStatementNode`
+  gained a `$commonTables` array (default `[]`, fully back-compatible).
+- **`FQL\Sql\Parser\WithClauseParser`.** Mirrors the circular-DI pattern used
+  by `FromClauseParser`/`UnionParser`. Manages the in-WITH known-CTE-names
+  scope on `FromClauseParser` incrementally so forward chaining works during
+  body parsing.
+- **`FQL\Sql\Builder\CteRegistry` + `CteReferenceCounter`.** Per-build registry
+  with a memory-aware resolution strategy:
+  * **FROM position** → always materialise the CTE body (the outer SELECT
+    merges clauses into the same Query instance, so a fresh, clause-mergeable
+    Query is mandatory).
+  * **JOIN / UNION position with multi-reference** (refCount ≥ 2) →
+    materialise on the first reference, share the cached stream with the rest.
+  * **JOIN / UNION position with a single reference** → **inline** (build the
+    body fresh, return it directly, no caching). JOIN/UNION consume the Query
+    opaquely, so neither field-collision nor the in-memory buffer is needed.
+  * **JOIN after FROM of the same CTE** → JOIN re-uses the FROM's already-
+    materialised cache for free.
+
+  A cycle guard rejects mutually recursive references at build time.
+- **`FQL\Traits\Withable` trait + `Interface\Query::with()`/`hasCte()`/
+  `getCte()`/`getCtes()`.** Fluent counterpart of the parser-level WITH:
+  register named sub-queries on a Query for downstream JOIN/UNION composition.
+  Note: FROM-position CTE reference is parser-only because the source stream
+  of an already-constructed Query is immutable.
+- **`SqlFormatter::renderWithClause()`** — round-trips WITH statements back
+  to readable SQL. `CteReferenceNode` renders as the bare CTE name.
+- **`KEYWORD_WITH` and `KEYWORD_RECURSIVE` tokens** in `TokenType`/`Tokenizer`
+  (`RECURSIVE` exists solely so the parser can raise an early, clear error
+  for unsupported recursive CTEs).
+- New example `examples/with.php` and `composer example:with` script.
+- New tests: `tests/SQL/SqlWithTest.php`, `tests/Query/WithTest.php`,
+  `tests/Traits/WithableTest.php`.
+
+### Changed
+
+- **`QueryBuildingVisitor::buildSource()` and the former `resolveJoinSource()`
+  were unified into a single `resolveSource(ExpressionNode): Interface\Query`
+  helper.** Both `FROM` and `JOIN` source materialisation now flow through one
+  method, which made the CTE branch a one-line addition rather than a
+  cross-cutting change. Pure internal refactor; behaviour is identical for
+  non-WITH statements (full test suite passes unchanged).
+- `FromClauseParser` gained a `setKnownCteNames(array)`/`getKnownCteNames()`
+  pair used by `WithClauseParser`/`StatementParser` to scope CTE name
+  visibility. When the scope is empty, the parser behaves exactly as before.
+- `Interface\Query` gained a `WITH` constant alongside the other clause
+  keywords.
+
+### Notes
+
+- **Evaluation strategy is position-aware.** FROM-position references always
+  materialise (the outer statement merges further clauses into the returned
+  Query — an inline body would collide on field names). JOIN/UNION-position
+  references inline by default (the Query is consumed opaquely, no clauses
+  ever land on it) and only escalate to materialisation when the CTE is
+  referenced more than once. JOINs reuse any cache already populated by a
+  prior FROM reference for free. Net effect: a CTE used exactly once in a
+  JOIN never pays the in-memory materialisation buffer.
+- **Out of MVP scope:** `WITH RECURSIVE`, nested `WITH` inside subqueries,
+  CTE references inside `IN (...)` / `EXISTS (...)` (the parser does not yet
+  support subqueries in condition operands). `DESCRIBE` + `WITH` is rejected
+  by the parser (DESCRIBE expects a source, not a SELECT).
+
 ## [3.1.0]
 
 > New aggregate `COLLECT_OBJECT` for `GROUP BY` queries — collects rows in

@@ -49,6 +49,7 @@ class Query implements Interface\Query
     }
     use Traits\Sortable;
     use Traits\Unionable;
+    use Traits\Withable;
     use Traits\Explain;
     use Traits\Describable;
 

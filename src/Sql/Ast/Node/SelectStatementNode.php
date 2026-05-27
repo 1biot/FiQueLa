@@ -15,9 +15,10 @@ use FQL\Sql\Token\Position;
 final readonly class SelectStatementNode implements AstNode
 {
     /**
-     * @param SelectFieldNode[] $fields
-     * @param JoinClauseNode[]  $joins
-     * @param UnionClauseNode[] $unions
+     * @param SelectFieldNode[]              $fields
+     * @param JoinClauseNode[]               $joins
+     * @param UnionClauseNode[]              $unions
+     * @param CommonTableExpressionNode[]    $commonTables
      */
     public function __construct(
         public ?FromClauseNode $from,
@@ -33,7 +34,8 @@ final readonly class SelectStatementNode implements AstNode
         public ?IntoClauseNode $into,
         public bool $describe,
         public ExplainMode $explain,
-        public Position $position
+        public Position $position,
+        public array $commonTables = []
     ) {
     }
 

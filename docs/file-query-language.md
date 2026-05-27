@@ -731,7 +731,82 @@ SELECT id FROM json(./examples/data/products.json).data.products
 WHERE price > 200
 ```
 
-## 11. Union
+## 11. With (Common Table Expressions)
+
+Use `WITH` to define one or more named temporary result sets (Common Table Expressions, CTEs)
+that can be referenced by name later in the same statement. CTEs improve readability and let
+you eliminate repetition when the same sub-query is needed in several places (e.g. in both
+sides of a `JOIN` or across `UNION` branches).
+
+```sql
+WITH name AS (select_statement)
+    [, name2 AS (select_statement) ...]
+select_statement
+```
+
+A single statement may have one `WITH` keyword and any number of comma-separated CTE
+definitions. Each later CTE may reference earlier ones (forward-only chaining); recursive
+CTEs (`WITH RECURSIVE ...`) are **not** supported.
+
+**Simple example:**
+
+```sql
+WITH cheap AS (
+    SELECT id, name, price FROM json(./examples/data/products.json).data.products
+    WHERE price <= 200
+)
+SELECT name FROM cheap
+ORDER BY price ASC
+```
+
+**CTE referenced from `JOIN`:**
+
+```sql
+WITH expensive AS (
+    SELECT id FROM json(./examples/data/products.json).data.products
+    WHERE price >= 300
+)
+SELECT p.name, p.price
+FROM json(./examples/data/products.json).data.products AS p
+INNER JOIN expensive AS e ON id = e.id
+```
+
+**Multiple CTEs with forward chaining:**
+
+```sql
+WITH a AS (SELECT id, name FROM json(./examples/data/users.json).data.users WHERE id > 0),
+     b AS (SELECT name FROM a)
+SELECT name FROM b
+```
+
+### Evaluation strategy
+
+The CTE engine is **position-aware** to keep memory usage low:
+
+| Reference position             | Reference count   | Strategy                  |
+|--------------------------------|-------------------|---------------------------|
+| `FROM cte_name`                | any               | materialise to memory     |
+| `JOIN cte_name`, `UNION ...`   | 1                 | inline (no extra memory)  |
+| `JOIN cte_name`, `UNION ...`   | ≥ 2               | materialise on first use, cache shared |
+| `JOIN` after `FROM` on same CTE| —                 | reuse the FROM cache      |
+
+In practice this means: a CTE referenced exactly once from a JOIN or UNION branch never
+pays the in-memory materialisation buffer — its body is executed straight into the
+JOIN/UNION pipeline. Multi-reference CTEs amortise the work by materialising once and
+sharing the result. FROM-position references always materialise because the outer SELECT
+merges further clauses into the returned Query and an inline body would collide on field
+names.
+
+### Compatibility
+
+- `EXPLAIN WITH ...` and `EXPLAIN ANALYZE WITH ...` work as expected; materialised CTEs
+  appear as `results(memory)` sources in the explain plan.
+- `DESCRIBE` does not support `WITH` (DESCRIBE inspects a single source schema).
+- CTE names must be unique within a single `WITH` clause; duplicates raise a parser error.
+- Referencing an unknown CTE name in `FROM`/`JOIN` produces a parser error that lists the
+  declared CTE names — typos surface immediately.
+
+## 12. Union
 
 Use `UNION` to combine results from multiple queries, removing duplicate rows. Use `UNION ALL` to combine results
 keeping all rows including duplicates. The `UNION` clause is placed after all other clauses of each query.
@@ -778,7 +853,7 @@ UNION ALL
 SELECT name, price FROM xml(./examples/data/feed3.xml).SHOP.ITEM
 ```
 
-## 12. Into
+## 13. Into
 
 Use `INTO` to export query results into a file.
 
@@ -810,7 +885,7 @@ Notes:
 - Existing target files are not overwritten (`FileAlreadyExistsException`).
 - Missing output directories are created recursively.
 
-## 13. Describe
+## 14. Describe
 
 Use `DESCRIBE` to inspect the schema of a data source. Returns one row per column with type statistics.
 

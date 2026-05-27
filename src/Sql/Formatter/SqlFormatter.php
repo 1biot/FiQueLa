@@ -2,11 +2,13 @@
 
 namespace FQL\Sql\Formatter;
 
+use FQL\Sql\Ast\Expression\CteReferenceNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\FileQueryNode;
 use FQL\Sql\Ast\Expression\SubQueryNode;
 use FQL\Sql\Ast\ExplainMode;
 use FQL\Sql\Ast\JoinType;
+use FQL\Sql\Ast\Node\CommonTableExpressionNode;
 use FQL\Sql\Ast\Node\JoinClauseNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
@@ -56,6 +58,10 @@ final class SqlFormatter
             $from = $this->renderSource($ast->from?->source, $depth);
             $lines[] = $ind . $this->kw('DESCRIBE') . ' ' . $from;
             return implode($this->options->newline, $lines);
+        }
+
+        if ($ast->commonTables !== []) {
+            $lines[] = $this->renderWithClause($ast->commonTables, $depth);
         }
 
         $lines[] = $ind . $this->renderSelectHeader($ast, $fieldInd);
@@ -175,7 +181,30 @@ final class SqlFormatter
         if ($source instanceof FileQueryNode) {
             return $source->raw;
         }
+        if ($source instanceof CteReferenceNode) {
+            return self::quoteAliasIfNeeded($source->name);
+        }
         return $source !== null ? $this->compiler->renderExpression($source) : '';
+    }
+
+    /**
+     * @param CommonTableExpressionNode[] $ctes
+     */
+    private function renderWithClause(array $ctes, int $depth): string
+    {
+        $ind = str_repeat($this->options->indent, $depth);
+        $innerInd = $ind . $this->options->indent;
+
+        $parts = [];
+        foreach ($ctes as $cte) {
+            $body = $this->formatStatement($cte->query, $depth + 1);
+            $parts[] = self::quoteAliasIfNeeded($cte->name) . ' ' . $this->kw('AS') . ' ('
+                . $this->options->newline . $body
+                . $this->options->newline . $innerInd . ')';
+        }
+
+        $separator = ',' . $this->options->newline . $innerInd;
+        return $ind . $this->kw('WITH') . ' ' . implode($separator, $parts);
     }
 
     private function renderJoin(JoinClauseNode $join, int $depth): string

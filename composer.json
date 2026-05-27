@@ -105,6 +105,9 @@
     "example:union": [
       "php -f examples/union.php"
     ],
+    "example:with": [
+      "php -f examples/with.php"
+    ],
     "example:yaml": [
       "php -f examples/yaml.php"
     ],
@@ -125,6 +128,7 @@
       "@example:json",
       "@example:sql",
       "@example:union",
+      "@example:with",
       "@example:xml",
       "@example:yaml",
       "@example:logFormat",

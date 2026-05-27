@@ -653,7 +653,7 @@ or you can use the `page()` method to paginate the data in your query results.
 $query->page(2, perPage: 20);
 ```
 
-## Explain
+## 8. Explain
 
 Use `explain()` to get a plan-only result and `explainAnalyze()` to execute the query and collect real row counts and
 timings. The output is always a flat table (Results\InMemory).
@@ -718,7 +718,53 @@ $results = $query1
 // Phases: stream, union_stream, union_where, union
 ```
 
-## 9. Union
+## 9. With (Common Table Expressions)
+
+Register a named sub-query on a Query via `with()`. Mirrors the FQL `WITH name AS (...)`
+syntax, providing a place to attach a meaningful name to a reusable Query object.
+
+```php
+use FQL\Stream\Json;
+
+$json = Json::open('./examples/data/products.json');
+
+$expensive = $json->query()
+    ->select('id', 'name')
+    ->from('data.products')
+    ->where('price', Operator::GREATER_THAN_OR_EQUAL, 300);
+
+$query = $json->query()->with('expensive', $expensive);
+
+// Retrieve by name when composing JOIN / UNION:
+$cte = $query->getCte('expensive');
+$result = $json->query()
+    ->select('p.id', 'p.name')
+    ->from('data.products')
+    ->innerJoin($cte, 'p')
+    ->on('id', Operator::EQUAL, 'p.id')
+    ->execute();
+```
+
+API surface:
+
+| Method                                            | Purpose                                                  |
+|---------------------------------------------------|----------------------------------------------------------|
+| `with(string $name, Interface\Query $query)`      | Register the sub-query under `$name`; returns `$this`.   |
+| `hasCte(string $name): bool`                      | True if a CTE with that name is registered.              |
+| `getCte(string $name): ?Interface\Query`          | Returns the registered sub-query or `null`.              |
+| `getCtes(): array<string, Interface\Query>`       | Full registry map (in registration order).               |
+
+Duplicate names and empty names throw `Exception\AliasException`.
+
+> **Note.** Fluent users can equally well pass sub-queries directly to `join()` / `union()`
+> without ever calling `with()` — the registry exists for naming clarity, not for new
+> capability. The one pattern the fluent API cannot satisfy is **FROM-position CTE
+> reference** (`SELECT * FROM cte_name`), because a Query's source stream is bound at
+> construction time. Use the FQL string parser via `\FQL\Sql\Provider::fql()` with a
+> `WITH ... SELECT ... FROM cte` statement for that case — the builder transparently
+> materialises CTEs into reusable in-memory streams.
+
+## 10. Union
 
 Use `union()` to combine results from multiple queries, removing duplicate rows. Use `unionAll()` to combine results
 keeping all rows including duplicates.
@@ -755,7 +801,7 @@ $results = $query1
     ->execute();
 ```
 
-## 10. Into
+## 11. Into
 
 Use `into()` on executed results to export data into a file.
 
@@ -778,7 +824,7 @@ Provider::fromFile('data.csv')
     ->into('json(exports/products.json).root.items');
 ```
 
-## 11. Describe
+## 12. Describe
 
 Use `describe()` to inspect the schema of a data source instead of querying its data. The result is a `DescribeResult`
 containing one row per column with type statistics, completeness, and uniqueness information.
