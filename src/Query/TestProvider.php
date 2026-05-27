@@ -16,6 +16,7 @@ use FQL\Traits\Select;
 use FQL\Traits\Sortable;
 use FQL\Traits\Describable;
 use FQL\Traits\Unionable;
+use FQL\Traits\Withable;
 
 /**
  * Class TestProvider implements traits for Query and empty results when fetching data. We need to test for traits only.
@@ -51,6 +52,7 @@ class TestProvider implements Query
     }
     use Sortable;
     use Unionable;
+    use Withable;
     use Limit;
     use Describable;
 

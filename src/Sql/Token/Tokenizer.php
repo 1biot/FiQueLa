@@ -39,6 +39,8 @@ final class Tokenizer
         'OFFSET' => TokenType::KEYWORD_OFFSET,
         'UNION' => TokenType::KEYWORD_UNION,
         'ALL' => TokenType::KEYWORD_ALL,
+        'WITH' => TokenType::KEYWORD_WITH,
+        'RECURSIVE' => TokenType::KEYWORD_RECURSIVE,
         'INTO' => TokenType::KEYWORD_INTO,
         'DESCRIBE' => TokenType::KEYWORD_DESCRIBE,
         'EXPLAIN' => TokenType::KEYWORD_EXPLAIN,

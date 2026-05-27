@@ -10,11 +10,13 @@ use FQL\Query;
 use FQL\Sql\Ast\ExplainMode;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ConditionGroupNode;
+use FQL\Sql\Ast\Expression\CteReferenceNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\FileQueryNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Expression\SubQueryNode;
 use FQL\Sql\Ast\JoinType;
+use FQL\Sql\Ast\Node\CommonTableExpressionNode;
 use FQL\Sql\Ast\Node\JoinClauseNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
@@ -42,11 +44,18 @@ use FQL\Sql\Runtime\ExpressionEvaluator;
  */
 final class QueryBuildingVisitor
 {
+    private readonly CteReferenceCounter $cteCounter;
+
+    /** Stack of CTE registries — top of stack is the currently active scope. */
+    /** @var CteRegistry[] */
+    private array $cteStack = [];
+
     public function __construct(
         private readonly ExpressionCompiler $compiler,
         private readonly FileQueryResolver $fileQueryResolver,
         private readonly ExpressionEvaluator $evaluator = new ExpressionEvaluator()
     ) {
+        $this->cteCounter = new CteReferenceCounter();
     }
 
     /**
@@ -76,6 +85,46 @@ final class QueryBuildingVisitor
      * @throws Exception\FileNotFoundException
      */
     private function buildInternal(SelectStatementNode $ast, ?Interface\Query $override): Interface\Query
+    {
+        $registry = null;
+        if ($ast->commonTables !== []) {
+            $registry = new CteRegistry(
+                $ast->commonTables,
+                $this->cteCounter->count($ast)
+            );
+            $this->cteStack[] = $registry;
+        }
+
+        try {
+            $query = $this->buildBody($ast, $override);
+
+            // Attach each referenced CTE definition to the outer Query so its
+            // __toString() renders the original `WITH name AS (...) ...` shape
+            // rather than the post-materialisation `FROM results(memory)` form.
+            // Unreferenced CTEs are skipped (they have no resolved body and
+            // wouldn't appear in the original FQL run anyway).
+            if ($registry !== null) {
+                foreach ($ast->commonTables as $cte) {
+                    $body = $registry->resolvedBody($cte->name);
+                    if ($body !== null) {
+                        $query->with($cte->name, $body);
+                    }
+                }
+            }
+
+            return $query;
+        } finally {
+            if ($registry !== null) {
+                array_pop($this->cteStack);
+            }
+        }
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    private function buildBody(SelectStatementNode $ast, ?Interface\Query $override): Interface\Query
     {
         $query = $override !== null
             ? $this->applyFromOntoExisting($ast, $override)
@@ -157,19 +206,67 @@ final class QueryBuildingVisitor
                 . ' use applyTo($existingQuery) for FROM-less SQL fragments'
             );
         }
-        $source = $ast->from->source;
-        if ($source instanceof SubQueryNode) {
-            return $this->build($source->query);
-        }
-        if (!$source instanceof FileQueryNode) {
-            throw new Exception\QueryLogicException('FROM source must be a FileQuery or subquery');
-        }
-        $fileQuery = $this->fileQueryResolver->resolve($source->fileQuery, mustExist: true);
-        $query = Query\Provider::fromFileQuery((string) $fileQuery);
+        // FROM position must materialise CTE references — the outer SELECT/WHERE/etc
+        // are merged into the returned Query, and an inline CTE body would leave its
+        // own SELECT fields on the same instance (collision risk).
+        $query = $this->resolveSource($ast->from->source, fromContext: true);
         if ($ast->from->alias !== null) {
             $query->as($ast->from->alias);
         }
         return $query;
+    }
+
+    /**
+     * Converts a FROM/JOIN source expression node into a Query instance.
+     * Single point of truth for {@see SubQueryNode} / {@see FileQueryNode} /
+     * {@see CteReferenceNode} resolution.
+     *
+     * @param bool $fromContext True when the resolved Query will receive further
+     *                          clause-merging from the outer statement (FROM
+     *                          position). False for JOIN/UNION consumption where
+     *                          the Query is treated opaquely. Controls the CTE
+     *                          inline-vs-materialise strategy.
+     *
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    private function resolveSource(ExpressionNode $node, bool $fromContext): Interface\Query
+    {
+        if ($node instanceof CteReferenceNode) {
+            return $this->resolveCteReference($node, $fromContext);
+        }
+        if ($node instanceof SubQueryNode) {
+            return $this->build($node->query);
+        }
+        if ($node instanceof FileQueryNode) {
+            $fileQuery = $this->fileQueryResolver->resolve($node->fileQuery, mustExist: true);
+            return Query\Provider::fromFileQuery((string) $fileQuery);
+        }
+        throw new Exception\QueryLogicException(
+            sprintf('Unsupported source node: %s', get_class($node))
+        );
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    private function resolveCteReference(CteReferenceNode $node, bool $fromContext): Interface\Query
+    {
+        // Walk the CTE scope stack from innermost outwards.
+        for ($i = count($this->cteStack) - 1; $i >= 0; $i--) {
+            $registry = $this->cteStack[$i];
+            if ($registry->has($node->name)) {
+                return $registry->resolve(
+                    $node->name,
+                    fn (CommonTableExpressionNode $cte) => $this->build($cte->query),
+                    $fromContext
+                );
+            }
+        }
+        throw new Exception\QueryLogicException(
+            sprintf('CTE "%s" is not defined in any enclosing WITH clause', $node->name)
+        );
     }
 
     /**
@@ -231,7 +328,10 @@ final class QueryBuildingVisitor
      */
     private function applyJoin(Interface\Query $query, JoinClauseNode $join): void
     {
-        $joinSource = $this->resolveJoinSource($join->source);
+        // JOIN consumes the source Query opaquely (no clause-merging), so single-
+        // reference CTEs can be resolved inline without materialisation. Multi-
+        // reference CTEs still materialise — the registry decides per refCount.
+        $joinSource = $this->resolveSource($join->source, fromContext: false);
 
         match ($join->type) {
             JoinType::INNER => $query->innerJoin($joinSource, $join->alias),
@@ -248,24 +348,6 @@ final class QueryBuildingVisitor
             throw new Exception\QueryLogicException('JOIN ON condition does not support IN/BETWEEN/IS');
         }
         $query->on($leftField, $condition->operator, (string) $rightValue);
-    }
-
-    /**
-     * @throws Exception\InvalidFormatException
-     * @throws Exception\FileNotFoundException
-     */
-    private function resolveJoinSource(ExpressionNode $node): Interface\Query
-    {
-        if ($node instanceof SubQueryNode) {
-            return $this->build($node->query);
-        }
-        if ($node instanceof FileQueryNode) {
-            $fileQuery = $this->fileQueryResolver->resolve($node->fileQuery, mustExist: true);
-            return Query\Provider::fromFileQuery((string) $fileQuery);
-        }
-        throw new Exception\QueryLogicException(
-            sprintf('Unsupported JOIN source: %s', get_class($node))
-        );
     }
 
     private function buildWhereGroup(ConditionGroupNode $node): Conditions\WhereConditionGroup

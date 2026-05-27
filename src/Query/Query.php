@@ -49,6 +49,7 @@ class Query implements Interface\Query
     }
     use Traits\Sortable;
     use Traits\Unionable;
+    use Traits\Withable;
     use Traits\Explain;
     use Traits\Describable;
 
@@ -244,6 +245,10 @@ class Query implements Interface\Query
 
         // EXPLAIN
         $queryParts[] = $this->explainToString();
+        // WITH — rendered before SELECT so the assembled SQL matches the original
+        // `WITH ... SELECT ...` shape and the bare-identifier FROM (produced by
+        // a CTE-labelled ResultStreamProvider) re-parses against the same names.
+        $queryParts[] = $this->ctesToString();
         // SELECT
         $queryParts[] = $this->selectToString();
         // FROM

@@ -7,8 +7,8 @@
 ![Packagist Dependency Version](https://img.shields.io/packagist/dependency-v/1biot/fiquela/php)
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
-![Coverage](https://img.shields.io/badge/coverage-90.19%25-lightgreen)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1302-lightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90.25%25-lightgreen)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_1328-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **FiQueLa** brings SQL querying to structured files. Filter, join, group, aggregate, and export data from XML, CSV, JSON, NDJSON, YAML, NEON, XLSX, ODS, and HTTP access logs — using familiar SQL syntax or a fluent PHP API.
@@ -28,7 +28,7 @@ LIMIT 10
 ## Why FiQueLa?
 
 - **No database setup** — query files directly, just PHP and Composer
-- **Familiar SQL** — `SELECT`, `WHERE`, `JOIN`, `GROUP BY`, `HAVING`, `ORDER BY`, `UNION`, `INTO` and more
+- **Familiar SQL** — `SELECT`, `WHERE`, `JOIN`, `GROUP BY`, `HAVING`, `ORDER BY`, `UNION`, `WITH` (CTE), `INTO` and more
 - **Cross-format joins** — join a CSV against an XML feed against a JSON file in one query
 - **Stream-first** — large files are processed row by row with low memory overhead
 - **Expression evaluator** — arithmetic, functions, and nested expressions everywhere
@@ -144,6 +144,25 @@ SELECT id, name, price, "warehouse_b" AS source
 FROM xml(warehouse_b.xml).ITEMS.ITEM
 WHERE price < 100
 ```
+
+### WITH — named, reusable sub-queries (CTE)
+
+Declare one or more Common Table Expressions before the main `SELECT`, then reference them by name in `FROM`, `JOIN`, or `UNION` branches. Each CTE is materialised once and shared between references — perfect for self-joins or eliminating repetition across `UNION` branches.
+
+```sql
+WITH expensive AS (
+    SELECT id, name FROM json(products.json).data.products
+    WHERE price >= 300
+),
+     overlap AS (
+    SELECT id FROM expensive
+)
+SELECT p.name
+FROM json(products.json).data.products AS p
+INNER JOIN overlap AS o ON id = o.id
+```
+
+Forward-chaining is allowed (later CTEs may reference earlier ones); `WITH RECURSIVE` is not yet supported.
 
 ### Expression Evaluator
 

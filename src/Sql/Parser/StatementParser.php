@@ -3,6 +3,7 @@
 namespace FQL\Sql\Parser;
 
 use FQL\Sql\Ast\ExplainMode;
+use FQL\Sql\Ast\Node\CommonTableExpressionNode;
 use FQL\Sql\Ast\Node\FromClauseNode;
 use FQL\Sql\Ast\Node\GroupByClauseNode;
 use FQL\Sql\Ast\Node\HavingClauseNode;
@@ -38,7 +39,8 @@ final class StatementParser
         private readonly OrderByClauseParser $orderByParser,
         private readonly LimitOffsetParser $limitParser,
         private readonly UnionParser $unionParser,
-        private readonly IntoParser $intoParser
+        private readonly IntoParser $intoParser,
+        private readonly WithClauseParser $withParser
     ) {
     }
 
@@ -74,120 +76,145 @@ final class StatementParser
             );
         }
 
-        $selectKeyword = $stream->expect(TokenType::KEYWORD_SELECT);
-        $selectResult = $this->selectParser->parseClause($stream, $selectKeyword);
-        $fields = $selectResult['fields'];
-        $distinct = $selectResult['distinct'];
-
-        $from = null;
-        /** @var JoinClauseNode[] $joins */
-        $joins = [];
-        $where = null;
-        $groupBy = null;
-        $having = null;
-        $orderBy = null;
-        $limit = null;
-        $into = null;
-        /** @var UnionClauseNode[] $unions */
-        $unions = [];
-
-        while (!$stream->isAtEnd() && $stream->peekType() !== TokenType::PAREN_CLOSE) {
-            $peek = $stream->peek();
-            switch ($peek->type) {
-                case TokenType::KEYWORD_FROM:
-                    $stream->consume();
-                    $from = $this->fromParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_INNER:
-                case TokenType::KEYWORD_LEFT:
-                case TokenType::KEYWORD_RIGHT:
-                case TokenType::KEYWORD_FULL:
-                case TokenType::KEYWORD_JOIN:
-                    $stream->consume();
-                    $joins[] = $this->joinParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_WHERE:
-                    $stream->consume();
-                    $where = $this->whereParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_GROUP:
-                    $stream->consume();
-                    $groupBy = $this->groupByParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_HAVING:
-                    $stream->consume();
-                    $having = $this->havingParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_ORDER:
-                    $stream->consume();
-                    $orderBy = $this->orderByParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_LIMIT:
-                    $stream->consume();
-                    $parsed = $this->limitParser->parseLimit($stream, $peek->position);
-                    // Preserve an offset that arrived via a preceding standalone
-                    // OFFSET clause — `OFFSET 5 LIMIT 10` used to silently lose
-                    // the offset because parseLimit returned a fresh node with
-                    // offset = null that overwrote the merged one.
-                    $limit = $limit !== null && $limit->offset !== null && $parsed->offset === null
-                        ? new LimitClauseNode($parsed->limit, $limit->offset, $parsed->position)
-                        : $parsed;
-                    break;
-
-                case TokenType::KEYWORD_OFFSET:
-                    $stream->consume();
-                    $offset = $this->limitParser->parseOffset($stream);
-                    $limit = $this->mergeOffset($limit, $offset, $peek->position);
-                    break;
-
-                case TokenType::KEYWORD_INTO:
-                    $stream->consume();
-                    $into = $this->intoParser->parseClause($stream, $peek);
-                    break;
-
-                case TokenType::KEYWORD_UNION:
-                    $stream->consume();
-                    $unions[] = $this->unionParser->parseClause($stream, $peek);
-                    // After UNION we break out of the loop — subsequent clauses (if any)
-                    // belong to the right-hand side of the UNION, which is already parsed.
-                    break 2;
-
-                default:
-                    throw ParseException::context($peek, 'statement (unexpected token)');
+        // WITH [RECURSIVE] cte AS (...) [, ...] — must precede SELECT and is
+        // forbidden in combination with DESCRIBE (DESCRIBE returned above).
+        /** @var CommonTableExpressionNode[] $commonTables */
+        $commonTables = [];
+        $outerKnownCtes = $this->fromParser->getKnownCteNames();
+        $withToken = $stream->consumeIf(TokenType::KEYWORD_WITH);
+        if ($withToken !== null) {
+            $commonTables = $this->withParser->parseClause($stream, $withToken);
+            $cteNames = [];
+            foreach ($commonTables as $cte) {
+                $cteNames[] = $cte->name;
             }
+            $this->fromParser->setKnownCteNames(array_merge($outerKnownCtes, $cteNames));
         }
 
-        // FROM is optional at parse time: a FROM-less SELECT is valid input for
-        // `Compiler::applyTo($existingQuery)`, where the outer stream is already open.
-        // The builder enforces the presence of FROM for full `build()` consumers.
-        return $this->buildStatement(
-            position: $startPosition,
-            from: $from,
-            fields: $fields,
-            distinct: $distinct,
-            joins: $joins,
-            where: $where,
-            groupBy: $groupBy,
-            having: $having,
-            orderBy: $orderBy,
-            limit: $limit,
-            unions: $unions,
-            into: $into,
-            describe: false,
-            explain: $explain
-        );
+        try {
+            $selectKeyword = $stream->expect(TokenType::KEYWORD_SELECT);
+            $selectResult = $this->selectParser->parseClause($stream, $selectKeyword);
+            $fields = $selectResult['fields'];
+            $distinct = $selectResult['distinct'];
+
+            $from = null;
+            /** @var JoinClauseNode[] $joins */
+            $joins = [];
+            $where = null;
+            $groupBy = null;
+            $having = null;
+            $orderBy = null;
+            $limit = null;
+            $into = null;
+            /** @var UnionClauseNode[] $unions */
+            $unions = [];
+
+            while (!$stream->isAtEnd() && $stream->peekType() !== TokenType::PAREN_CLOSE) {
+                $peek = $stream->peek();
+                switch ($peek->type) {
+                    case TokenType::KEYWORD_FROM:
+                        $stream->consume();
+                        $from = $this->fromParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_INNER:
+                    case TokenType::KEYWORD_LEFT:
+                    case TokenType::KEYWORD_RIGHT:
+                    case TokenType::KEYWORD_FULL:
+                    case TokenType::KEYWORD_JOIN:
+                        $stream->consume();
+                        $joins[] = $this->joinParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_WHERE:
+                        $stream->consume();
+                        $where = $this->whereParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_GROUP:
+                        $stream->consume();
+                        $groupBy = $this->groupByParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_HAVING:
+                        $stream->consume();
+                        $having = $this->havingParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_ORDER:
+                        $stream->consume();
+                        $orderBy = $this->orderByParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_LIMIT:
+                        $stream->consume();
+                        $parsed = $this->limitParser->parseLimit($stream, $peek->position);
+                        // Preserve an offset that arrived via a preceding standalone
+                        // OFFSET clause — `OFFSET 5 LIMIT 10` used to silently lose
+                        // the offset because parseLimit returned a fresh node with
+                        // offset = null that overwrote the merged one.
+                        $limit = $limit !== null && $limit->offset !== null && $parsed->offset === null
+                            ? new LimitClauseNode($parsed->limit, $limit->offset, $parsed->position)
+                            : $parsed;
+                        break;
+
+                    case TokenType::KEYWORD_OFFSET:
+                        $stream->consume();
+                        $offset = $this->limitParser->parseOffset($stream);
+                        $limit = $this->mergeOffset($limit, $offset, $peek->position);
+                        break;
+
+                    case TokenType::KEYWORD_INTO:
+                        $stream->consume();
+                        $into = $this->intoParser->parseClause($stream, $peek);
+                        break;
+
+                    case TokenType::KEYWORD_UNION:
+                        $stream->consume();
+                        $unions[] = $this->unionParser->parseClause($stream, $peek);
+                        // After UNION we break out of the loop — subsequent clauses (if any)
+                        // belong to the right-hand side of the UNION, which is already parsed.
+                        break 2;
+
+                    default:
+                        throw ParseException::context($peek, 'statement (unexpected token)');
+                }
+            }
+
+            // FROM is optional at parse time: a FROM-less SELECT is valid input for
+            // `Compiler::applyTo($existingQuery)`, where the outer stream is already open.
+            // The builder enforces the presence of FROM for full `build()` consumers.
+            return $this->buildStatement(
+                position: $startPosition,
+                from: $from,
+                fields: $fields,
+                distinct: $distinct,
+                joins: $joins,
+                where: $where,
+                groupBy: $groupBy,
+                having: $having,
+                orderBy: $orderBy,
+                limit: $limit,
+                unions: $unions,
+                into: $into,
+                describe: false,
+                explain: $explain,
+                commonTables: $commonTables
+            );
+        } finally {
+            // Pop the CTE scope opened above so sibling statements (UNION RHS,
+            // sub-parsers reusing this instance) see the outer parent scope.
+            if ($withToken !== null) {
+                $this->fromParser->setKnownCteNames($outerKnownCtes);
+            }
+        }
     }
 
     /**
-     * @param SelectFieldNode[] $fields
-     * @param JoinClauseNode[]  $joins
-     * @param UnionClauseNode[] $unions
+     * @param SelectFieldNode[]              $fields
+     * @param JoinClauseNode[]               $joins
+     * @param UnionClauseNode[]              $unions
+     * @param CommonTableExpressionNode[]    $commonTables
      */
     private function buildStatement(
         Position $position,
@@ -203,7 +230,8 @@ final class StatementParser
         array $unions = [],
         ?IntoClauseNode $into = null,
         bool $describe = false,
-        ExplainMode $explain = ExplainMode::NONE
+        ExplainMode $explain = ExplainMode::NONE,
+        array $commonTables = []
     ): SelectStatementNode {
         return new SelectStatementNode(
             from: $from,
@@ -219,7 +247,8 @@ final class StatementParser
             into: $into,
             describe: $describe,
             explain: $explain,
-            position: $position
+            position: $position,
+            commonTables: $commonTables
         );
     }
 

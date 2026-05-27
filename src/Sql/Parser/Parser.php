@@ -42,6 +42,7 @@ final class Parser
         $limitParser = new LimitOffsetParser();
         $unionParser = new UnionParser();
         $intoParser = new IntoParser();
+        $withParser = new WithClauseParser($fromParser);
 
         $statementParser = new StatementParser(
             $selectParser,
@@ -53,12 +54,15 @@ final class Parser
             $orderByParser,
             $limitParser,
             $unionParser,
-            $intoParser
+            $intoParser,
+            $withParser
         );
 
-        // FromClauseParser and UnionParser need the StatementParser for nested statements.
+        // FromClauseParser, UnionParser and WithClauseParser need the StatementParser
+        // for nested statements (subquery sources, UNION RHS, CTE bodies).
         $fromParser->setStatementParser($statementParser);
         $unionParser->setStatementParser($statementParser);
+        $withParser->setStatementParser($statementParser);
 
         return new self($statementParser);
     }

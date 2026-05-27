@@ -53,6 +53,7 @@ interface Query extends \Stringable
     public const LIMIT = 'LIMIT';
     public const EXPLAIN = 'EXPLAIN';
     public const ANALYZE = 'ANALYZE';
+    public const WITH = 'WITH';
     public const PER_PAGE_DEFAULT = 10;
 
     /**
@@ -629,6 +630,29 @@ interface Query extends \Stringable
 
     public function union(Query $query): Query;
     public function unionAll(Query $query): Query;
+
+    /**
+     * Register a named Common Table Expression on this query.
+     *
+     * Mirrors the `WITH name AS (...)` syntax of FQL. Fluent users can pass the
+     * registered query object to {@see join()} / {@see union()} directly, or
+     * access it later via {@see getCte()}.
+     *
+     * Note: FROM-position CTE references (`FROM cte_name`) are only available
+     * through the FQL string parser — the fluent FROM setter cannot swap the
+     * source stream of an already-constructed Query. Use {@see \FQL\Sql\Provider::fql()}
+     * with a `WITH ... SELECT ... FROM cte` statement for that pattern.
+     *
+     * @throws Exception\AliasException When name is empty or already registered.
+     */
+    public function with(string $name, Query $query): Query;
+    public function hasCte(string $name): bool;
+    public function getCte(string $name): ?Query;
+
+    /**
+     * @return array<string, Query>
+     */
+    public function getCtes(): array;
 
     /**
      * @param bool $withQuery When true, includes the FROM path in the FileQuery (e.g. "json(file.json).data.products").
