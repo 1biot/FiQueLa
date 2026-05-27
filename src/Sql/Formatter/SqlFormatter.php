@@ -193,18 +193,20 @@ final class SqlFormatter
     private function renderWithClause(array $ctes, int $depth): string
     {
         $ind = str_repeat($this->options->indent, $depth);
-        $innerInd = $ind . $this->options->indent;
 
         $parts = [];
         foreach ($ctes as $cte) {
+            // Body indented one level deeper; the closing `)` aligns back with
+            // the CTE header (depth level), matching how `renderSource()` renders
+            // nested subqueries. Sibling CTEs join on a single line via `, ` so
+            // the comma sits right after the previous `)` (`), next AS (`).
             $body = $this->formatStatement($cte->query, $depth + 1);
             $parts[] = self::quoteAliasIfNeeded($cte->name) . ' ' . $this->kw('AS') . ' ('
                 . $this->options->newline . $body
-                . $this->options->newline . $innerInd . ')';
+                . $this->options->newline . $ind . ')';
         }
 
-        $separator = ',' . $this->options->newline . $innerInd;
-        return $ind . $this->kw('WITH') . ' ' . implode($separator, $parts);
+        return $ind . $this->kw('WITH') . ' ' . implode(', ', $parts);
     }
 
     private function renderJoin(JoinClauseNode $join, int $depth): string
