@@ -214,4 +214,22 @@ class SqlWithTest extends TestCase
         // Round-trip stability: re-parse and re-format yields identical output.
         $this->assertSame($formatted, SqlProvider::format($formatted));
     }
+
+    public function testRuntimeQueryToStringIncludesWithClause(): void
+    {
+        // After build, the outer Query reads from the materialised CTE stream
+        // (label = "active"). __toString must still surface the WITH clause and
+        // a bare-identifier FROM so the dump reflects the original FQL shape
+        // instead of the post-materialisation `FROM results(memory)` view.
+        $sql = sprintf(
+            'WITH active AS (SELECT id, name FROM json(%s).data.users WHERE id > 0) '
+            . 'SELECT name FROM active',
+            $this->usersJson
+        );
+        $rendered = (string) SqlProvider::compile($sql)->toQuery();
+
+        $this->assertStringContainsString('WITH active AS (', $rendered);
+        $this->assertStringContainsString('FROM active', $rendered);
+        $this->assertStringNotContainsString('results(memory)', $rendered);
+    }
 }

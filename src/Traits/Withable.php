@@ -70,4 +70,24 @@ trait Withable
     {
         return $this->ctes;
     }
+
+    /**
+     * Renders the registered CTEs as a `WITH name AS (...)` clause for inclusion
+     * in {@see \FQL\Query\Query::__toString()}. Returns an empty string when no
+     * CTE is registered, so the caller can concatenate unconditionally.
+     */
+    private function ctesToString(): string
+    {
+        if ($this->ctes === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($this->ctes as $name => $cteQuery) {
+            $body = trim((string) $cteQuery);
+            $parts[] = sprintf("%s %s (\n%s\n)", $name, Interface\Query::AS, $body);
+        }
+
+        return Interface\Query::WITH . ' ' . implode(",\n", $parts) . "\n";
+    }
 }

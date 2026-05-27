@@ -86,19 +86,35 @@ final class QueryBuildingVisitor
      */
     private function buildInternal(SelectStatementNode $ast, ?Interface\Query $override): Interface\Query
     {
-        $cteScopePushed = false;
+        $registry = null;
         if ($ast->commonTables !== []) {
-            $this->cteStack[] = new CteRegistry(
+            $registry = new CteRegistry(
                 $ast->commonTables,
                 $this->cteCounter->count($ast)
             );
-            $cteScopePushed = true;
+            $this->cteStack[] = $registry;
         }
 
         try {
-            return $this->buildBody($ast, $override);
+            $query = $this->buildBody($ast, $override);
+
+            // Attach each referenced CTE definition to the outer Query so its
+            // __toString() renders the original `WITH name AS (...) ...` shape
+            // rather than the post-materialisation `FROM results(memory)` form.
+            // Unreferenced CTEs are skipped (they have no resolved body and
+            // wouldn't appear in the original FQL run anyway).
+            if ($registry !== null) {
+                foreach ($ast->commonTables as $cte) {
+                    $body = $registry->resolvedBody($cte->name);
+                    if ($body !== null) {
+                        $query->with($cte->name, $body);
+                    }
+                }
+            }
+
+            return $query;
         } finally {
-            if ($cteScopePushed) {
+            if ($registry !== null) {
                 array_pop($this->cteStack);
             }
         }

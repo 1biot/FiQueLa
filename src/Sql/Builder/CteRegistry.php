@@ -53,6 +53,16 @@ final class CteRegistry
     /** @var array<string, Interface\Stream> */
     private array $materialized = [];
 
+    /**
+     * Cache of the pre-materialisation CTE body Queries, keyed by CTE name.
+     * Populated lazily by {@see resolve()} on the first resolution of each name
+     * so {@see QueryBuildingVisitor} can attach them to the outer Query for
+     * toString fidelity (WITH clause rendering) without rebuilding the bodies.
+     *
+     * @var array<string, Interface\Query>
+     */
+    private array $resolvedBodies = [];
+
     /** @var array<string, true> */
     private array $resolving = [];
 
@@ -116,7 +126,9 @@ final class CteRegistry
             $this->guardCycle($name);
             $this->resolving[$name] = true;
             try {
-                return $builder($definition);
+                $body = $builder($definition);
+                $this->resolvedBodies[$name] ??= $body;
+                return $body;
             } finally {
                 unset($this->resolving[$name]);
             }
@@ -126,13 +138,29 @@ final class CteRegistry
         $this->resolving[$name] = true;
         try {
             $query = $builder($definition);
+            $this->resolvedBodies[$name] ??= $query;
             /** @var array<int, array<int|string, array<int|string, mixed>|bool|float|int|string|null>> $rows */
             $rows = iterator_to_array($query->execute()->fetchAll(), false);
-            $this->materialized[$name] = new ResultStreamProvider(new \ArrayIterator($rows));
+            // Tag the stream with the CTE name so consuming Query toString renders
+            // `FROM <name>` instead of the generic `FROM results(memory)`. The
+            // resulting SQL round-trips through the parser thanks to the WITH
+            // clause that {@see QueryBuildingVisitor} attaches to the outer Query.
+            $this->materialized[$name] = new ResultStreamProvider(new \ArrayIterator($rows), $name);
         } finally {
             unset($this->resolving[$name]);
         }
         return $this->openMaterialisedQuery($name);
+    }
+
+    /**
+     * Returns the pre-materialisation CTE body Query if it was ever resolved,
+     * or null otherwise. Used by {@see QueryBuildingVisitor} to attach CTE
+     * definitions to the outer Query so toString preserves the original
+     * `WITH` shape.
+     */
+    public function resolvedBody(string $name): ?Interface\Query
+    {
+        return $this->resolvedBodies[$name] ?? null;
     }
 
     /**
