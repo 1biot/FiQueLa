@@ -14,8 +14,11 @@ use FQL\Sql\Token\TokenType;
 final class ClauseBoundary
 {
     /**
-     * True when the token is one of the top-level clause-starting keywords that
-     * terminate the current clause (WHERE ends at GROUP/HAVING/ORDER/LIMIT/etc.).
+     * True when the token terminates the current clause: either a top-level
+     * clause-starting keyword (WHERE ends at GROUP/HAVING/ORDER/LIMIT/etc.) or
+     * a structural boundary — `PAREN_CLOSE` closes a subquery / CTE body and
+     * implicitly ends the last clause inside it, EOF ends the top-level
+     * statement.
      */
     public static function isControlKeyword(Token $token): bool
     {
@@ -34,6 +37,7 @@ final class ClauseBoundary
             TokenType::KEYWORD_RIGHT,
             TokenType::KEYWORD_FULL,
             TokenType::KEYWORD_JOIN,
+            TokenType::PAREN_CLOSE,
             TokenType::EOF => true,
             default => false,
         };

@@ -171,4 +171,37 @@ class SqlSubqueryJoinTest extends TestCase
 
         $this->assertCount(4, $rows);
     }
+
+    public function testFromSubqueryAcceptsOrderByBeforeClosingParen(): void
+    {
+        // Regression: ClauseBoundary::isControlKeyword() now lists PAREN_CLOSE
+        // as a clause terminator, so ORDER BY immediately before `)` parses
+        // cleanly inside a subquery (previously threw "expected comma or end
+        // of clause").
+        $sql = sprintf(
+            'SELECT * FROM (SELECT id, name FROM json(%s).data.users ORDER BY id DESC) AS s LIMIT 2',
+            $this->usersJson
+        );
+
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertCount(2, $rows);
+        // First row must be the highest id (ORDER BY id DESC inside the subquery).
+        $this->assertGreaterThan($rows[1]['id'], $rows[0]['id']);
+    }
+
+    public function testJoinSubqueryAcceptsGroupByBeforeClosingParen(): void
+    {
+        $sql = sprintf(
+            'SELECT u.id FROM json(%s).data.users AS u '
+            . 'INNER JOIN (SELECT id FROM json(%s).data.users GROUP BY id) AS s ON id = s.id LIMIT 2',
+            $this->usersJson,
+            $this->usersJson
+        );
+
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertCount(2, $rows);
+        $this->assertArrayHasKey('u.id', $rows[0]);
+    }
 }
