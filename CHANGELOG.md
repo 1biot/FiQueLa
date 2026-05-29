@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.2.1]
+
+> Long-standing parser bug surfaced by the new `WITH` clause: `ORDER BY` /
+> `GROUP BY` placed immediately before the closing `)` of a subquery or CTE
+> body now parses cleanly. Pure bug fix, no API changes.
+
+### Fixed
+
+- **`ORDER BY` / `GROUP BY` immediately before a closing `)` in a subquery or
+  CTE body** (e.g. `WITH cte AS (SELECT ... GROUP BY x ORDER BY y DESC) SELECT ...`)
+  no longer throws a spurious `Unexpected PAREN_CLOSE ... expected comma or
+  end of clause`. Root cause was that `ClauseBoundary::isControlKeyword()`
+  treated only top-level clause keywords and `EOF` as terminators, while the
+  *after-loop boundary check* in `OrderByClauseParser` and `GroupByClauseParser`
+  also needs to accept `PAREN_CLOSE` when running inside a nested statement.
+  The fix lists `PAREN_CLOSE` alongside `EOF` in the boundary predicate; the
+  affected parsers are unchanged. Bug pre-dates the WITH work but is surfaced
+  more easily by CTE bodies that naturally end in `ORDER BY x DESC)` /
+  `GROUP BY x)`. Regression tests cover both subquery and CTE positions
+  (`tests/SQL/SqlSubqueryJoinTest.php`, `tests/SQL/SqlWithTest.php`).
+
 ## [3.2.0]
 
 > Top-level `WITH name AS (...)` Common Table Expressions — a single `WITH`

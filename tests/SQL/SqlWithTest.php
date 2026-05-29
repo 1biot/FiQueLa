@@ -215,6 +215,54 @@ class SqlWithTest extends TestCase
         $this->assertSame($formatted, SqlProvider::format($formatted));
     }
 
+    public function testCteBodyAcceptsOrderByBeforeClosingParen(): void
+    {
+        // Regression for the bug surfaced by users hitting `ORDER BY ... )` —
+        // ClauseBoundary::isControlKeyword() previously didn't list PAREN_CLOSE
+        // as a clause terminator, so ORDER BY inside a CTE body failed with
+        // "expected comma or end of clause".
+        $sql = sprintf(
+            'WITH top AS (SELECT id, name FROM json(%s).data.users WHERE id > 0 ORDER BY id DESC) '
+            . 'SELECT name FROM top LIMIT 2',
+            $this->usersJson
+        );
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertCount(2, $rows);
+        $this->assertSame(['John Doe 4', 'John Doe 3'], array_column($rows, 'name'));
+    }
+
+    public function testCteBodyAcceptsGroupByBeforeClosingParen(): void
+    {
+        $sql = sprintf(
+            'WITH grouped AS (SELECT id FROM json(%s).data.users GROUP BY id) '
+            . 'SELECT * FROM grouped LIMIT 2',
+            $this->usersJson
+        );
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertCount(2, $rows);
+        $this->assertArrayHasKey('id', $rows[0]);
+    }
+
+    public function testCteBodyAcceptsGroupByThenOrderBy(): void
+    {
+        // Exact shape of the user's repro: SELECT ... GROUP BY ... ORDER BY ... DESC
+        // immediately before the closing CTE paren.
+        $sql = sprintf(
+            'WITH top AS (SELECT id, name FROM json(%s).data.users GROUP BY id ORDER BY id DESC) '
+            . 'SELECT * FROM top LIMIT 3',
+            $this->usersJson
+        );
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertCount(3, $rows);
+        $ids = array_column($rows, 'id');
+        $this->assertSame($ids, array_values(array_reverse(array_unique(array_reverse(array_column($rows, 'id'))))));
+        // Sanity: DESC order means the first id is greater than the last.
+        $this->assertGreaterThan(end($ids), $ids[0]);
+    }
+
     public function testRuntimeQueryToStringIncludesWithClause(): void
     {
         // After build, the outer Query reads from the materialised CTE stream
