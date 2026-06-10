@@ -1,5 +1,30 @@
 # Changelog
 
+## [3.2.2]
+
+> Faster `ORDER BY`: the sort keys are now evaluated once per row instead of on
+> every comparison. With `LIMIT`, a bounded Top-N heap also caps peak memory at
+> O(offset + limit) instead of O(N). Output is unchanged.
+
+### Changed
+
+- **`ORDER BY ... LIMIT` uses a bounded Top-N heap** (`FQL\Results\BoundedSortHeap`)
+  instead of buffering and sorting the whole stream. Peak memory drops from O(N)
+  to O(offset + limit) — a `LIMIT 10` over a huge source keeps ~10 rows, not all
+  of them. A stable insertion-order tie-break keeps the output identical to the
+  old `usort()` path (incl. multi-key and mixed `ASC`/`DESC`).
+- **`ORDER BY` without `LIMIT` evaluates the keys once per row** (decorate-sort-
+  undecorate) and sorts a permutation of indices, instead of re-evaluating the
+  expressions inside the comparator. Same memory, much faster (~6× on 1M rows).
+  Output identical — `usort` is stable on PHP 8+. Key extraction is shared with
+  the bounded path via `compileOrderings()` / `evaluateOrderKeys()`.
+
+### Added
+
+- **`FQL\Results\BoundedSortHeap`** — fixed-capacity Top-N heap for the bounded
+  sort path. Covered by `tests/Results/BoundedSortHeapTest.php` (targeted cases
+  plus 60 randomized scenarios cross-checked against `usort` + `array_slice`).
+
 ## [3.2.1]
 
 > Long-standing parser bug surfaced by the new `WITH` clause: `ORDER BY` /

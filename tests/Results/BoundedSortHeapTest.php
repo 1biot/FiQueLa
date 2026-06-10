@@ -1,6 +1,6 @@
 <?php
 
-namespace FQL\Tests\Results;
+namespace Results;
 
 use FQL\Enum\Sort;
 use FQL\Results\BoundedSortHeap;

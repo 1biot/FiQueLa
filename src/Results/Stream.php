@@ -10,7 +10,6 @@ use FQL\Interface\Aggregable;
 use FQL\Interface\JoinHashmap;
 use FQL\Interface\Query;
 use FQL\Query\FileQuery;
-use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Stream\Csv;
 use FQL\Stream\Json;
 use FQL\Stream\JsonStream;
@@ -58,8 +57,8 @@ class Stream extends ResultsProvider implements Aggregable
      * @param array<string, SelectedField> $selectedFields
      * @param string[] $excludedFields
      * @param JoinAbleArray[] $joins
-     * @param array<int, ExpressionNode> $groupByFields
-     * @param array<int, array{expression: ExpressionNode, sort: Enum\Sort}> $orderings
+     * @param array<int, \FQL\Sql\Ast\Expression\ExpressionNode> $groupByFields
+     * @param array<int, array{expression: \FQL\Sql\Ast\Expression\ExpressionNode, sort: Enum\Sort}> $orderings
      */
     public function __construct(
         private readonly \FQL\Interface\Stream $stream,
@@ -104,11 +103,11 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      * @throws Exception\UnableOpenFileException
      */
-    public function getIterator(): Traversable
+    public function getIterator(): \Traversable
     {
         yield from $this->buildStream();
     }
@@ -274,9 +273,9 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @return Traversable<StreamProviderArrayIteratorValue>
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      */
-    private function applyStreamSource(?int $streamIdx = null): Traversable
+    private function applyStreamSource(?int $streamIdx = null): \Traversable
     {
         $streamSource = $this->from === Query::SELECT_ALL
             ? null
@@ -290,9 +289,9 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyStreamSourceInstrumented(?string $streamSource, int $streamIdx): Traversable
+    private function applyStreamSourceInstrumented(?string $streamSource, int $streamIdx): \Traversable
     {
         assert($this->collector !== null);
         $this->collector->startTimer($streamIdx);
@@ -307,10 +306,10 @@ class Stream extends ResultsProvider implements Aggregable
 
     /**
      * Wraps stream items with FROM alias namespace when alias is set.
-     * @param Traversable<StreamProviderArrayIteratorValue> $stream
-     * @return Traversable<StreamProviderArrayIteratorValue>
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      */
-    private function wrapWithFromAlias(Traversable $stream): Traversable
+    private function wrapWithFromAlias(Traversable $stream): \Traversable
     {
         if ($this->fromAlias === null) {
             return $stream;
@@ -383,7 +382,7 @@ class Stream extends ResultsProvider implements Aggregable
         if ($this->groupByFields !== []) {
             $compiler = new \FQL\Sql\Builder\ExpressionCompiler();
             $labels = array_map(
-                static fn (ExpressionNode $f): string => $compiler->renderExpression($f),
+                static fn (\FQL\Sql\Ast\Expression\ExpressionNode $f): string => $compiler->renderExpression($f),
                 $this->groupByFields
             );
             return sprintf('group by %s', implode(', ', $labels));
@@ -429,11 +428,11 @@ class Stream extends ResultsProvider implements Aggregable
 
     /**
      * Applies all defined joins to the dataset.
-     * @param Traversable<StreamProviderArrayIteratorValue> $data The primary data to join.
+     * @param \Traversable<StreamProviderArrayIteratorValue> $data The primary data to join.
      * @param int[] $joinIndices Pre-allocated collector indices for each join.
-     * @return Traversable<StreamProviderArrayIteratorValue> The joined dataset.
+     * @return \Traversable<StreamProviderArrayIteratorValue> The joined dataset.
      */
-    private function applyJoins(Traversable $data, array $joinIndices = []): Traversable
+    private function applyJoins(\Traversable $data, array $joinIndices = []): \Traversable
     {
         foreach ($this->joins as $i => $join) {
             $data = $this->applyJoinInstrumented($data, $join, $joinIndices[$i] ?? null);
@@ -443,12 +442,12 @@ class Stream extends ResultsProvider implements Aggregable
 
     /**
      * Wraps applyJoin with collector instrumentation.
-     * @param Traversable<StreamProviderArrayIteratorValue> $leftData
+     * @param \Traversable<StreamProviderArrayIteratorValue> $leftData
      * @param JoinAbleArray $join
      * @param int|null $joinIdx Pre-allocated collector index for this join phase.
-     * @return Traversable<StreamProviderArrayIteratorValue>
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      */
-    private function applyJoinInstrumented(Traversable $leftData, array $join, ?int $joinIdx = null): Traversable
+    private function applyJoinInstrumented(\Traversable $leftData, array $join, ?int $joinIdx = null): \Traversable
     {
         if ($this->collector === null || $joinIdx === null) {
             yield from $this->applyJoin($leftData, $join);
@@ -459,7 +458,7 @@ class Stream extends ResultsProvider implements Aggregable
 
         // Count input rows
         $c = $this->collector;
-        $countedInput = (function () use ($leftData, $joinIdx, $c): Generator {
+        $countedInput = (function () use ($leftData, $joinIdx, $c): \Generator {
             foreach ($leftData as $item) {
                 $c->incrementIn($joinIdx);
                 yield $item;
@@ -476,11 +475,11 @@ class Stream extends ResultsProvider implements Aggregable
 
     /**
      * Applies a single join to the dataset.
-     * @param Traversable<StreamProviderArrayIteratorValue> $leftData The left dataset.
+     * @param \Traversable<StreamProviderArrayIteratorValue> $leftData The left dataset.
      * @param JoinAbleArray $join The join definition.
-     * @return Traversable<StreamProviderArrayIteratorValue> The resulting dataset after the join.
+     * @return \Traversable<StreamProviderArrayIteratorValue> The resulting dataset after the join.
      */
-    private function applyJoin(Traversable $leftData, array $join): Traversable
+    private function applyJoin(\Traversable $leftData, array $join): \Traversable
     {
         // Always execute right side (needed in any case)
         $rightData = $join['table']->execute(self::class)->getIterator();
@@ -574,11 +573,11 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @implements Traversable<StreamProviderArrayIteratorValue>
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @implements \Traversable<StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      */
-    private function buildStream(): Traversable
+    private function buildStream(): \Traversable
     {
         $c = $this->collector;
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
@@ -648,10 +647,10 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @param Traversable<StreamProviderArrayIteratorValue> $stream
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
+     * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyUnions(Traversable $stream): Traversable
+    private function applyUnions(Traversable $stream): \Traversable
     {
         if ($this->unions === []) {
             yield from $stream;
@@ -660,7 +659,7 @@ class Stream extends ResultsProvider implements Aggregable
 
         $c = $this->collector;
         $seen = [];
-        $emit = function (Traversable $source, bool $deduplicate, ?int $idx) use (&$seen, $c): Generator {
+        $emit = function (\Traversable $source, bool $deduplicate, ?int $idx) use (&$seen, $c): \Generator {
             foreach ($source as $row) {
                 if ($c !== null && $idx !== null) {
                     $c->incrementIn($idx);
@@ -862,19 +861,19 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @param Traversable<StreamProviderArrayIteratorValue> $stream
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @param int|null $whereIdx Pre-allocated collector index for where phase.
      * @param int|null $havingIdx Pre-allocated collector index for having phase.
      * @param int|null $limitIdx Pre-allocated collector index for limit phase (stream limit).
-     * @return Traversable<StreamProviderArrayIteratorValue>
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      */
     private function applyBaseStream(
-        Traversable $stream,
+        \Traversable $stream,
         ?int $whereIdx = null,
         ?int $havingIdx = null,
         ?int $limitIdx = null
-    ): Traversable {
+    ): \Traversable {
         $count = 0;
         $currentOffset = 0;
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
@@ -950,21 +949,21 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @param Traversable<StreamProviderArrayIteratorValue> $stream
+     * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @param int|null $whereIdx Pre-allocated collector index for where phase.
      * @param int|null $groupIdx Pre-allocated collector index for group phase.
      * @param int|null $havingIdx Pre-allocated collector index for having phase.
      * @param int|null $limitIdx Pre-allocated collector index for limit phase (stream limit).
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @return \Generator<StreamProviderArrayIteratorValue>
      * @throws Exception\InvalidArgumentException
      */
     private function applyGrouping(
-        Traversable $stream,
+        \Traversable $stream,
         ?int $whereIdx = null,
         ?int $groupIdx = null,
         ?int $havingIdx = null,
         ?int $limitIdx = null
-    ): Traversable {
+    ): \Traversable {
         $groupedData = [];
         $groupKey = Query::SELECT_ALL;
         $aggregateSpecs = $this->getAggregateSpecs();
@@ -1176,12 +1175,12 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * @param Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
      * @param int|null $sortIdx Pre-allocated collector index for sort phase.
-     * @return Traversable<StreamProviderArrayIteratorValue>
+     * @return \Traversable<StreamProviderArrayIteratorValue>
      * @throws Exception\SortException
      */
-    private function applySorting(Traversable $iterator, ?int $sortIdx = null): Traversable
+    private function applySorting(\Traversable $iterator, ?int $sortIdx = null): \Traversable
     {
         if ($this->orderings === []) {
             return $iterator;
@@ -1214,44 +1213,79 @@ class Stream extends ResultsProvider implements Aggregable
      * {@see usort()}. Used when no upper bound is known (plain ORDER BY, or
      * ORDER BY with OFFSET only).
      *
-     * @param Traversable<StreamProviderArrayIteratorValue> $iterator
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * Decorate-sort-undecorate (a.k.a. Schwartzian transform): the ORDER BY keys
+     * are evaluated once per row, on the very same pass that materialises the
+     * stream, and the comparator then only compares pre-computed scalars instead
+     * of re-evaluating the expressions on every comparison — O(N) key
+     * evaluations rather than O(N log N). usort is stable on PHP 8+, so a full
+     * tie keeps insertion order and the result is identical to the previous
+     * evaluate-in-comparator path.
+     *
+     * To keep the memory overhead small the rows and their keys live in two
+     * parallel arrays and only a permutation of indices is sorted — the bulky
+     * row payloads are never copied. For a single ORDER BY key the keys are a
+     * flat scalar list (no per-row array at all). The path is already O(N) in
+     * memory by definition, so this only adds the key list plus the index
+     * permutation.
+     *
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyFullSort(Traversable $iterator, ?int $sortIdx = null): Generator
+    private function applyFullSort(\Traversable $iterator, ?int $sortIdx = null): \Generator
     {
         $c = $this->collector;
+        $evaluator = $this->expressionEvaluator();
+        [$directions, $expressions] = $this->compileOrderings();
+        $singleKey = count($directions) === 1;
 
+        // Evaluate each row's sort keys once, on the same pass that drains the
+        // stream. Rows and keys go into parallel arrays; for a single key we
+        // store the bare scalar instead of a one-element array, which removes
+        // the per-row PHP array that otherwise dominates the memory overhead.
         $data = [];
+        $keys = [];
         foreach ($iterator as $item) {
             if ($c !== null && $sortIdx !== null) {
                 $c->incrementIn($sortIdx);
             }
             $data[] = $item;
+            $rowKeys = $this->evaluateOrderKeys($expressions, $evaluator, $item);
+            $keys[] = $singleKey ? $rowKeys[0] : $rowKeys;
         }
 
-        $evaluator = $this->expressionEvaluator();
-
-        usort($data, function ($a, $b) use ($evaluator): int {
-            foreach ($this->orderings as $entry) {
-                $valA = $evaluator->evaluate($entry['expression'], $a);
-                $valB = $evaluator->evaluate($entry['expression'], $b);
-                $cmp = match ($entry['sort']) {
-                    Enum\Sort::ASC => ($valA <=> $valB),
-                    Enum\Sort::DESC => ($valB <=> $valA),
-                };
-                if ($cmp !== 0) {
-                    return $cmp;
+        // Sort a permutation of indices rather than the rows themselves. usort
+        // is stable on PHP 8+ and the indices start in insertion order, so a
+        // full tie keeps insertion order — identical ordering to the old path.
+        $indices = array_keys($data);
+        if ($singleKey) {
+            $direction = $directions[0];
+            usort($indices, static fn (int $a, int $b): int => $direction === Enum\Sort::ASC
+                ? ($keys[$a] <=> $keys[$b])
+                : ($keys[$b] <=> $keys[$a]));
+        } else {
+            usort($indices, static function (int $a, int $b) use ($keys, $directions): int {
+                /** @var array<int, mixed> $keysA */
+                $keysA = $keys[$a];
+                /** @var array<int, mixed> $keysB */
+                $keysB = $keys[$b];
+                foreach ($directions as $i => $direction) {
+                    $cmp = $direction === Enum\Sort::ASC
+                        ? ($keysA[$i] <=> $keysB[$i])
+                        : ($keysB[$i] <=> $keysA[$i]);
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            });
+        }
 
-        foreach ($data as $item) {
+        foreach ($indices as $i) {
             if ($c !== null && $sortIdx !== null) {
                 $c->incrementOut($sortIdx);
             }
-            yield $item;
+            yield $data[$i];
         }
     }
 
@@ -1262,24 +1296,14 @@ class Stream extends ResultsProvider implements Aggregable
      * `$capacity` rows, capping memory at O($capacity) instead of O(N). Sort
      * keys are evaluated once per row rather than on every comparison.
      *
-     * @param Traversable<StreamProviderArrayIteratorValue> $iterator
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyBoundedSort(Traversable $iterator, int $capacity, ?int $sortIdx = null): Generator
+    private function applyBoundedSort(\Traversable $iterator, int $capacity, ?int $sortIdx = null): \Generator
     {
         $c = $this->collector;
         $evaluator = $this->expressionEvaluator();
-
-        /** @var array<int, Enum\Sort> $directions */
-        $directions = array_map(
-            static fn (array $entry): Enum\Sort => $entry['sort'],
-            $this->orderings
-        );
-        /** @var array<int, ExpressionNode> $expressions */
-        $expressions = array_map(
-            static fn (array $entry): ExpressionNode => $entry['expression'],
-            $this->orderings
-        );
+        [$directions, $expressions] = $this->compileOrderings();
 
         $heap = new BoundedSortHeap($directions, $capacity);
         foreach ($iterator as $item) {
@@ -1287,12 +1311,7 @@ class Stream extends ResultsProvider implements Aggregable
                 $c->incrementIn($sortIdx);
             }
 
-            $keys = [];
-            foreach ($expressions as $expression) {
-                $keys[] = $evaluator->evaluate($expression, $item);
-            }
-
-            $heap->offer($keys, $item);
+            $heap->offer($this->evaluateOrderKeys($expressions, $evaluator, $item), $item);
         }
 
         foreach ($heap->sorted() as $item) {
@@ -1303,13 +1322,55 @@ class Stream extends ResultsProvider implements Aggregable
         }
     }
 
+    /**
+     * Splits the orderings into parallel direction/expression lists. Shared by
+     * both sort paths so the per-row key extraction lives in exactly one place.
+     *
+     * @return array{
+     *     0: array<int, Enum\Sort>,
+     *     1: array<int, \FQL\Sql\Ast\Expression\ExpressionNode>
+     * }
+     */
+    private function compileOrderings(): array
+    {
+        $directions = [];
+        $expressions = [];
+        foreach ($this->orderings as $entry) {
+            $directions[] = $entry['sort'];
+            $expressions[] = $entry['expression'];
+        }
+
+        return [$directions, $expressions];
+    }
 
     /**
-     * @param Traversable<StreamProviderArrayIteratorValue> $data
-     * @param int|null $limitIdx Pre-allocated collector index for limit phase.
-     * @return Generator<StreamProviderArrayIteratorValue>
+     * Evaluates the ORDER BY sort keys for a single row — once per row, not on
+     * every comparison.
+     *
+     * @param array<int, \FQL\Sql\Ast\Expression\ExpressionNode> $expressions
+     * @param StreamProviderArrayIteratorValue $item
+     * @return array<int, mixed>
      */
-    private function applyLimit(Traversable $data, ?int $limitIdx = null): Generator
+    private function evaluateOrderKeys(
+        array $expressions,
+        \FQL\Sql\Runtime\ExpressionEvaluator $evaluator,
+        array $item
+    ): array {
+        $keys = [];
+        foreach ($expressions as $expression) {
+            $keys[] = $evaluator->evaluate($expression, $item);
+        }
+
+        return $keys;
+    }
+
+
+    /**
+     * @param \Traversable<StreamProviderArrayIteratorValue> $data
+     * @param int|null $limitIdx Pre-allocated collector index for limit phase.
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function applyLimit(\Traversable $data, ?int $limitIdx = null): \Generator
     {
         $count = 0;
         $currentOffset = 0;
