@@ -17,10 +17,7 @@ use FQL\Stream\Neon;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
-use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 use FQL\Utils\InMemoryHashmap;
-use Generator;
-use Traversable;
 
 /**
  * @phpstan-type StreamProviderArrayIteratorValue array<int|string, array<int|string, mixed>|scalar|null>
@@ -309,7 +306,7 @@ class Stream extends ResultsProvider implements Aggregable
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Traversable<StreamProviderArrayIteratorValue>
      */
-    private function wrapWithFromAlias(Traversable $stream): \Traversable
+    private function wrapWithFromAlias(\Traversable $stream): \Traversable
     {
         if ($this->fromAlias === null) {
             return $stream;
@@ -650,7 +647,7 @@ class Stream extends ResultsProvider implements Aggregable
      * @param \Traversable<StreamProviderArrayIteratorValue> $stream
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
-    private function applyUnions(Traversable $stream): \Traversable
+    private function applyUnions(\Traversable $stream): \Traversable
     {
         if ($this->unions === []) {
             yield from $stream;
