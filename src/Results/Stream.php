@@ -17,7 +17,6 @@ use FQL\Stream\Neon;
 use FQL\Stream\Xml;
 use FQL\Stream\Yaml;
 use FQL\Traits;
-use FQL\Traits\Helpers\EnhancedNestedArrayAccessor;
 use FQL\Utils\InMemoryHashmap;
 
 /**
@@ -1190,45 +1189,176 @@ class Stream extends ResultsProvider implements Aggregable
             $c->startTimer($sortIdx);
         }
 
-        $data = [];
-        foreach ($iterator as $item) {
-            if ($c !== null && $sortIdx !== null) {
-                $c->incrementIn($sortIdx);
-            }
-            $data[] = $item;
-        }
-
-        $evaluator = $this->expressionEvaluator();
-
-        usort($data, function ($a, $b) use ($evaluator): int {
-            foreach ($this->orderings as $entry) {
-                $valA = $evaluator->evaluate($entry['expression'], $a);
-                $valB = $evaluator->evaluate($entry['expression'], $b);
-                $cmp = match ($entry['sort']) {
-                    Enum\Sort::ASC => ($valA <=> $valB),
-                    Enum\Sort::DESC => ($valB <=> $valA),
-                };
-                if ($cmp !== 0) {
-                    return $cmp;
-                }
-            }
-
-            return 0;
-        });
-
-        if ($c !== null && $sortIdx !== null) {
-            for ($i = 0; $i < count($data); $i++) {
-                $c->incrementOut($sortIdx);
-            }
-        }
-
-        foreach ($data as $item) {
-            yield $item;
+        // When an upper bound is known (ORDER BY ... LIMIT) we only ever emit
+        // the first `offset + limit` rows, so there is no need to materialise
+        // the whole stream just to throw most of it away. A bounded heap keeps
+        // memory at O(offset + limit) instead of O(N). OFFSET-only queries have
+        // no upper bound and fall back to the full in-memory sort.
+        if ($this->limit !== null) {
+            yield from $this->applyBoundedSort($iterator, $this->limit + ($this->offset ?? 0), $sortIdx);
+        } else {
+            yield from $this->applyFullSort($iterator, $sortIdx);
         }
 
         if ($c !== null && $sortIdx !== null) {
             $c->stopTimer($sortIdx);
         }
+    }
+
+    /**
+     * Unbounded sort: materialises the whole stream and sorts it with a stable
+     * {@see usort()}. Used when no upper bound is known (plain ORDER BY, or
+     * ORDER BY with OFFSET only).
+     *
+     * Decorate-sort-undecorate (a.k.a. Schwartzian transform): the ORDER BY keys
+     * are evaluated once per row, on the very same pass that materialises the
+     * stream, and the comparator then only compares pre-computed scalars instead
+     * of re-evaluating the expressions on every comparison — O(N) key
+     * evaluations rather than O(N log N). usort is stable on PHP 8+, so a full
+     * tie keeps insertion order and the result is identical to the previous
+     * evaluate-in-comparator path.
+     *
+     * To keep the memory overhead small the rows and their keys live in two
+     * parallel arrays and only a permutation of indices is sorted — the bulky
+     * row payloads are never copied. For a single ORDER BY key the keys are a
+     * flat scalar list (no per-row array at all). The path is already O(N) in
+     * memory by definition, so this only adds the key list plus the index
+     * permutation.
+     *
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function applyFullSort(\Traversable $iterator, ?int $sortIdx = null): \Generator
+    {
+        $c = $this->collector;
+        $evaluator = $this->expressionEvaluator();
+        [$directions, $expressions] = $this->compileOrderings();
+        $singleKey = count($directions) === 1;
+
+        // Evaluate each row's sort keys once, on the same pass that drains the
+        // stream. Rows and keys go into parallel arrays; for a single key we
+        // store the bare scalar instead of a one-element array, which removes
+        // the per-row PHP array that otherwise dominates the memory overhead.
+        $data = [];
+        $keys = [];
+        foreach ($iterator as $item) {
+            if ($c !== null && $sortIdx !== null) {
+                $c->incrementIn($sortIdx);
+            }
+            $data[] = $item;
+            $rowKeys = $this->evaluateOrderKeys($expressions, $evaluator, $item);
+            $keys[] = $singleKey ? $rowKeys[0] : $rowKeys;
+        }
+
+        // Sort a permutation of indices rather than the rows themselves. usort
+        // is stable on PHP 8+ and the indices start in insertion order, so a
+        // full tie keeps insertion order — identical ordering to the old path.
+        $indices = array_keys($data);
+        if ($singleKey) {
+            $direction = $directions[0];
+            usort($indices, static fn (int $a, int $b): int => $direction === Enum\Sort::ASC
+                ? ($keys[$a] <=> $keys[$b])
+                : ($keys[$b] <=> $keys[$a]));
+        } else {
+            usort($indices, static function (int $a, int $b) use ($keys, $directions): int {
+                /** @var array<int, mixed> $keysA */
+                $keysA = $keys[$a];
+                /** @var array<int, mixed> $keysB */
+                $keysB = $keys[$b];
+                foreach ($directions as $i => $direction) {
+                    $cmp = $direction === Enum\Sort::ASC
+                        ? ($keysA[$i] <=> $keysB[$i])
+                        : ($keysB[$i] <=> $keysA[$i]);
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+                }
+
+                return 0;
+            });
+        }
+
+        foreach ($indices as $i) {
+            if ($c !== null && $sortIdx !== null) {
+                $c->incrementOut($sortIdx);
+            }
+            yield $data[$i];
+        }
+    }
+
+    /**
+     * Top-N sort for bounded queries (ORDER BY ... LIMIT).
+     *
+     * Feeds the stream into a {@see BoundedSortHeap}, which retains at most
+     * `$capacity` rows, capping memory at O($capacity) instead of O(N). Sort
+     * keys are evaluated once per row rather than on every comparison.
+     *
+     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @return \Generator<StreamProviderArrayIteratorValue>
+     */
+    private function applyBoundedSort(\Traversable $iterator, int $capacity, ?int $sortIdx = null): \Generator
+    {
+        $c = $this->collector;
+        $evaluator = $this->expressionEvaluator();
+        [$directions, $expressions] = $this->compileOrderings();
+
+        $heap = new BoundedSortHeap($directions, $capacity);
+        foreach ($iterator as $item) {
+            if ($c !== null && $sortIdx !== null) {
+                $c->incrementIn($sortIdx);
+            }
+
+            $heap->offer($this->evaluateOrderKeys($expressions, $evaluator, $item), $item);
+        }
+
+        foreach ($heap->sorted() as $item) {
+            if ($c !== null && $sortIdx !== null) {
+                $c->incrementOut($sortIdx);
+            }
+            yield $item;
+        }
+    }
+
+    /**
+     * Splits the orderings into parallel direction/expression lists. Shared by
+     * both sort paths so the per-row key extraction lives in exactly one place.
+     *
+     * @return array{
+     *     0: array<int, Enum\Sort>,
+     *     1: array<int, \FQL\Sql\Ast\Expression\ExpressionNode>
+     * }
+     */
+    private function compileOrderings(): array
+    {
+        $directions = [];
+        $expressions = [];
+        foreach ($this->orderings as $entry) {
+            $directions[] = $entry['sort'];
+            $expressions[] = $entry['expression'];
+        }
+
+        return [$directions, $expressions];
+    }
+
+    /**
+     * Evaluates the ORDER BY sort keys for a single row — once per row, not on
+     * every comparison.
+     *
+     * @param array<int, \FQL\Sql\Ast\Expression\ExpressionNode> $expressions
+     * @param StreamProviderArrayIteratorValue $item
+     * @return array<int, mixed>
+     */
+    private function evaluateOrderKeys(
+        array $expressions,
+        \FQL\Sql\Runtime\ExpressionEvaluator $evaluator,
+        array $item
+    ): array {
+        $keys = [];
+        foreach ($expressions as $expression) {
+            $keys[] = $evaluator->evaluate($expression, $item);
+        }
+
+        return $keys;
     }
 
 
