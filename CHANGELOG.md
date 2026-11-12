@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [3.2.5]
 
 > Faster XML reading: records are built directly from `XMLReader` nodes instead
 > of being serialised with `readOuterXml()` and re-parsed by `SimpleXMLElement`.
