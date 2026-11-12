@@ -9,7 +9,6 @@
     "ext-json": "*",
     "ext-mbstring": "*",
     "ext-xmlreader": "*",
-    "ext-simplexml": "*",
     "ext-libxml": "*",
     "ext-iconv": "*",
     "openspout/openspout": "^4.28",

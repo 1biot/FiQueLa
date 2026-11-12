@@ -1,5 +1,65 @@
 # Changelog
 
+## [3.2.5]
+
+> Faster XML reading: records are built directly from `XMLReader` nodes instead
+> of being serialised with `readOuterXml()` and re-parsed by `SimpleXMLElement`.
+> Output for XML without namespaces is unchanged; namespaced XML now mirrors the
+> document (no duplicated children, document order).
+
+### Changed
+
+- **`XmlProvider` builds records straight from `XMLReader`.** Attributes
+  (`@attributes`), repeated siblings, empty / self-closing elements, CDATA,
+  whitespace trimming, text next to children (`value`) and raw string values such
+  as `001` keep the previous shape, types and key order. The path segments are
+  prepared once per stream, only the current record is held in memory and the
+  reader is closed in a `finally` block, also when iteration stops early. The file
+  is read exactly once; there is no SimpleXML path any more.
+- On the `fiquela-benchmarks` `xml_scan` / `xml_where` scenarios (100 000 and
+  1 000 000 rows, JIT off, no Xdebug) the median time drops by 66–69 % (1M rows:
+  29.2 s → 9.0 s and 31.1 s → 9.7 s) with unchanged 4 MiB PHP peak memory, result
+  counts and sampled fingerprints.
+
+### Fixed (output change for namespaced XML)
+
+- **Elements in the default namespace are no longer duplicated.** With
+  `xmlns="…"` every child used to appear twice per nesting level
+  (`<entry><title>T</title></entry>` gave `'title' => ['T', 'T']`); it is now
+  `'title' => 'T'`.
+- **Namespaced elements and attributes keep document order** and the prefix as
+  written in the document (`g:id`, `title`, `g:price`), instead of being moved after
+  the unprefixed ones. Prefixes sharing one namespace URI (`a:n`, `b:n`) no longer
+  receive each other's values.
+- **Namespace declarations (`xmlns`, `xmlns:*`) are not reported** as attributes;
+  `xml:lang` / `xml:space` stay under `@attributes` with their qualified name.
+- **Internal DTD entities are expanded** (`&co;` → `Company & Co`) instead of
+  failing with "String could not be parsed as XML". External entities are never
+  loaded: the stream throws `UnexpectedValueException` ("External XML entities are
+  not supported"). The refusing resolver is active only while the stream reads and
+  the caller's `libxml` entity loader is restored before every yielded record.
+- A malformed record now throws `UnexpectedValueException` with the message
+  "Unable to parse XML record: unexpected end of document.".
+
+Covered by `tests/Stream/XmlProviderEdgesTest.php`.
+
+## [3.2.4]
+
+> Security update of dependencies flagged by `composer audit`. No code changes.
+
+### Security
+
+- **`symfony/yaml` raised to `^7.4.23`** (locked 7.4.6 → 7.4.23): fixes the parser
+  DoS, unbounded recursion, billion laughs and ReDoS advisories.
+- **`squizlabs/php_codesniffer` raised to `^3.13.6`** (dev, 3.13.5 → 3.13.6): fixes
+  the OS command injection advisory.
+
+### Changed
+
+- **The lock file is resolved for PHP 8.2** (`config.platform.php` = `8.2.0`), so
+  `composer install` works on the minimum supported PHP. `openspout/openspout`
+  therefore resolves to 4.28.5 (PHP 8.2–8.4) instead of 4.32.0 (PHP 8.3+).
+
 ## [3.2.3]
 
 > Faster column access: each column path is prepared once per query instead of
