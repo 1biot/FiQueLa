@@ -4,6 +4,8 @@ namespace SQL\Builder;
 
 use FQL\Enum;
 use FQL\Exception;
+use FQL\Interface;
+use FQL\Query\Provider as QueryProvider;
 use FQL\Query\TestProvider;
 use FQL\Sql\Ast\ExplainMode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
@@ -12,6 +14,7 @@ use FQL\Sql\Builder\FileQueryResolver;
 use FQL\Sql\Builder\QueryBuilder;
 use FQL\Sql\Builder\QueryBuildingVisitor;
 use FQL\Sql\Parser\Parser;
+use FQL\Sql\Provider as SqlProvider;
 use FQL\Sql\Token\Position;
 use FQL\Sql\Token\Tokenizer;
 use FQL\Sql\Token\TokenStream;
@@ -177,6 +180,78 @@ class QueryBuilderTest extends TestCase
         // TestProvider is a placeholder, so we're just asserting the apply chain succeeded
         // and the returned Query carries the expected metadata.
         $this->assertNotNull($query);
+    }
+
+    private function productsCsv(): string
+    {
+        return (string) realpath(__DIR__ . '/../../../examples/data/products-utf-8.csv');
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function fetchRows(Interface\Query $query): array
+    {
+        return iterator_to_array($query->execute()->fetchAll());
+    }
+
+    public function testApplyToFromStarTakesRootQuery(): void
+    {
+        $existing = QueryProvider::fromFileQuery(sprintf('csv(%s)', $this->productsCsv()));
+        $query = SqlProvider::compile('SELECT * FROM *')->applyTo($existing);
+
+        $this->assertSame($existing, $query);
+        $this->assertStringContainsString('FROM csv(products-utf-8.csv).*', (string) $query);
+        $this->assertCount(112, $this->fetchRows($query));
+    }
+
+    public function testApplyToFromStarWithAlias(): void
+    {
+        $existing = QueryProvider::fromFileQuery(sprintf('csv(%s)', $this->productsCsv()));
+        $query = SqlProvider::compile('SELECT code FROM * AS t LIMIT 1')->applyTo($existing);
+
+        $this->assertStringContainsString('FROM csv(products-utf-8.csv).* AS t', (string) $query);
+        $rows = $this->fetchRows($query);
+        $this->assertCount(1, $rows);
+        $this->assertSame('$0001', $rows[0]['code']);
+    }
+
+    public function testApplyToFromStarMatchesExplicitFileQuery(): void
+    {
+        $clauses = 'SELECT code, name FROM %s WHERE manufacturer = "Seiko" ORDER BY code DESC LIMIT 3';
+
+        $existing = QueryProvider::fromFileQuery(sprintf('csv(%s)', $this->productsCsv()));
+        $applied = SqlProvider::compile(sprintf($clauses, '*'))->applyTo($existing);
+        $standalone = SqlProvider::compile(sprintf($clauses, sprintf('csv(%s).*', $this->productsCsv())))
+            ->toQuery();
+
+        $expected = $this->fetchRows($standalone);
+        $this->assertNotEmpty($expected);
+        $this->assertLessThanOrEqual(3, count($expected));
+        $this->assertSame($expected, $this->fetchRows($applied));
+    }
+
+    public function testToQueryFromStarWithoutFileThrowsLogicException(): void
+    {
+        $this->expectException(Exception\QueryLogicException::class);
+        $this->expectExceptionMessage('FROM source "*" does not name a file');
+        SqlProvider::compile('SELECT * FROM *')->toQuery();
+    }
+
+    public function testToQueryDescribeStarWithoutFileThrowsLogicException(): void
+    {
+        $this->expectException(Exception\QueryLogicException::class);
+        $this->expectExceptionMessage('FROM source "*" does not name a file');
+        SqlProvider::compile('DESCRIBE *')->toQuery();
+    }
+
+    public function testToQueryFileLessPathSourceThrowsLogicException(): void
+    {
+        $this->expectException(Exception\QueryLogicException::class);
+        $this->expectExceptionMessage(
+            'FROM source "SHOP.SHOPITEM" does not name a file; use format(path).SHOP.SHOPITEM'
+        );
+        SqlProvider::compile('SELECT * FROM SHOP.SHOPITEM')->toQuery();
     }
 
     public function testApplyToHandlesFromlessSql(): void

@@ -37,6 +37,16 @@ class BashHighlighterTest extends TestCase
         $this->assertStringContainsString("\e[1;34mjson(data.json).rows\e[0m", $out);
     }
 
+    public function testWrapsBareStarAfterFromAsFileQuery(): void
+    {
+        $out = $this->highlighter->highlight('SELECT * FROM * WHERE a * b');
+        // FROM * → file query; SELECT * and a * b stay unstyled STAR tokens.
+        $this->assertSame(
+            "\e[1;36mSELECT\e[0m * \e[1;36mFROM\e[0m \e[1;34m*\e[0m \e[1;36mWHERE\e[0m a * b",
+            $out
+        );
+    }
+
     public function testWrapsStringLiteral(): void
     {
         $out = $this->highlighter->highlight("SELECT 'hi' FROM x");

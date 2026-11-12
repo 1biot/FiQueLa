@@ -2,6 +2,7 @@
 
 namespace SQL\Token;
 
+use FQL\Query\FileQuery;
 use FQL\Sql\Parser\ParseException;
 use FQL\Sql\Token\Token;
 use FQL\Sql\Token\Tokenizer;
@@ -490,5 +491,123 @@ class TokenizerTest extends TestCase
         $tokens = $this->tokens('SELECT order-total FROM x');
         $this->assertSame(TokenType::IDENTIFIER, $tokens[1]->type);
         $this->assertSame('order-total', $tokens[1]->value);
+    }
+
+    public function testBareStarAfterFromIsFileQuery(): void
+    {
+        $tokens = $this->tokens('SELECT * FROM *');
+        $this->assertSame(
+            [TokenType::KEYWORD_SELECT, TokenType::STAR, TokenType::KEYWORD_FROM, TokenType::FILE_QUERY, TokenType::EOF],
+            array_map(static fn (Token $t): TokenType => $t->type, $tokens)
+        );
+        $fileQuery = $tokens[3];
+        $this->assertSame('*', $fileQuery->value);
+        $this->assertSame('*', $fileQuery->raw);
+        $this->assertSame(1, $fileQuery->length);
+        $this->assertSame(1, $fileQuery->position->line);
+        $this->assertSame(15, $fileQuery->position->column);
+        $this->assertInstanceOf(FileQuery::class, $fileQuery->metadata);
+        $this->assertNull($fileQuery->metadata->file);
+        $this->assertNull($fileQuery->metadata->format);
+        $this->assertSame('*', $fileQuery->metadata->query);
+    }
+
+    public function testBareStarAfterFromWithAliasAndClauses(): void
+    {
+        $this->assertSame(
+            [
+                TokenType::KEYWORD_SELECT,
+                TokenType::IDENTIFIER,
+                TokenType::KEYWORD_FROM,
+                TokenType::FILE_QUERY,
+                TokenType::KEYWORD_AS,
+                TokenType::IDENTIFIER,
+                TokenType::KEYWORD_WHERE,
+                TokenType::IDENTIFIER,
+                TokenType::OP_GT,
+                TokenType::NUMBER_LITERAL,
+                TokenType::KEYWORD_ORDER,
+                TokenType::KEYWORD_BY,
+                TokenType::IDENTIFIER,
+                TokenType::KEYWORD_DESC,
+                TokenType::KEYWORD_LIMIT,
+                TokenType::NUMBER_LITERAL,
+                TokenType::EOF,
+            ],
+            $this->tokenTypes('SELECT a FROM * AS t WHERE a > 1 ORDER BY a DESC LIMIT 5')
+        );
+    }
+
+    public function testBareStarAfterFromSkipsTrivia(): void
+    {
+        $tokens = $this->tokens("SELECT *\nFROM /* root */\n  *\nLIMIT 1");
+        $this->assertSame(TokenType::FILE_QUERY, $tokens[3]->type);
+        $this->assertSame('*', $tokens[3]->value);
+        $this->assertSame(3, $tokens[3]->position->line);
+        $this->assertSame(3, $tokens[3]->position->column);
+        $this->assertSame(TokenType::KEYWORD_LIMIT, $tokens[4]->type);
+    }
+
+    public function testBareStarAfterDescribeIsFileQuery(): void
+    {
+        $this->assertSame(
+            [TokenType::KEYWORD_DESCRIBE, TokenType::FILE_QUERY, TokenType::EOF],
+            $this->tokenTypes('DESCRIBE *')
+        );
+    }
+
+    public function testBareStarAfterIntoStaysStar(): void
+    {
+        $types = $this->tokenTypes('SELECT * FROM x INTO *');
+        $this->assertSame(TokenType::KEYWORD_INTO, $types[4]);
+        $this->assertSame(TokenType::STAR, $types[5]);
+    }
+
+    public function testBareStarAfterJoinStaysStar(): void
+    {
+        $types = $this->tokenTypes('SELECT * FROM x JOIN * AS j ON a = b');
+        $this->assertSame(TokenType::KEYWORD_JOIN, $types[4]);
+        $this->assertSame(TokenType::STAR, $types[5]);
+    }
+
+    public function testStarFileQueryVariantsAreUnchanged(): void
+    {
+        foreach (['SHOP.SHOPITEM', 'SHOP.*', 'csv(a.csv).*'] as $source) {
+            $tokens = $this->tokens('SELECT * FROM ' . $source);
+            $this->assertSame(TokenType::FILE_QUERY, $tokens[3]->type, $source);
+            $this->assertSame($source, $tokens[3]->value, $source);
+            $this->assertSame(TokenType::EOF, $tokens[4]->type, $source);
+        }
+    }
+
+    public function testStarOutsideFileQueryContextStaysStar(): void
+    {
+        // SELECT *, COUNT(*), multiplication, block comments and EXCLUDE.
+        $tokens = $this->tokens(
+            'SELECT *, COUNT(*) AS c, a * b AS m EXCLUDE secret /* a * b */ FROM x WHERE a * 2 > b'
+        );
+        $stars = array_values(array_filter($tokens, static fn (Token $t): bool => $t->type === TokenType::STAR));
+        $this->assertCount(4, $stars);
+        $this->assertSame(
+            [TokenType::KEYWORD_SELECT, TokenType::STAR, TokenType::COMMA, TokenType::FUNCTION_NAME],
+            array_map(static fn (Token $t): TokenType => $t->type, array_slice($tokens, 0, 4))
+        );
+        $this->assertContains(TokenType::KEYWORD_EXCLUDE, array_map(static fn (Token $t): TokenType => $t->type, $tokens));
+        $fileQueries = array_values(
+            array_filter($tokens, static fn (Token $t): bool => $t->type === TokenType::FILE_QUERY)
+        );
+        $this->assertCount(1, $fileQueries);
+        $this->assertSame('x', $fileQueries[0]->value);
+
+        $all = (new Tokenizer())->tokenize('SELECT a /* a * b */ FROM x');
+        $comments = array_values(array_filter($all, static fn (Token $t): bool => $t->type === TokenType::COMMENT_BLOCK));
+        $this->assertSame('/* a * b */', $comments[0]->raw);
+    }
+
+    public function testFromStarFollowedByMultiplicationInWhere(): void
+    {
+        $types = $this->tokenTypes('SELECT a FROM * WHERE a * b > 2');
+        $this->assertSame(TokenType::FILE_QUERY, $types[3]);
+        $this->assertSame(TokenType::STAR, $types[6]);
     }
 }

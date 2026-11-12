@@ -1,5 +1,34 @@
 # Changelog
 
+## [3.2.6]
+
+> `FROM *` parses again: a bare `*` after `FROM` / `DESCRIBE` is the root-path
+> FileQuery of an already-open stream.
+
+### Fixed
+
+- **`SELECT * FROM *` no longer fails with `Expected FILE_QUERY, got STAR`.** The
+  tokenizer emitted `*` as `STAR` before checking the FILE_QUERY context, so the
+  bare root path (`*` — CSV rows, XLSX/ODS sheet rows, JSON top-level array) was
+  rejected while `SHOP.*` or `csv(a.csv).*` worked. After `FROM` and `DESCRIBE`
+  the `*` is now a `FILE_QUERY` token carrying `FileQuery('*')` (`file = null`,
+  `query = '*'`), so `FROM * AS t` and `FROM *` followed by `WHERE` / `ORDER BY` /
+  `LIMIT` parse and lint cleanly, and the Bash / HTML highlighters colour it as a
+  file query. `SELECT *`, `COUNT(*)`, `a * b`, `/* comments */` and `EXCLUDE` are
+  unaffected.
+- **`Sql\Provider::compile('SELECT * FROM *')->applyTo($query)`** navigates the
+  existing query to the root path (`$query->from('*')`).
+
+### Changed
+
+- **`INTO *` and `JOIN * AS j` stay syntax errors** (`Expected FILE_QUERY, got STAR`):
+  a bare `*` names no file to write to or join with.
+- **A stand-alone `toQuery()` / `build()` of a source without a file**
+  (`FROM *`, `FROM SHOP.SHOPITEM`, `DESCRIBE *`) throws `QueryLogicException`
+  ("FROM source "…" does not name a file; use format(path)… or
+  applyTo($existingQuery)…") instead of `InvalidFormatException`
+  ("Unsupported file format """).
+
 ## [3.2.5]
 
 > Faster XML reading: records are built directly from `XMLReader` nodes instead
