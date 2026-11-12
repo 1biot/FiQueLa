@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.2.3]
+
+> Faster column access: each column path is prepared once per query instead of
+> being re-tokenized for every row. Output is unchanged.
+
+### Changed
+
+- **Column paths are prepared once per query, not per row.**
+  `EnhancedNestedArrayAccessor::accessNestedValue()` now memoises each compiled
+  path on the owning object (expression evaluator, result stream, condition), so
+  `SELECT`, `WHERE`, `ORDER BY` and `JOIN` keys no longer re-tokenize the same
+  path for every row. Simple keys such as `id` or `price` skip tokenization and
+  resolve with a direct lookup; nested, indexed, `[]`, `*` and backticked paths keep
+  the existing token rules. The cache is capped at 1 024 paths per object. On
+  `csv_full_sort` (10 000 rows) `parsePath()` drops from 40 000 calls to 0 and median
+  time from ~124 ms to ~96 ms; `csv_where` and `ndjson_nested` improve by 19–29 %
+  with unchanged peak memory and identical results. Covered by
+  `tests/SQL/Runtime/ColumnPathAccessTest.php`.
+
 ## [3.2.2]
 
 > Faster `ORDER BY`: the sort keys are now evaluated once per row instead of on

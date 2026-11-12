@@ -200,4 +200,63 @@ class EnhancedNestedArrayAccessorTest extends TestCase
         $this->expectExceptionMessage('Field "missing"');
         $this->accessNestedValue(['a' => ['b' => 1]], 'a.missing', true);
     }
+
+    public function testCompiledPathIsReusedAcrossRows(): void
+    {
+        $rows = [
+            ['id' => 1, 'a' => ['b' => 'x'], 'list' => [['v' => 1], ['v' => 2]]],
+            ['id' => 2, 'a' => ['b' => 'y'], 'list' => [['v' => 3]]],
+            ['id' => null, 'a' => ['b' => null], 'list' => []],
+            [],
+        ];
+        $expected = [
+            [1, 'x', [1, 2]],
+            [2, 'y', [3]],
+            // An empty list is treated as associative and wrapped, see isAssoc().
+            [null, null, [null]],
+            [null, null, null],
+        ];
+
+        foreach ([0, 1] as $pass) {
+            foreach ($rows as $index => $row) {
+                $this->assertSame($expected[$index][0], $this->accessNestedValue($row, 'id', false), "pass $pass");
+                $this->assertSame($expected[$index][1], $this->accessNestedValue($row, 'a.b', false), "pass $pass");
+                $this->assertSame($expected[$index][2], $this->accessNestedValue($row, 'list[].v', false), "pass $pass");
+            }
+        }
+    }
+
+    public function testSimpleKeyMatchesTokenizedSemantics(): void
+    {
+        $data = ['0' => 'zero', 'space key' => 1, 'a*b' => 2, 'nullable' => null];
+
+        $this->assertSame('zero', $this->accessNestedValue($data, '0'));
+        $this->assertSame(1, $this->accessNestedValue($data, 'space key'));
+        $this->assertSame(2, $this->accessNestedValue($data, 'a*b'));
+        $this->assertNull($this->accessNestedValue($data, 'nullable'));
+        $this->assertSame(1, $this->accessNestedValue($data, '`space key`'));
+        $this->assertNull($this->accessNestedValue($data, '', false));
+        $this->assertSame($data, $this->accessNestedValue($data, '*'));
+    }
+
+    public function testSimpleMissingKeyThrowsOnEveryAccess(): void
+    {
+        $this->assertNull($this->accessNestedValue(['id' => 1], 'price', false));
+
+        $this->expectException(\FQL\Exception\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Field "price" not found');
+        $this->accessNestedValue(['id' => 1], 'price');
+    }
+
+    public function testInvalidPathThrowsOnRepeatedAccess(): void
+    {
+        foreach ([1, 2] as $attempt) {
+            try {
+                $this->accessNestedValue($this->testArray, '[].a', false);
+                $this->fail("Attempt $attempt should throw");
+            } catch (\FQL\Exception\InvalidArgumentException $e) {
+                $this->assertSame('Invalid path: [] cannot be at the start', $e->getMessage());
+            }
+        }
+    }
 }

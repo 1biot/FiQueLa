@@ -7,6 +7,15 @@ use FQL\Exception\InvalidArgumentException;
 trait EnhancedNestedArrayAccessor
 {
     /**
+     * Compiled paths memoised for the lifetime of the composing object (one evaluator,
+     * one result stream, one condition). A plain string means a simple key that can be
+     * looked up directly; an array holds the tokens produced by parsePath().
+     *
+     * @var array<string, string|array<int, array{key: string, iterate: bool, wildcard: bool}>>
+     */
+    private array $compiledPaths = [];
+
+    /**
      * Access a nested value using dot notation, `escaped.keys`, array iteration with [] and wildcard *.
      *
      * Supports:
@@ -26,7 +35,41 @@ trait EnhancedNestedArrayAccessor
      */
     public function accessNestedValue(array $data, string $field, bool $throwOnMissing = true): mixed
     {
-        return $this->resolvePath($data, $this->parsePath($field), $throwOnMissing);
+        $compiled = $this->compiledPaths[$field] ?? $this->compilePath($field);
+        if (is_string($compiled)) {
+            if (array_key_exists($compiled, $data)) {
+                return $data[$compiled];
+            }
+            if ($throwOnMissing) {
+                throw new InvalidArgumentException(sprintf('Field "%s" not found', $compiled));
+            }
+            return null;
+        }
+
+        return $this->resolvePath($data, $compiled, $throwOnMissing);
+    }
+
+    /**
+     * Prepares a path once so that repeated row access skips tokenization. Paths without
+     * any separator, backtick, iteration or wildcard resolve to a single key, which is
+     * looked up directly with the same semantics as resolvePath().
+     *
+     * @param string $field
+     * @return string|array<int, array{key: string, iterate: bool, wildcard: bool}>
+     * @throws InvalidArgumentException
+     */
+    private function compilePath(string $field): string|array
+    {
+        $compiled = $field !== '' && $field !== '*' && strpbrk($field, '.`[]') === false
+            ? $field
+            : $this->parsePath($field);
+
+        // Bound the cache so dynamically built paths cannot grow it without limit.
+        if (count($this->compiledPaths) < 1024) {
+            $this->compiledPaths[$field] = $compiled;
+        }
+
+        return $compiled;
     }
 
     /**
