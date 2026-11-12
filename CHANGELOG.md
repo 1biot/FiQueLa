@@ -43,6 +43,23 @@
 
 Covered by `tests/Stream/XmlProviderEdgesTest.php`.
 
+## [3.2.4]
+
+> Security update of dependencies flagged by `composer audit`. No code changes.
+
+### Security
+
+- **`symfony/yaml` raised to `^7.4.23`** (locked 7.4.6 → 7.4.23): fixes the parser
+  DoS, unbounded recursion, billion laughs and ReDoS advisories.
+- **`squizlabs/php_codesniffer` raised to `^3.13.6`** (dev, 3.13.5 → 3.13.6): fixes
+  the OS command injection advisory.
+
+### Changed
+
+- **The lock file is resolved for PHP 8.2** (`config.platform.php` = `8.2.0`), so
+  `composer install` works on the minimum supported PHP. `openspout/openspout`
+  therefore resolves to 4.28.5 (PHP 8.2–8.4) instead of 4.32.0 (PHP 8.3+).
+
 ## [3.2.3]
 
 > Faster column access: each column path is prepared once per query instead of
