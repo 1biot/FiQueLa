@@ -37,6 +37,16 @@ class HtmlHighlighterTest extends TestCase
         $this->assertStringContainsString('<span class="fql-file-query">json(data.json)</span>', $out);
     }
 
+    public function testWrapsBareStarAfterFromAsFileQuery(): void
+    {
+        $out = $this->highlighter->highlight('SELECT * FROM *');
+        $this->assertSame(
+            '<span class="fql-keyword">SELECT</span> <span class="fql-punctuation">*</span>'
+            . ' <span class="fql-keyword">FROM</span> <span class="fql-file-query">*</span>',
+            $out
+        );
+    }
+
     public function testEscapesHtmlInStringLiterals(): void
     {
         $out = $this->highlighter->highlight("SELECT '<script>' FROM x");

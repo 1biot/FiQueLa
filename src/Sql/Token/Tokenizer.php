@@ -18,7 +18,9 @@ use FQL\Sql\Parser\ParseException;
  * `FROM`/`INTO`/`DESCRIBE`/`JOIN` keyword the next non-trivia identifier-like
  * sequence is interpreted as a `FILE_QUERY` token (which encapsulates the
  * full `format(path[, args]).query` syntax) rather than a function call or
- * dotted identifier.
+ * dotted identifier. After `FROM`/`DESCRIBE` a bare `*` is also emitted as
+ * `FILE_QUERY` (root path of an already-open stream); after `INTO`/`JOIN` it
+ * stays `STAR`.
  */
 final class Tokenizer
 {
@@ -89,6 +91,9 @@ final class Tokenizer
     /** Whether the next non-trivia token should be parsed as a FILE_QUERY source reference. */
     private bool $expectFileQuery = false;
 
+    /** The keyword that opened the current FILE_QUERY context (FROM/INTO/DESCRIBE/JOIN). */
+    private ?TokenType $fileQueryKeyword = null;
+
     /**
      * @return Token[]
      * @throws ParseException
@@ -102,6 +107,7 @@ final class Tokenizer
         $this->column = 1;
         $this->tokens = [];
         $this->expectFileQuery = false;
+        $this->fileQueryKeyword = null;
 
         while ($this->position < $this->length) {
             $this->scanNext();
@@ -165,6 +171,17 @@ final class Tokenizer
             return;
         }
         if ($char === '*') {
+            // A bare `*` right after FROM / DESCRIBE is the root-path FileQuery
+            // (`FROM *` on an already-open stream: CSV rows, XLSX/ODS sheet rows,
+            // JSON top-level array). INTO and JOIN keep `*` as STAR, so the
+            // parser still reports "Expected FILE_QUERY" there.
+            if ($this->expectFileQuery && $this->allowsBareStarFileQuery()) {
+                $matched = $this->tryMatchFileQuery();
+                if ($matched !== null) {
+                    $this->emitFileQuery($matched, $startOffset, $startLine, $startColumn);
+                    return;
+                }
+            }
             $this->advance();
             $this->emit(TokenType::STAR, '*', '*', $startOffset, $startLine, $startColumn, 1);
             return;
@@ -610,27 +627,7 @@ final class Tokenizer
         if ($this->expectFileQuery) {
             $matched = $this->tryMatchFileQuery();
             if ($matched !== null) {
-                $this->expectFileQuery = false;
-                $startPos = new Position($startOffset, $startLine, $startColumn);
-                $length = strlen($matched);
-                // Lazy-construct FileQuery to expose parsed metadata; tolerate failure.
-                $metadata = null;
-                try {
-                    $metadata = new FileQuery($matched);
-                } catch (Exception\FileQueryException | Exception\InvalidFormatException) {
-                    $metadata = null;
-                }
-                for ($i = 0; $i < $length; $i++) {
-                    $this->advance();
-                }
-                $this->tokens[] = new Token(
-                    TokenType::FILE_QUERY,
-                    $matched,
-                    $matched,
-                    $startPos,
-                    $length,
-                    $metadata
-                );
+                $this->emitFileQuery($matched, $startOffset, $startLine, $startColumn);
                 return;
             }
             // Fall through: not actually a file query, treat as plain identifier
@@ -660,6 +657,7 @@ final class Tokenizer
                 || $type === TokenType::KEYWORD_JOIN
             ) {
                 $this->expectFileQuery = true;
+                $this->fileQueryKeyword = $type;
             }
             return;
         }
@@ -711,6 +709,46 @@ final class Tokenizer
         $this->line = $rollbackLine;
         $this->column = $rollbackColumn;
         $this->scanPathChain($startOffset, $startLine, $startColumn, backtickFirst: false);
+    }
+
+    /**
+     * Emits a FILE_QUERY token for `$matched` (which starts at the current
+     * position), consumes it and closes the FILE_QUERY context.
+     */
+    private function emitFileQuery(string $matched, int $startOffset, int $startLine, int $startColumn): void
+    {
+        $this->expectFileQuery = false;
+        $startPos = new Position($startOffset, $startLine, $startColumn);
+        $length = strlen($matched);
+        // Lazy-construct FileQuery to expose parsed metadata; tolerate failure.
+        $metadata = null;
+        try {
+            $metadata = new FileQuery($matched);
+        } catch (Exception\FileQueryException | Exception\InvalidFormatException) {
+            $metadata = null;
+        }
+        for ($i = 0; $i < $length; $i++) {
+            $this->advance();
+        }
+        $this->tokens[] = new Token(
+            TokenType::FILE_QUERY,
+            $matched,
+            $matched,
+            $startPos,
+            $length,
+            $metadata
+        );
+    }
+
+    /**
+     * A bare `*` source is meaningful only for reading (FROM, DESCRIBE): it
+     * addresses the root of an already-open stream. As an INTO target or a
+     * JOIN source it names no file, so it stays a STAR token there.
+     */
+    private function allowsBareStarFileQuery(): bool
+    {
+        return $this->fileQueryKeyword === TokenType::KEYWORD_FROM
+            || $this->fileQueryKeyword === TokenType::KEYWORD_DESCRIBE;
     }
 
     /**

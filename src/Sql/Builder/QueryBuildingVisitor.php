@@ -206,6 +206,19 @@ final class QueryBuildingVisitor
                 . ' use applyTo($existingQuery) for FROM-less SQL fragments'
             );
         }
+        // `FROM *` / `FROM SHOP.ITEM` (no `format(file)` prefix) only navigate inside
+        // an already-open stream — there is nothing to open in a stand-alone build.
+        $source = $ast->from->source;
+        if ($source instanceof FileQueryNode && $source->fileQuery->file === null) {
+            throw new Exception\QueryLogicException(
+                sprintf(
+                    'FROM source "%s" does not name a file; use format(path)%s for a stand-alone'
+                    . ' build() or applyTo($existingQuery) to query an already-open stream',
+                    $source->raw,
+                    $source->fileQuery->query !== null ? '.' . $source->fileQuery->query : ''
+                )
+            );
+        }
         // FROM position must materialise CTE references — the outer SELECT/WHERE/etc
         // are merged into the returned Query, and an inline CTE body would leave its
         // own SELECT fields on the same instance (collision risk).

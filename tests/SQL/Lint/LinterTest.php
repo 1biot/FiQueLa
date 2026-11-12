@@ -29,6 +29,48 @@ class LinterTest extends TestCase
         $this->assertNotNull($issue->position);
     }
 
+    public function testFromStarIsClean(): void
+    {
+        foreach (
+            [
+                'SELECT * FROM *',
+                'SELECT * FROM * AS t',
+                'SELECT name FROM * WHERE price > 100 ORDER BY price DESC LIMIT 5',
+                'DESCRIBE *',
+                'SELECT * FROM SHOP.SHOPITEM',
+                'SELECT * FROM SHOP.*',
+                'SELECT * FROM csv(a.csv).*',
+            ] as $sql
+        ) {
+            $report = Provider::lint($sql);
+            $this->assertFalse($report->hasErrors(), $sql);
+            $this->assertCount(0, $report, $sql);
+        }
+    }
+
+    public function testFromStarWithFilesystemCheckIsClean(): void
+    {
+        // No file to verify — the filesystem rule must not trip on a file-less source.
+        $this->assertCount(0, Provider::lint('SELECT * FROM *', checkFilesystem: true));
+    }
+
+    public function testIntoAndJoinStarAreSyntaxErrors(): void
+    {
+        $cases = [
+            'SELECT * FROM json(a.json).data INTO *' => 38,
+            'SELECT * FROM json(a.json).data JOIN * AS j ON id = j.id' => 38,
+        ];
+        foreach ($cases as $sql => $column) {
+            $report = Provider::lint($sql);
+            $this->assertCount(1, $report, $sql);
+            $issue = $report->issues[0];
+            $this->assertSame('syntax-error', $issue->rule, $sql);
+            $this->assertSame(Severity::ERROR, $issue->severity, $sql);
+            $this->assertStringContainsString('Expected FILE_QUERY, got STAR ("*")', $issue->message, $sql);
+            $this->assertSame($column, $issue->position?->column, $sql);
+        }
+    }
+
     public function testUnknownFunction(): void
     {
         $report = Provider::lint('SELECT LOEWR(name) FROM json(products.json)');
