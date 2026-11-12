@@ -59,7 +59,7 @@ LIMIT 10
 composer require 1biot/fiquela
 ```
 
-Requires PHP 8.2+ with `ext-fileinfo`, `ext-json`,  `ext-mbstring`, `ext-xmlreader`, `ext-simplexml`, `ext-libxml` and
+Requires PHP 8.2+ with `ext-fileinfo`, `ext-json`,  `ext-mbstring`, `ext-xmlreader`, `ext-libxml` and
 `ext-iconv`.
 
 ---

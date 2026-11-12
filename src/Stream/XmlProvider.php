@@ -13,6 +13,8 @@ use Traversable;
  */
 abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
 {
+    private const XMLNS_NAMESPACE = 'http://www.w3.org/2000/xmlns/';
+
     private ?string $inputEncoding = null;
 
     protected function __construct(private readonly string $xmlFilePath)
@@ -41,126 +43,213 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
     }
 
     /**
+     * Streams matching records one by one, built directly from `XMLReader`
+     * nodes (see `readRecord()`). Only the current record is held in memory.
+     *
+     * Internal DTD entities are expanded. External entities are never loaded:
+     * while the generator runs, a resolver that refuses them is installed and
+     * the previous resolver is restored before every `yield`, so code running
+     * between records is not affected.
+     *
      * @throws Exception\UnexpectedValueException
      * @throws Exception\UnableOpenFileException
      */
     public function getStreamGenerator(?string $query): \Generator
     {
         $query = $query ?? Interface\Query::FROM_ALL;
+        $depth = substr_count($query, '.');
+        $matchAll = $query === Interface\Query::FROM_ALL;
+        $names = $query === '' ? [] : array_fill_keys(explode('.', $query), true);
 
+        $blockedEntity = null;
+        $entityGuard = static function (?string $publicId, string $systemId) use (&$blockedEntity) {
+            $blockedEntity ??= $systemId;
+            return null;
+        };
+
+        $xmlReader = $this->openReader();
+        $previousLoader = libxml_get_external_entity_loader();
+        libxml_set_external_entity_loader($entityGuard);
+        $guarded = true;
+        try {
+            while ($this->moveToNextRecord($xmlReader, $depth, $matchAll, $names)) {
+                $record = $this->readRecord($xmlReader);
+                if ($blockedEntity !== null) {
+                    throw new Exception\UnexpectedValueException(
+                        sprintf('External XML entities are not supported: %s', $blockedEntity)
+                    );
+                }
+
+                libxml_set_external_entity_loader($previousLoader);
+                $guarded = false;
+                yield $record;
+                $previousLoader = libxml_get_external_entity_loader();
+                libxml_set_external_entity_loader($entityGuard);
+                $guarded = true;
+            }
+            if ($blockedEntity !== null) {
+                throw new Exception\UnexpectedValueException(
+                    sprintf('External XML entities are not supported: %s', $blockedEntity)
+                );
+            }
+        } finally {
+            if ($guarded) {
+                libxml_set_external_entity_loader($previousLoader);
+            }
+            $xmlReader->close();
+        }
+    }
+
+    /**
+     * @throws Exception\UnableOpenFileException
+     */
+    private function openReader(): \XMLReader
+    {
         $xmlReader = \XMLReader::open($this->xmlFilePath, $this->inputEncoding);
         if (!$xmlReader) {
             throw new Exception\UnableOpenFileException('Unable to open XML file.');
         }
-
-        $depth = substr_count($query, '.');
-        while ($xmlReader->read()) {
-            if ($this->isReadValid($xmlReader, $query, $depth)) {
-                try {
-                    yield $this->itemToArray(
-                        new \SimpleXMLElement($xmlReader->readOuterXml(), LIBXML_NOCDATA)
-                    );
-                } catch (\Exception $e) {
-                    throw new Exception\UnexpectedValueException($e->getMessage());
-                }
-            }
-        }
-        $xmlReader->close();
-    }
-
-    private function isReadValid(\XMLReader $xmlReader, string $query, int $depth): bool
-    {
-        return $xmlReader->nodeType == \XMLReader::ELEMENT
-            && (
-                $query !== ''
-                && in_array($xmlReader->localName, explode('.', $query))
-                || $query === Interface\Query::FROM_ALL
-            ) && $xmlReader->depth === $depth;
+        $xmlReader->setParserProperty(\XMLReader::SUBST_ENTITIES, true);
+        return $xmlReader;
     }
 
     /**
-     * Converts a `SimpleXMLElement` to its array representation. Leaves every
-     * textual value (attribute, child text, leaf value) as a raw string —
-     * downstream coercion happens lazily in `Enum\Operator::evaluate()` when
-     * the value is compared or in `Sql\Runtime\ExpressionEvaluator` when it
-     * enters an arithmetic / CAST expression. Previously this method invoked
-     * `Type::matchByString()` per attribute and per text node, which on real
-     * XML feeds (tens of thousands of rows, many attributes each) burned
-     * seconds in regex + `is_numeric` probes with zero benefit when the
-     * query only touched a handful of fields.
+     * Advances the reader to the next element selected by the query: an
+     * element at the query depth whose local name is one of the query path
+     * segments (or any element at depth 0 for `*`).
      *
-     * @param \SimpleXMLElement $element
-     * @return string|StreamProviderArrayIteratorValue
+     * @param array<string, true> $names
      */
-    private function itemToArray(\SimpleXMLElement $element): string|array
+    private function moveToNextRecord(\XMLReader $xmlReader, int $depth, bool $matchAll, array $names): bool
     {
-        $result = [];
-
-        // Attributes — cast to string (SimpleXMLElement wraps them), no typing.
-        foreach ($element->attributes() as $attributeName => $attributeValue) {
-            $result['@attributes'][$attributeName] = (string) $attributeValue;
-        }
-
-        // Attributes with namespaces — same treatment.
-        foreach ($element->getNamespaces(true) as $prefix => $namespace) {
-            foreach ($element->attributes($namespace) as $attributeName => $attributeValue) {
-                $key = $prefix ? "{$prefix}:{$attributeName}" : $attributeName;
-                $result['@attributes'][$key] = (string) $attributeValue;
+        while ($xmlReader->read()) {
+            if (
+                $xmlReader->nodeType === \XMLReader::ELEMENT
+                && $xmlReader->depth === $depth
+                && ($matchAll || isset($names[$xmlReader->localName]))
+            ) {
+                return true;
             }
         }
+        return false;
+    }
 
-        // Child elements — recurse; leaf children return a plain string which
-        // is stored as-is (no `matchByString`).
-        foreach ($element->children() as $childName => $childElement) {
-            $childArray = $this->itemToArray($childElement);
-            if (isset($result[$childName])) {
-                if (!is_array($result[$childName]) || !isset($result[$childName][0])) {
-                    $result[$childName] = [$result[$childName]];
-                }
-                $result[$childName][] = $childArray;
-            } else {
-                $result[$childName] = $childArray;
-            }
-        }
+    /**
+     * Builds the PHP value of the record the reader is positioned on, reading
+     * its nodes directly, and leaves the reader on the record's end tag (or on
+     * the record itself when it is self-closing), so the next `read()`
+     * continues right after the record.
+     *
+     * Shape:
+     * - element and attribute keys are the qualified names as written in the
+     *   document (`title`, `g:price`, `xml:lang`), in document order;
+     *   namespace declarations (`xmlns`, `xmlns:*`) are not data and are skipped;
+     * - attributes go under `@attributes`, all values stay raw strings —
+     *   downstream coercion happens lazily in `Enum\Operator::evaluate()` /
+     *   `Sql\Runtime\ExpressionEvaluator`;
+     * - repeated siblings collapse into a list;
+     * - a leaf element (no attributes, no children) is its trimmed text, the
+     *   empty string for `<foo/>` / `<foo></foo>` (so `IS NULL` / `= ''` match);
+     * - text next to children or attributes is stored trimmed under `value`;
+     * - CDATA is treated as text, comments and processing instructions are ignored.
+     *
+     * @return string|StreamProviderArrayIteratorValue
+     * @throws Exception\UnexpectedValueException
+     */
+    private function readRecord(\XMLReader $xmlReader): string|array
+    {
+        /** @var array<int, array<string, mixed>> $results */
+        $results = [];
+        /** @var string[] $texts */
+        $texts = [];
+        /** @var string[] $names */
+        $names = [];
+        $level = -1;
 
-        // Child elements with namespaces.
-        foreach ($element->getNamespaces(true) as $prefix => $namespace) {
-            foreach ($element->children($namespace) as $childName => $childElement) {
-                $key = $prefix ? "{$prefix}:{$childName}" : $childName;
-                $childArray = $this->itemToArray($childElement);
-                if (isset($result[$key])) {
-                    if (!is_array($result[$key]) || !isset($result[$key][0])) {
-                        $result[$key] = [$result[$key]];
+        do {
+            switch ($xmlReader->nodeType) {
+                case \XMLReader::ELEMENT:
+                    $result = [];
+                    if ($xmlReader->hasAttributes) {
+                        while ($xmlReader->moveToNextAttribute()) {
+                            if ($xmlReader->namespaceURI !== self::XMLNS_NAMESPACE) {
+                                $result['@attributes'][$xmlReader->name] = $xmlReader->value;
+                            }
+                        }
+                        $xmlReader->moveToElement();
                     }
-                    $result[$key][] = $childArray;
-                } else {
-                    $result[$key] = $childArray;
-                }
+
+                    if (!$xmlReader->isEmptyElement) {
+                        $level++;
+                        $results[$level] = $result;
+                        $texts[$level] = '';
+                        $names[$level] = $xmlReader->name;
+                        break;
+                    }
+
+                    // Self-closing element: no text, finalize right away.
+                    $value = $result === [] ? '' : $result;
+                    if ($level < 0) {
+                        return $value;
+                    }
+                    $this->appendChild($results[$level], $xmlReader->name, $value);
+                    break;
+
+                case \XMLReader::TEXT:
+                case \XMLReader::CDATA:
+                case \XMLReader::WHITESPACE:
+                case \XMLReader::SIGNIFICANT_WHITESPACE:
+                    $texts[$level] .= $xmlReader->value;
+                    break;
+
+                case \XMLReader::END_ELEMENT:
+                    $result = $results[$level];
+                    $text = trim($texts[$level]);
+                    if ($result === []) {
+                        $value = $text;
+                    } else {
+                        if ($text !== '') {
+                            $result['value'] = $text;
+                        }
+                        $value = $result;
+                    }
+
+                    if ($level === 0) {
+                        return $value;
+                    }
+
+                    $name = $names[$level];
+                    unset($results[$level], $texts[$level], $names[$level]);
+                    $level--;
+                    $this->appendChild($results[$level], $name, $value);
+                    break;
+
+                default:
+                    // Comments, processing instructions, entity boundaries — not data.
+                    break;
             }
-        }
+        } while ($xmlReader->read());
 
-        // Leaf element — no attributes, no children. Return the textual value
-        // verbatim, including the empty string for `<foo/>` / `<foo></foo>`.
-        // The empty leaf used to surface as `[]`, which forced consumers to
-        // probe with `IS ARRAY` / `is_array()` instead of the natural
-        // `IS NULL` / `= ''` and broke comparisons that expect a scalar
-        // (`IF(field IS ARRAY, ...)` was the canonical workaround). Empty
-        // string is the semantically right shape for an absent value:
-        // - `IS NULL` matches it (Operator::evaluateIs treats '' as null);
-        // - `= ''` matches it directly;
-        // - SQL-style IF/CASE branches on it like on any other string.
-        $value = trim((string) $element);
-        if (empty($result)) {
-            return $value;
-        }
+        throw new Exception\UnexpectedValueException('Unable to parse XML record: unexpected end of document.');
+    }
 
-        // Mixed content (children/attributes + text) — record the text under
-        // the sentinel key `value` as a raw string.
-        if ($value !== '') {
-            $result['value'] = $value;
+    /**
+     * Adds a child value under `$name`; a repeated sibling turns the entry
+     * into a list.
+     *
+     * @param array<string, mixed> $result
+     * @param string|array<string, mixed> $child
+     */
+    private function appendChild(array &$result, string $name, string|array $child): void
+    {
+        if (isset($result[$name])) {
+            if (!is_array($result[$name]) || !isset($result[$name][0])) {
+                $result[$name] = [$result[$name]];
+            }
+            $result[$name][] = $child;
+        } else {
+            $result[$name] = $child;
         }
-
-        return $result;
     }
 
     public function getXmlFilePath(): string
