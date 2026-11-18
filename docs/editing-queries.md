@@ -281,8 +281,8 @@ switches to named parameters otherwise (`enclosure`, `bom`, LOG `pattern`). Para
 format does not know are not written. `Format::getParamNames()` and
 `Format::getPositionalParamNames()` list them per format.
 
-Parts FQL cannot express throw `FQL\Exception\FileQueryException` instead of producing
-broken text:
+Parts FQL cannot express throw `FQL\Exception\FileQueryException` with a message that
+names the part:
 
 - a parameter value containing `"`;
 - a file path with characters outside letters, digits, whitespace, `_ . - /`

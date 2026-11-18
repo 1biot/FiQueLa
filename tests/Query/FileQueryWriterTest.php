@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Writing file queries back as FQL: every non-default parameter survives, and parts
- * that FQL cannot express raise a clear error instead of producing broken text.
+ * that FQL cannot express raise a FileQueryException whose message names the part.
  */
 class FileQueryWriterTest extends TestCase
 {

@@ -54,10 +54,6 @@
   re-opens a FROM source through `(string) $fileQuery`, which dropped `pattern`, so the
   file was parsed with the default `nginx_combined` profile (every line
   `pattern mismatch`).
-- **Unwritable file query parts raise `FileQueryException` with a clear message**
-  (a value containing `"`, a file path such as `C:\data` or with `,` / `(`, a path in
-  file such as `SHOP.@id`, a format without a file) instead of producing text that
-  parses differently or not at all.
 - **`SqlFormatter` output parses back to the same query.** Expressions, conditions and
   sources are written by `FqlPrinter`: backticked identifiers keep their backticks
   (`` SELECT `my col` `` used to become `SELECT my col`), string literals keep their
@@ -66,6 +62,15 @@
   (`price * 2` instead of `MULTIPLY(price, 2)`). The layout is unchanged.
   `ExpressionCompiler::renderExpression()` (which names result columns of unaliased
   expressions) is unchanged.
+
+### Changed
+
+- **Clearer `FileQueryException` messages for file query parts FQL cannot express.**
+  The `with…()` methods already threw `FileQueryException` for these, with the generic
+  `Invalid query path "…"`. The message now names the part and what is allowed: a
+  parameter value containing `"`, a file path such as `C:\data` or with `,` / `(`, a path
+  in file such as `SHOP.@id`, a format without a file. The exception class is the same.
+  The new `fromParts()` and `withParams()` check the same rules.
 
 ## [3.2.6]
 
