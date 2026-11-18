@@ -1,5 +1,72 @@
 # Changelog
 
+## [3.3.0]
+
+> Lossless AST edits: a parsed query can be changed and printed back with the user's
+> own text — whitespace, comments, backticks, quotes, keyword case — kept everywhere
+> except the changed parts. See [Editing Queries](docs/editing-queries.md).
+
+### Added
+
+- **Source spans on every AST node.** Each node class implements the new
+  `FQL\Sql\Ast\HasSpan` (`span(): ?Span`) and takes an optional last constructor
+  argument `?Span $span = null`. `FQL\Sql\Token\Span` is the byte range `[start, end)`
+  of the node in the parsed SQL (`slice($sql)`, `length()`, `contains()`); the parser
+  fills it from the node's first to its last token. A `BinaryOpNode` /
+  `ConditionExpressionNode` span starts at its left operand, a nested
+  `ConditionGroupNode` includes its parentheses, `LIMIT n OFFSET m` written together is
+  one span. Nodes built in code have none. `AstNode` itself is unchanged, so custom
+  `AstNode` / `ExpressionNode` implementations keep working.
+- **`FQL\Sql\Printer\SourcePrinter`** — `new SourcePrinter($sql)`, edit copies of
+  `original()`, `print($edited)`. Nodes that are the same objects as in the original AST
+  are written as their original text; a changed node is spliced into its original
+  counterpart (its keywords, punctuation and gaps are kept); lists keep the separators
+  of former neighbours, a removed item takes its separator and its trailing comment
+  along, an inserted item or clause copies the surrounding layout (its own line in a
+  multi-line query) and new keywords follow the query's keyword case.
+  `print(original())` returns the input byte for byte and the output of an edit parses
+  back to the edited tree; trees FQL cannot express throw
+  `FQL\Sql\Printer\UnprintableNodeException`.
+- **`FQL\Sql\Printer\FqlPrinter`** — writes any node as single-line FQL that parses back
+  to the same tree: identifiers backticked when the tokenizer needs it (diacritics,
+  spaces, keywords), literals from their `raw` text or with the right quotes,
+  `TRUE` / `FALSE` / `NULL` as keywords, a column on the right side of a condition stays
+  a column, arithmetic as operators, `ORDER BY` direction as given. Static helpers
+  `identifier()`, `columnReference()`, `stringLiteral()`; `KeywordCase` enum.
+- **`with…()` copy helpers** on `SelectStatementNode` (every clause), `SelectFieldNode`,
+  `FromClauseNode`, `JoinClauseNode`, `WhereClauseNode`, `HavingClauseNode`,
+  `GroupByClauseNode`, `OrderByClauseNode`, `OrderByItemNode`, `LimitClauseNode`,
+  `ConditionExpressionNode`, `FunctionCallNode` and `FileQueryNode`, plus
+  `ConditionGroupNode::withEntries()` / `withAppended()` / `withoutEntry()`.
+- **`FileQuery::withParams()`, `FileQuery::fromParts()`, `FileQuery::toFql(bool $namedParams)`**
+  and `Format::getParamNames()` / `Format::getPositionalParamNames()`.
+- `TokenStream::previous()` and `TokenStream::spanFrom()`.
+
+### Fixed
+
+- **`FileQuery` no longer drops parameters when written back.** `__toString()` and the
+  `with…()` methods wrote parameters positionally only, so `enclosure`, `bom` and the
+  LOG `pattern` disappeared (`csv(a.csv, delimiter: ";")->withParam('enclosure', "'")`
+  gave `csv(a.csv, "utf-8", ";")`). Parameters without a position are now written
+  named (`csv(a.csv, delimiter: ";", enclosure: "'")`); when every non-default
+  parameter has a position the output stays positional as before.
+- **`FROM log(./access.log, pattern: "…")` applies the custom pattern.** The builder
+  re-opens a FROM source through `(string) $fileQuery`, which dropped `pattern`, so the
+  file was parsed with the default `nginx_combined` profile (every line
+  `pattern mismatch`).
+- **Unwritable file query parts raise `FileQueryException` with a clear message**
+  (a value containing `"`, a file path such as `C:\data` or with `,` / `(`, a path in
+  file such as `SHOP.@id`, a format without a file) instead of producing text that
+  parses differently or not at all.
+- **`SqlFormatter` output parses back to the same query.** Expressions, conditions and
+  sources are written by `FqlPrinter`: backticked identifiers keep their backticks
+  (`` SELECT `my col` `` used to become `SELECT my col`), string literals keep their
+  quotes, `TRUE` stays a boolean, a column on the right of a condition stays a column
+  (`` a = `b` `` used to become `a = 'b'`) and arithmetic is written as operators
+  (`price * 2` instead of `MULTIPLY(price, 2)`). The layout is unchanged.
+  `ExpressionCompiler::renderExpression()` (which names result columns of unaliased
+  expressions) is unchanged.
+
 ## [3.2.6]
 
 > `FROM *` parses again: a bare `*` after `FROM` / `DESCRIBE` is the root-path

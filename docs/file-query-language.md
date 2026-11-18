@@ -933,6 +933,7 @@ DESCRIBE csv(./examples/data/products.csv).*
 - [Query Life Cycle](query-life-cycle.md)
 - [FiQueLa CLI](fiquela-cli.md)
 - [Query Inspection and Benchmarking](query-inspection-and-benchmarking.md)
+- [Editing Queries](editing-queries.md)
 - [API Reference](api-reference.md)
 
 or go back to [README.md](../README.md).

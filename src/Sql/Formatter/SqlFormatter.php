@@ -13,8 +13,9 @@ use FQL\Sql\Ast\Node\JoinClauseNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
 use FQL\Sql\Ast\Node\UnionClauseNode;
-use FQL\Sql\Builder\ExpressionCompiler;
 use FQL\Sql\Parser\Parser;
+use FQL\Sql\Printer\FqlPrinter;
+use FQL\Sql\Printer\KeywordCase;
 use FQL\Sql\Token\Tokenizer;
 use FQL\Sql\Token\TokenStream;
 
@@ -23,15 +24,19 @@ use FQL\Sql\Token\TokenStream;
  *
  * Designed primarily for debugging, code generation, and CLI / editor integrations.
  * The formatter is AST-level: comments and whitespace from the original input are not
- * preserved. For verbatim echo use {@see \FQL\Sql\Highlighter\ThemedHighlighter}.
+ * preserved. For verbatim echo use {@see \FQL\Sql\Highlighter\ThemedHighlighter}; to
+ * edit a query while keeping its layout use {@see \FQL\Sql\Printer\SourcePrinter}.
+ *
+ * Expressions, conditions and sources are written by {@see FqlPrinter}, so the output
+ * parses back to the same query (backticked identifiers, literals and operators kept).
  */
 final class SqlFormatter
 {
-    private readonly ExpressionCompiler $compiler;
+    private readonly FqlPrinter $printer;
 
     public function __construct(private readonly FormatterOptions $options = new FormatterOptions())
     {
-        $this->compiler = new ExpressionCompiler();
+        $this->printer = new FqlPrinter($options->uppercaseKeywords ? KeywordCase::UPPER : KeywordCase::LOWER);
     }
 
     public function format(string $sql): string
@@ -79,12 +84,12 @@ final class SqlFormatter
         }
 
         if ($ast->where !== null) {
-            $lines[] = $ind . $this->kw('WHERE') . ' ' . $this->compiler->renderConditionGroup($ast->where->conditions);
+            $lines[] = $ind . $this->kw('WHERE') . ' ' . $this->printer->print($ast->where->conditions);
         }
 
         if ($ast->groupBy !== null) {
             $parts = array_map(
-                fn (ExpressionNode $n): string => $this->compiler->renderExpression($n),
+                fn (ExpressionNode $n): string => $this->printer->print($n),
                 $ast->groupBy->fields
             );
             $lines[] = $ind . $this->kw('GROUP BY') . ' ' . implode(', ', $parts);
@@ -92,14 +97,14 @@ final class SqlFormatter
 
         if ($ast->having !== null) {
             $lines[] = $ind . $this->kw('HAVING') . ' '
-                . $this->compiler->renderConditionGroup($ast->having->conditions);
+                . $this->printer->print($ast->having->conditions);
         }
 
         if ($ast->orderBy !== null) {
             $parts = [];
             foreach ($ast->orderBy->items as $item) {
                 $dir = strtoupper($item->direction->value);
-                $parts[] = $this->compiler->renderExpression($item->expression) . ' ' . $this->kw($dir);
+                $parts[] = $this->printer->print($item->expression) . ' ' . $this->kw($dir);
             }
             $lines[] = $ind . $this->kw('ORDER BY') . ' ' . implode(', ', $parts);
         }
@@ -113,7 +118,7 @@ final class SqlFormatter
         }
 
         if ($ast->into !== null) {
-            $lines[] = $ind . $this->kw('INTO') . ' ' . $ast->into->target->raw;
+            $lines[] = $ind . $this->kw('INTO') . ' ' . $this->printer->print($ast->into->target);
         }
 
         foreach ($ast->unions as $union) {
@@ -150,7 +155,7 @@ final class SqlFormatter
     private function renderSelectField(SelectFieldNode $field): string
     {
         $prefix = $field->excluded ? $this->kw('EXCLUDE') . ' ' : '';
-        $expr = $this->compiler->renderExpression($field->expression);
+        $expr = $this->printer->print($field->expression);
         if ($field->alias !== null) {
             $expr .= ' ' . $this->kw('AS') . ' ' . self::quoteAliasIfNeeded($field->alias);
         }
@@ -158,17 +163,12 @@ final class SqlFormatter
     }
 
     /**
-     * Re-wraps aliases containing non-identifier-safe characters (spaces,
-     * diacritics, dots, brackets, …) in backticks so the formatted SQL is
-     * re-parseable. Aliases that are already plain ASCII identifiers are
-     * returned verbatim.
+     * Wraps aliases the tokenizer would not read as one plain identifier (spaces,
+     * diacritics, keywords, …) in backticks so the formatted SQL is re-parseable.
      */
     private static function quoteAliasIfNeeded(string $alias): string
     {
-        if ($alias === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $alias) === 1) {
-            return $alias;
-        }
-        return '`' . $alias . '`';
+        return $alias === '' ? '' : FqlPrinter::identifier($alias);
     }
 
     private function renderSource(?ExpressionNode $source, int $depth): string
@@ -178,13 +178,10 @@ final class SqlFormatter
             return '(' . $this->options->newline . $inner . $this->options->newline
                 . str_repeat($this->options->indent, $depth) . ')';
         }
-        if ($source instanceof FileQueryNode) {
-            return $source->raw;
+        if ($source instanceof FileQueryNode || $source instanceof CteReferenceNode) {
+            return $this->printer->print($source);
         }
-        if ($source instanceof CteReferenceNode) {
-            return self::quoteAliasIfNeeded($source->name);
-        }
-        return $source !== null ? $this->compiler->renderExpression($source) : '';
+        return $source !== null ? $this->printer->print($source) : '';
     }
 
     /**
@@ -218,7 +215,7 @@ final class SqlFormatter
             JoinType::FULL => 'FULL JOIN',
         };
         $source = $this->renderSource($join->source, $depth);
-        $on = $this->compiler->renderCondition($join->on);
+        $on = $this->printer->print($join->on);
         return $this->kw($type) . ' ' . $source
             . ' ' . $this->kw('AS') . ' ' . self::quoteAliasIfNeeded($join->alias)
             . ' ' . $this->kw('ON') . ' ' . $on;

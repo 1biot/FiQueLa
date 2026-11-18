@@ -57,12 +57,14 @@
     - [TokenType](#tokentype)
     - [Token](#token-class)
     - [Position](#position)
+    - [Span](#span)
     - [TokenStream](#tokenstream)
     - [Tokenizer](#tokenizer)
   - [Ast](#ast)
     - [Nodes](#ast-nodes)
     - [Expressions](#ast-expressions)
     - [Enums](#ast-enums)
+    - [Spans and copies](#ast-spans-and-copies)
   - [Parser](#sql-parser)
     - [Parser](#parser-class)
     - [ParseException](#parseexception)
@@ -75,6 +77,7 @@
     - [ExpressionEvaluator](#expressionevaluator)
     - [FunctionInvoker](#functioninvoker)
   - [Formatter](#sql-formatter)
+  - [Printer](#sql-printer)
   - [Highlighter](#sql-highlighter)
   - [Lint](#sql-lint)
   - [Support](#sql-support)
@@ -147,6 +150,10 @@ _public_ **getDefaultParams():** `array`
 _public_ **validateParams(**_array_ `$params`**):** `void`
 
 _public_ **normalizeParams(**_array_ `$positional`**,** _array_ `$named`**):** `array`
+
+_public_ **getParamNames():** `string[]` — parameters the format understands, in writing order (CSV: `encoding`, `delimiter`, `useHeader`, `enclosure`, `bom`; XML: `encoding`; LOG: `format`, `pattern`).
+
+_public_ **getPositionalParamNames():** `string[]` — the subset that can be written positionally (CSV: `encoding`, `delimiter`, `useHeader`; XML: `encoding`; LOG: `format`).
 
 ### Fulltext
 
@@ -704,6 +711,14 @@ _public_ **withParam(**_string_ `$key`**,** _string_ `$value`**):** `self`
 _public_ **withQuery(**_?string_ `$query`**):** `self`
 
 _public_ **withFormat(**_?string_ `$format`**):** `self`
+
+_public_ **withParams(**_array<string, string|int|bool>_ `$params`**):** `self` — replaces the parameter set; missing keys fall back to the format defaults.
+
+_public static_ **fromParts(**_?string_ `$format`**,** _?string_ `$file`**,** _array_ `$params = []`**,** _?string_ `$query = null`**,** _bool_ `$namedParams = false`**):** `self`
+
+_public_ **toFql(**_bool_ `$namedParams = false`**):** `string` — writes every non-default parameter; positional when each one has a position, otherwise (and always with `$namedParams`) named.
+
+The `with…()` methods, `fromParts()` and `toFql()` throw `Exception\FileQueryException` for parts FQL cannot express: a value containing `"`, a file path outside `[\w\s./-]`, a path in file outside `[\w*.-]`, a format without a file. See [Editing Queries](editing-queries.md#writing-file-queries).
 
 _public_ **withEncoding(**_string_ `$encoding`**):** `self` _(deprecated, use `withParam`)_
 
@@ -1311,6 +1326,26 @@ _public_ **__construct(**_int_ `$offset`**,** _int_ `$line`**,** _int_ `$column`
 
 _public_ **__toString():** `string`
 
+#### Span
+
+`FQL\Sql\Token\Span` _(readonly)_
+
+Half-open byte range `[start, end)` of a node in the original SQL (first token to last token, no surrounding trivia).
+
+_public_ **__construct(**_int_ `$start`**,** _int_ `$end`**)**
+
+_public static_ **fromTokens(**_Token_ `$first`**,** _Token_ `$last`**):** `self`
+
+_public_ **length():** `int`
+
+_public_ **isEmpty():** `bool`
+
+_public_ **contains(**_Span_ `$other`**):** `bool`
+
+_public_ **slice(**_string_ `$sql`**):** `string`
+
+_public_ **__toString():** `string` — `[start, end)`
+
 #### TokenStream
 
 `FQL\Sql\Token\TokenStream` _implements_ `\Iterator`, `\Countable`
@@ -1328,6 +1363,10 @@ _public_ **consume():** `Token`
 _public_ **consumeIf(**_TokenType_ `...$types`**):** `?Token`
 
 _public_ **expect(**_TokenType_ `...$types`**):** `Token` — throws `Parser\ParseException`.
+
+_public_ **previous():** `?Token` — the last consumed non-trivia token.
+
+_public_ **spanFrom(**_Token|int_ `$first`**):** `Span` — from `$first` to the end of the last consumed token (used by the parser to fill node spans).
 
 _public_ **mark():** `int`
 
@@ -1353,7 +1392,7 @@ Handles: keyword detection, `FILE_QUERY` lookahead in `FROM`/`INTO`/`DESCRIBE`/`
 
 **namespace:** `FQL\Sql\Ast`
 
-AST nodes are immutable readonly value objects produced by the parser. All implement `AstNode` (interface exposing `position(): Position`).
+AST nodes are immutable readonly value objects produced by the parser. All implement `AstNode` (interface exposing `position(): Position`) and `HasSpan` (`span(): ?Span`, see [Spans and copies](#ast-spans-and-copies)). Every constructor takes an optional last `?Span $span = null`.
 
 #### Ast Nodes
 
@@ -1361,7 +1400,8 @@ AST nodes are immutable readonly value objects produced by the parser. All imple
 
 | Node | Fields |
 |------|--------|
-| `SelectStatementNode` | `from`, `fields`, `distinct`, `joins`, `where`, `groupBy`, `having`, `orderBy`, `limit`, `unions`, `into`, `describe`, `explain` |
+| `SelectStatementNode` | `from`, `fields`, `distinct`, `joins`, `where`, `groupBy`, `having`, `orderBy`, `limit`, `unions`, `into`, `describe`, `explain`, `commonTables` |
+| `CommonTableExpressionNode` | `name: string`, `query: SelectStatementNode` |
 | `FromClauseNode` | `source: ExpressionNode`, `alias: ?string` |
 | `JoinClauseNode` | `type: JoinType`, `source: ExpressionNode`, `alias: string`, `on: ConditionExpressionNode` |
 | `WhereClauseNode` | `conditions: ConditionGroupNode` |
@@ -1403,6 +1443,28 @@ AST nodes are immutable readonly value objects produced by the parser. All imple
 | `BinaryOperator` | `ADD` (`+`), `SUBTRACT` (`-`), `MULTIPLY` (`*`), `DIVIDE` (`/`), `MODULO` (`%`) |
 
 `BinaryOperator` also exposes `precedence(): int` (standard SQL / C-family: `* / %` > `+ -`) and `functionName(): string` (maps to `ADD`/`SUB`/`MULTIPLY`/`DIVIDE`/`MOD`).
+
+#### Ast Spans and Copies
+
+`FQL\Sql\Ast\HasSpan` — _public_ **span():** `?Span`. Implemented by every node class of the library (kept apart from `AstNode` so custom `AstNode` / `ExpressionNode` implementations stay compatible). The parser fills the span of every node; nodes built in code and `with…()` copies have none. A `BinaryOpNode` / `ConditionExpressionNode` span starts at its left operand, a nested `ConditionGroupNode` span includes its parentheses. Details in [Editing Queries](editing-queries.md#source-spans).
+
+`with…()` helpers return a copy with one property replaced (and no span):
+
+| Node | Helpers |
+|------|---------|
+| `SelectStatementNode` | `withFrom()`, `withFields()`, `withDistinct()`, `withJoins()`, `withWhere()`, `withGroupBy()`, `withHaving()`, `withOrderBy()`, `withLimit()`, `withUnions()`, `withInto()`, `withExplain()`, `withCommonTables()` |
+| `SelectFieldNode` | `withExpression()`, `withAlias()`, `withExcluded()` |
+| `FromClauseNode` | `withSource()`, `withAlias()` |
+| `JoinClauseNode` | `withType()`, `withSource()`, `withAlias()`, `withOn()` |
+| `WhereClauseNode`, `HavingClauseNode` | `withConditions()` |
+| `GroupByClauseNode` | `withFields()` |
+| `OrderByClauseNode` | `withItems()` |
+| `OrderByItemNode` | `withExpression()`, `withDirection()` |
+| `LimitClauseNode` | `withLimit()`, `withOffset()` |
+| `ConditionGroupNode` | `withEntries()`, `withAppended(LogicalOperator $logical, ConditionExpressionNode\|ConditionGroupNode $condition)`, `withoutEntry(int $index)` |
+| `ConditionExpressionNode` | `withLeft()`, `withOperator()`, `withRight()` |
+| `FunctionCallNode` | `withArguments()` |
+| `FileQueryNode` | `withFileQuery(FileQuery $fileQuery, string $raw = '')` |
 
 ### SQL Parser
 
@@ -1530,7 +1592,7 @@ _public_ **invoke(**_string_ `$name`**,** _mixed[]_ `$args`**):** `mixed`
 
 **namespace:** `FQL\Sql\Formatter`
 
-AST-driven pretty-printer.
+AST-driven pretty-printer. Comments and layout are not kept (use [`SourcePrinter`](#sql-printer) to edit a query in place); expressions, conditions and sources are written by `FqlPrinter`, so the output parses back to the same query.
 
 `FQL\Sql\Formatter\SqlFormatter`
 
@@ -1548,6 +1610,42 @@ _public_ **formatStatement(**_Ast\Node\SelectStatementNode_ `$ast`**,** _int_ `$
 | `$uppercaseKeywords` | `true` |
 | `$fieldsPerLine` | `true` |
 | `$newline` | `"\n"` |
+
+### SQL Printer
+
+**namespace:** `FQL\Sql\Printer`
+
+Writes ASTs back as FQL. Guide: [Editing Queries](editing-queries.md).
+
+`FQL\Sql\Printer\SourcePrinter` — prints an edited copy of a parsed query, keeping the original text (whitespace, comments, backticks, quotes, keyword case) of every unchanged part.
+
+_public_ **__construct(**_string_ `$sql`**,** _?Ast\Node\SelectStatementNode_ `$original = null`**)** — parses `$sql` when `$original` is omitted; throws `Parser\ParseException`.
+
+_public_ **original():** `Ast\Node\SelectStatementNode` — the AST to copy and edit.
+
+_public_ **sql():** `string`
+
+_public_ **keywordCase():** `KeywordCase` — the case new keywords are written in (majority of the original keywords).
+
+_public_ **print(**_Ast\Node\SelectStatementNode_ `$edited`**):** `string` — `print(original())` returns the original SQL unchanged; throws `UnprintableNodeException`.
+
+`FQL\Sql\Printer\FqlPrinter` — writes any node as single-line FQL that parses back to the same tree.
+
+_public_ **__construct(**_KeywordCase_ `$keywordCase = KeywordCase::UPPER`**)**
+
+_public_ **print(**_Ast\AstNode_ `$node`**):** `string`
+
+_public_ **keywordCase():** `KeywordCase`
+
+_public static_ **identifier(**_string_ `$name`**):** `string` — alias / CTE name, backticked when needed.
+
+_public static_ **columnReference(**_string_ `$name`**,** _bool_ `$quoted = false`**):** `string` — column path, segments backticked when needed.
+
+_public static_ **stringLiteral(**_string_ `$value`**):** `string` — `"value"`, or `'value'` when it contains `"`.
+
+`FQL\Sql\Printer\KeywordCase` _(enum)_ — `UPPER`, `LOWER`; _public_ **apply(**_string_ `$keyword`**):** `string`.
+
+`FQL\Sql\Printer\UnprintableNodeException` _extends_ `Exception\InvalidArgumentException` — a tree FQL cannot express (identifier with a backtick, string with both quotes, `(a + b) * c`, a selected field after an excluded one, …); `public readonly ?AstNode $node`.
 
 ### SQL Highlighter
 
