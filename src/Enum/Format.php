@@ -99,6 +99,39 @@ enum Format: string
     }
 
     /**
+     * Names of the parameters the format understands, in the order a file query
+     * writes them. Other keys are ignored by {@see normalizeParams()} (positional)
+     * or carried along without effect (named).
+     *
+     * @return string[]
+     */
+    public function getParamNames(): array
+    {
+        return match ($this) {
+            self::CSV => ['encoding', 'delimiter', 'useHeader', 'enclosure', 'bom'],
+            self::XML => ['encoding'],
+            self::LOG => ['format', 'pattern'],
+            default => [],
+        };
+    }
+
+    /**
+     * Names of the parameters that can be written positionally (`csv(a.csv, "utf-8", ";")`),
+     * in position order. The remaining parameters need the named form (`enclosure: "'"`).
+     *
+     * @return string[]
+     */
+    public function getPositionalParamNames(): array
+    {
+        return match ($this) {
+            self::CSV => ['encoding', 'delimiter', 'useHeader'],
+            self::XML => ['encoding'],
+            self::LOG => ['format'],
+            default => [],
+        };
+    }
+
+    /**
      * Validate parameters - throw InvalidFormatException when are not valid
      * @param array<string, mixed> $params
      * @throws Exception\InvalidFormatException
