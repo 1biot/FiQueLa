@@ -7,6 +7,7 @@ use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\FileQueryNode;
 use FQL\Sql\Ast\Expression\SubQueryNode;
 use FQL\Sql\Ast\Node\FromClauseNode;
+use FQL\Sql\Token\Span;
 use FQL\Sql\Token\Token;
 use FQL\Sql\Token\TokenStream;
 use FQL\Sql\Token\TokenType;
@@ -58,7 +59,7 @@ final class FromClauseParser
             $aliasToken = $stream->expect(TokenType::IDENTIFIER, TokenType::IDENTIFIER_QUOTED);
             $alias = IdentifierHelper::stripOuterBackticks($aliasToken->value);
         }
-        return new FromClauseNode($source, $alias, $fromKeyword->position);
+        return new FromClauseNode($source, $alias, $fromKeyword->position, $stream->spanFrom($fromKeyword));
     }
 
     /**
@@ -71,7 +72,7 @@ final class FromClauseParser
             $stream->consume();
             $select = $this->statementParser->parse($stream);
             $stream->expect(TokenType::PAREN_CLOSE);
-            return new SubQueryNode($select, $peek->position);
+            return new SubQueryNode($select, $peek->position, $stream->spanFrom($peek));
         }
 
         $token = $stream->expect(TokenType::FILE_QUERY);
@@ -81,7 +82,7 @@ final class FromClauseParser
         // FileQuery, so we must intercept here — otherwise the builder would attempt
         // to open a file named "active".
         if (isset($this->knownCteNames[$token->raw])) {
-            return new CteReferenceNode($token->raw, $token->position);
+            return new CteReferenceNode($token->raw, $token->position, Span::fromTokens($token, $token));
         }
 
         $fileQuery = $token->metadata;
@@ -109,7 +110,7 @@ final class FromClauseParser
                 )
             );
         }
-        return new FileQueryNode($fileQuery, $token->raw, $token->position);
+        return new FileQueryNode($fileQuery, $token->raw, $token->position, Span::fromTokens($token, $token));
     }
 
     private static function isBareIdentifier(string $value): bool

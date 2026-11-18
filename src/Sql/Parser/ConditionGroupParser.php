@@ -35,19 +35,18 @@ final class ConditionGroupParser
      */
     public function parseGroup(TokenStream $stream, ?callable $stopAt = null): ConditionGroupNode
     {
-        $startPosition = $stream->peek()->position;
-        return $this->parseGroupInner($stream, $stopAt, $startPosition);
+        $start = $stream->peek();
+        $entries = $this->parseEntries($stream, $stopAt);
+        return new ConditionGroupNode($entries, $start->position, $stream->spanFrom($start));
     }
 
     /**
      * @param callable(Token): bool|null $stopAt
+     * @return array<int, array{logical: Enum\LogicalOperator, condition: ConditionExpressionNode|ConditionGroupNode}>
      * @throws ParseException
      */
-    private function parseGroupInner(
-        TokenStream $stream,
-        ?callable $stopAt,
-        \FQL\Sql\Token\Position $groupPosition
-    ): ConditionGroupNode {
+    private function parseEntries(TokenStream $stream, ?callable $stopAt): array
+    {
         /** @var array<int, array{logical: Enum\LogicalOperator, condition: ConditionExpressionNode|ConditionGroupNode}> $entries */
         $entries = [];
         $logical = Enum\LogicalOperator::AND;
@@ -84,8 +83,10 @@ final class ConditionGroupParser
             // Nested group
             if ($token->type === TokenType::PAREN_OPEN) {
                 $stream->consume();
-                $nested = $this->parseGroupInner($stream, null, $token->position);
+                $nestedEntries = $this->parseEntries($stream, null);
                 $stream->expect(TokenType::PAREN_CLOSE);
+                // A nested group's span includes its parentheses.
+                $nested = new ConditionGroupNode($nestedEntries, $token->position, $stream->spanFrom($token));
                 $entries[] = ['logical' => $logical, 'condition' => $nested];
                 $logical = Enum\LogicalOperator::AND;
                 continue;
@@ -97,6 +98,6 @@ final class ConditionGroupParser
             $logical = Enum\LogicalOperator::AND;
         }
 
-        return new ConditionGroupNode($entries, $groupPosition);
+        return $entries;
     }
 }

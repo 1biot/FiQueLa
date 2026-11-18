@@ -17,6 +17,7 @@ use FQL\Sql\Ast\Expression\MatchAgainstNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Expression\WhenBranchNode;
 use FQL\Sql\Ast\Node\OrderByItemNode;
+use FQL\Sql\Token\Span;
 use FQL\Sql\Token\Token;
 use FQL\Sql\Token\TokenStream;
 use FQL\Sql\Token\TokenType;
@@ -68,6 +69,7 @@ final class ExpressionParser
      */
     private function parseBinary(TokenStream $stream, int $minPrecedence): ExpressionNode
     {
+        $startOffset = $stream->peek()->position->offset;
         $left = $this->parsePrimary($stream);
         while (true) {
             $op = self::matchBinaryOperator($stream->peekType());
@@ -76,7 +78,7 @@ final class ExpressionParser
             }
             $opToken = $stream->consume();
             $right = $this->parseBinary($stream, $op->precedence() + 1);
-            $left = new BinaryOpNode($left, $op, $right, $opToken->position);
+            $left = new BinaryOpNode($left, $op, $right, $opToken->position, $stream->spanFrom($startOffset));
         }
         return $left;
     }
@@ -102,30 +104,36 @@ final class ExpressionParser
 
         if ($token->type === TokenType::STAR) {
             $stream->consume();
-            return new StarNode($token->position);
+            return new StarNode($token->position, self::tokenSpan($token));
         }
 
         if ($token->type === TokenType::NUMBER_LITERAL) {
             $stream->consume();
             $value = Enum\Type::matchByString($token->value);
             $type = is_float($value) ? Enum\Type::FLOAT : Enum\Type::INTEGER;
-            return new LiteralNode($value, $type, $token->raw, $token->position);
+            return new LiteralNode($value, $type, $token->raw, $token->position, self::tokenSpan($token));
         }
 
         if ($token->type === TokenType::STRING_LITERAL) {
             $stream->consume();
-            return new LiteralNode($token->value, Enum\Type::STRING, $token->raw, $token->position);
+            return new LiteralNode(
+                $token->value,
+                Enum\Type::STRING,
+                $token->raw,
+                $token->position,
+                self::tokenSpan($token)
+            );
         }
 
         if ($token->type === TokenType::BOOLEAN_LITERAL) {
             $stream->consume();
             $value = strtolower($token->value) === 'true';
-            return new LiteralNode($value, Enum\Type::BOOLEAN, $token->raw, $token->position);
+            return new LiteralNode($value, Enum\Type::BOOLEAN, $token->raw, $token->position, self::tokenSpan($token));
         }
 
         if ($token->type === TokenType::NULL_LITERAL) {
             $stream->consume();
-            return new LiteralNode(null, Enum\Type::NULL, $token->raw, $token->position);
+            return new LiteralNode(null, Enum\Type::NULL, $token->raw, $token->position, self::tokenSpan($token));
         }
 
         if ($token->type === TokenType::KEYWORD_CASE) {
@@ -138,12 +146,12 @@ final class ExpressionParser
 
         if ($token->type === TokenType::IDENTIFIER) {
             $stream->consume();
-            return new ColumnReferenceNode($token->value, $token->position, quoted: false);
+            return new ColumnReferenceNode($token->value, $token->position, false, self::tokenSpan($token));
         }
 
         if ($token->type === TokenType::IDENTIFIER_QUOTED) {
             $stream->consume();
-            return new ColumnReferenceNode($token->value, $token->position, quoted: true);
+            return new ColumnReferenceNode($token->value, $token->position, true, self::tokenSpan($token));
         }
 
         // Some keywords are context-sensitive and may legitimately appear as field
@@ -152,10 +160,15 @@ final class ExpressionParser
         // plain column reference using the raw lexeme (which preserves original case).
         if ($this->isSoftKeyword($token->type)) {
             $stream->consume();
-            return new ColumnReferenceNode($token->raw, $token->position, quoted: false);
+            return new ColumnReferenceNode($token->raw, $token->position, false, self::tokenSpan($token));
         }
 
         throw ParseException::context($token, 'expression');
+    }
+
+    private static function tokenSpan(Token $token): Span
+    {
+        return Span::fromTokens($token, $token);
     }
 
     private function isSoftKeyword(TokenType $type): bool
@@ -222,7 +235,7 @@ final class ExpressionParser
         }
         $stream->expect(TokenType::PAREN_CLOSE);
 
-        return new FunctionCallNode($name, $arguments, $distinct, $nameToken->position);
+        return new FunctionCallNode($name, $arguments, $distinct, $nameToken->position, $stream->spanFrom($nameToken));
     }
 
     /**
@@ -238,7 +251,13 @@ final class ExpressionParser
         $else = $this->parseExpression($stream);
         $stream->expect(TokenType::PAREN_CLOSE);
 
-        return new FunctionCallNode('IF', [$condition, $then, $else], false, $nameToken->position);
+        return new FunctionCallNode(
+            'IF',
+            [$condition, $then, $else],
+            false,
+            $nameToken->position,
+            $stream->spanFrom($nameToken)
+        );
     }
 
     /**
@@ -273,6 +292,7 @@ final class ExpressionParser
             );
         }
 
+        $bodyStart = $stream->peek();
         $selectItems[] = $this->parseCollectObjectItem($stream);
         while ($stream->consumeIf(TokenType::COMMA) !== null) {
             $selectItems[] = $this->parseCollectObjectItem($stream);
@@ -288,10 +308,22 @@ final class ExpressionParser
             }
         }
 
+        // The envelope spans the call's inner text (items and ORDER BY), the call itself
+        // the whole `COLLECT_OBJECT(...)`.
+        $coNode = new CollectObjectExpressionNode(
+            $selectItems,
+            $orderings,
+            $nameToken->position,
+            $stream->spanFrom($bodyStart)
+        );
         $stream->expect(TokenType::PAREN_CLOSE);
-
-        $coNode = new CollectObjectExpressionNode($selectItems, $orderings, $nameToken->position);
-        return new FunctionCallNode('COLLECT_OBJECT', [$coNode], false, $nameToken->position);
+        return new FunctionCallNode(
+            'COLLECT_OBJECT',
+            [$coNode],
+            false,
+            $nameToken->position,
+            $stream->spanFrom($nameToken)
+        );
     }
 
     /**
@@ -348,7 +380,8 @@ final class ExpressionParser
         return new CastExpressionNode(
             $value,
             $this->resolveCastType($typeToken->value),
-            $nameToken->position
+            $nameToken->position,
+            $stream->spanFrom($nameToken)
         );
     }
 
@@ -410,7 +443,13 @@ final class ExpressionParser
             throw ParseException::context($queryToken, 'AGAINST payload (empty search query)');
         }
 
-        return new MatchAgainstNode($fields, trim($searchQuery), $mode, $matchToken->position);
+        return new MatchAgainstNode(
+            $fields,
+            trim($searchQuery),
+            $mode,
+            $matchToken->position,
+            $stream->spanFrom($matchToken)
+        );
     }
 
     /**
@@ -450,7 +489,7 @@ final class ExpressionParser
             );
             $stream->expect(TokenType::KEYWORD_THEN);
             $then = $this->parseExpression($stream);
-            $branches[] = new WhenBranchNode($condition, $then, $whenToken->position);
+            $branches[] = new WhenBranchNode($condition, $then, $whenToken->position, $stream->spanFrom($whenToken));
         }
 
         if ($stream->consumeIf(TokenType::KEYWORD_ELSE) !== null) {
@@ -459,7 +498,7 @@ final class ExpressionParser
 
         $stream->expect(TokenType::KEYWORD_END);
 
-        return new CaseExpressionNode($branches, $else, $caseToken->position);
+        return new CaseExpressionNode($branches, $else, $caseToken->position, $stream->spanFrom($caseToken));
     }
 
     /**

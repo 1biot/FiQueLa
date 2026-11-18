@@ -16,6 +16,7 @@ use FQL\Sql\Ast\Node\SelectStatementNode;
 use FQL\Sql\Ast\Node\UnionClauseNode;
 use FQL\Sql\Ast\Node\WhereClauseNode;
 use FQL\Sql\Token\Position;
+use FQL\Sql\Token\Span;
 use FQL\Sql\Token\TokenStream;
 use FQL\Sql\Token\TokenType;
 
@@ -53,7 +54,8 @@ final class StatementParser
      */
     public function parse(TokenStream $stream): SelectStatementNode
     {
-        $startPosition = $stream->peek()->position;
+        $startToken = $stream->peek();
+        $startPosition = $startToken->position;
 
         $explain = ExplainMode::NONE;
         if ($stream->consumeIf(TokenType::KEYWORD_EXPLAIN) !== null) {
@@ -68,6 +70,7 @@ final class StatementParser
             $from = $this->fromParser->parseClause($stream, $describeToken);
             return $this->buildStatement(
                 position: $startPosition,
+                span: $stream->spanFrom($startToken),
                 from: $from,
                 fields: [],
                 distinct: false,
@@ -108,9 +111,14 @@ final class StatementParser
             $into = null;
             /** @var UnionClauseNode[] $unions */
             $unions = [];
+            // Type of the clause keyword parsed last; LIMIT and OFFSET written next to each
+            // other merge into one span.
+            $lastClause = null;
 
             while (!$stream->isAtEnd() && $stream->peekType() !== TokenType::PAREN_CLOSE) {
                 $peek = $stream->peek();
+                $previousClause = $lastClause;
+                $lastClause = $peek->type;
                 switch ($peek->type) {
                     case TokenType::KEYWORD_FROM:
                         $stream->consume();
@@ -154,14 +162,25 @@ final class StatementParser
                         // the offset because parseLimit returned a fresh node with
                         // offset = null that overwrote the merged one.
                         $limit = $limit !== null && $limit->offset !== null && $parsed->offset === null
-                            ? new LimitClauseNode($parsed->limit, $limit->offset, $parsed->position)
+                            ? new LimitClauseNode(
+                                $parsed->limit,
+                                $limit->offset,
+                                $parsed->position,
+                                self::mergeSpans($limit, $parsed->span, $previousClause)
+                            )
                             : $parsed;
                         break;
 
                     case TokenType::KEYWORD_OFFSET:
                         $stream->consume();
                         $offset = $this->limitParser->parseOffset($stream);
-                        $limit = $this->mergeOffset($limit, $offset, $peek->position);
+                        $limit = $this->mergeOffset(
+                            $limit,
+                            $offset,
+                            $peek->position,
+                            $stream->spanFrom($peek),
+                            $previousClause
+                        );
                         break;
 
                     case TokenType::KEYWORD_INTO:
@@ -186,6 +205,7 @@ final class StatementParser
             // The builder enforces the presence of FROM for full `build()` consumers.
             return $this->buildStatement(
                 position: $startPosition,
+                span: $stream->spanFrom($startToken),
                 from: $from,
                 fields: $fields,
                 distinct: $distinct,
@@ -218,6 +238,7 @@ final class StatementParser
      */
     private function buildStatement(
         Position $position,
+        Span $span,
         ?FromClauseNode $from,
         array $fields,
         bool $distinct,
@@ -248,17 +269,42 @@ final class StatementParser
             describe: $describe,
             explain: $explain,
             position: $position,
-            commonTables: $commonTables
+            commonTables: $commonTables,
+            span: $span
         );
     }
 
-    private function mergeOffset(?LimitClauseNode $limit, int $offset, Position $position): LimitClauseNode
-    {
+    private function mergeOffset(
+        ?LimitClauseNode $limit,
+        int $offset,
+        Position $position,
+        Span $offsetSpan,
+        ?TokenType $previousClause
+    ): LimitClauseNode {
         if ($limit === null) {
             // Bare OFFSET without LIMIT — retain zero limit; consumers treat non-zero
             // offsets as the dominant constraint.
-            return new LimitClauseNode(0, $offset, $position);
+            return new LimitClauseNode(0, $offset, $position, $offsetSpan);
         }
-        return new LimitClauseNode($limit->limit, $offset, $limit->position);
+        return new LimitClauseNode(
+            $limit->limit,
+            $offset,
+            $limit->position,
+            self::mergeSpans($limit, $offsetSpan, $previousClause)
+        );
+    }
+
+    /**
+     * Span of a LIMIT merged from a LIMIT and an OFFSET clause: both parts when they are
+     * written next to each other (`LIMIT 10 OFFSET 5`, `OFFSET 5 LIMIT 10`), otherwise
+     * only the part parsed last (another clause lies between them).
+     */
+    private static function mergeSpans(LimitClauseNode $earlier, ?Span $later, ?TokenType $previousClause): ?Span
+    {
+        $adjacent = $previousClause === TokenType::KEYWORD_LIMIT || $previousClause === TokenType::KEYWORD_OFFSET;
+        if ($later === null || !$adjacent || $earlier->span === null) {
+            return $later;
+        }
+        return new Span(min($earlier->span->start, $later->start), max($earlier->span->end, $later->end));
     }
 }

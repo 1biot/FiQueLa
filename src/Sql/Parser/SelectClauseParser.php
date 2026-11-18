@@ -6,6 +6,7 @@ use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Ast\Expression\StarNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
+use FQL\Sql\Token\Span;
 use FQL\Sql\Token\Token;
 use FQL\Sql\Token\TokenStream;
 use FQL\Sql\Token\TokenType;
@@ -72,7 +73,6 @@ final class SelectClauseParser
                 continue;
             }
 
-            $startPosition = $peek->position;
             $expression = $this->parseField($stream);
             $alias = null;
             if ($stream->consumeIf(TokenType::KEYWORD_AS) !== null) {
@@ -84,7 +84,8 @@ final class SelectClauseParser
                 $expression,
                 $alias,
                 excluded: $mode === 'exclude',
-                position: $startPosition
+                position: $peek->position,
+                span: $stream->spanFrom($peek)
             );
             $expectComma = true;
         }
@@ -102,13 +103,13 @@ final class SelectClauseParser
         // `table.*` — captured by the tokenizer as IDENTIFIER containing a '.*' suffix.
         if ($peek->type === TokenType::IDENTIFIER && str_ends_with($peek->value, '.*')) {
             $stream->consume();
-            return new ColumnReferenceNode($peek->value, $peek->position, quoted: false);
+            return new ColumnReferenceNode($peek->value, $peek->position, false, Span::fromTokens($peek, $peek));
         }
 
         // bare `*`
         if ($peek->type === TokenType::STAR) {
             $stream->consume();
-            return new StarNode($peek->position);
+            return new StarNode($peek->position, Span::fromTokens($peek, $peek));
         }
 
         return $this->expressionParser->parseExpression($stream);

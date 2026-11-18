@@ -31,11 +31,12 @@ final class ConditionParser
      */
     public function parse(TokenStream $stream): ConditionExpressionNode
     {
+        $start = $stream->peek();
         $left = $this->expressionParser->parseExpression($stream);
         $operator = $this->parseOperator($stream);
         $right = $this->parseRight($stream, $operator);
 
-        return new ConditionExpressionNode($left, $operator, $right, $left->position());
+        return new ConditionExpressionNode($left, $operator, $right, $left->position(), $stream->spanFrom($start));
     }
 
     /**

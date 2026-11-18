@@ -34,6 +34,6 @@ final class GroupByClauseParser
             );
         }
 
-        return new GroupByClauseNode($fields, $groupKeyword->position);
+        return new GroupByClauseNode($fields, $groupKeyword->position, $stream->spanFrom($groupKeyword));
     }
 }
