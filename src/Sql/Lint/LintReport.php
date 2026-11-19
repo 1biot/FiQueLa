@@ -74,7 +74,16 @@ final readonly class LintReport implements \IteratorAggregate, \Countable
     }
 
     /**
-     * @return list<array{severity: string, rule: string, message: string, line: ?int, column: ?int, offset: ?int}>
+     * @return list<array{
+     *     severity: string,
+     *     rule: string,
+     *     message: string,
+     *     line: ?int,
+     *     column: ?int,
+     *     offset: ?int,
+     *     span: array{start: int, end: int}|null,
+     *     params: array<string, mixed>
+     * }>
      */
     public function toArray(): array
     {
