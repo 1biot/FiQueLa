@@ -5,6 +5,8 @@
 > Lossless AST edits: a parsed query can be changed and printed back with the user's
 > own text — whitespace, comments, backticks, quotes, keyword case — kept everywhere
 > except the changed parts. See [Editing Queries](docs/editing-queries.md).
+> Errors and lint issues point into the query text: a span, a rule id and params
+> instead of a position buried in the message.
 
 ### Added
 
@@ -41,6 +43,34 @@
 - **`FileQuery::withParams()`, `FileQuery::fromParts()`, `FileQuery::toFql(bool $namedParams)`**
   and `Format::getParamNames()` / `Format::getPositionalParamNames()`.
 - `TokenStream::previous()` and `TokenStream::spanFrom()`.
+- **`FQL\Exception\SourceAwareException`** — implemented by every FiQueLa exception and
+  `ParseException`: `getRule()` (`syntax-error`, `unknown-function`, `file-not-found`,
+  `file-outside-base`, `file-exists`, `file-unreadable`, otherwise null), `getSpan()`
+  (bytes of the parsed SQL), `getParams()` (e.g. `['function' => 'FOO']`,
+  `['path' => …]`) and `getReason()` (the message without ` at line X, column Y` or the
+  list of registered functions). `getMessage()` is unchanged. Errors raised while
+  `Compiler::toQuery()` / `applyTo()` builds the query get the span of the innermost
+  node being built (the FROM / JOIN / CTE / subquery file query, the SELECT field, the
+  JOIN, the condition, the ORDER BY item, the INTO target, else the statement); errors
+  raised during execution have none. See [Exceptions](docs/api-reference.md#sourceawareexception).
+- **`ParseException` reason and params:** `kind` (`unexpected-token`,
+  `unexpected-character`, `unexpected-operator`, `unterminated-string`,
+  `unterminated-identifier`, `unterminated-comment`), `token`, `tokenType`, `expected`
+  and `context`; optional `$reason` / `$params` constructor arguments.
+- **`PathNotFoundException` and `PathOutsideBaseException`** (both extend
+  `InvalidFormatException`, message still `Invalid path of file`) tell a missing file
+  from a file outside the base path, with `path` (as written) and `basePath` params.
+  `FileNotFoundException::forPath()`, `FileAlreadyExistsException::forPath()` and the
+  streams / INTO writer pass the path; `UnknownFunctionException::getRegisteredFunctions()`.
+- **Lint issues have a span and params.** `LintIssue` takes optional `?Span $span` and
+  `array $params` (also in `toArray()` as `span: {start, end}` and `params`):
+  `unknown-function` spans the function name (`function`), `duplicate-alias` the alias
+  itself (`alias`), `file-not-found` the file query (`path`), `syntax-error` the token
+  (the `ParseException` params plus `reason`). `position` keeps its old meaning.
+- **Lint resolves files against a base path:** `Linter::lint()` / `Sql\Provider::lint()`
+  take `?string $basePath` (also `LintContext::$basePath`), and the new default rule
+  `FileOutsideBaseRule` (`file-outside-base`, `path`, `basePath`) reports files the query
+  reads or writes outside it.
 
 ### Fixed
 
@@ -62,6 +92,12 @@
   (`price * 2` instead of `MULTIPLY(price, 2)`). The layout is unchanged.
   `ExpressionCompiler::renderExpression()` (which names result columns of unaliased
   expressions) is unchanged.
+- **Lint no longer reports an `INTO` target as a missing file** (`file-not-found`
+  flagged `INTO json(./new.json)` because the file did not exist yet).
+- **An unexpected multi-byte character is reported whole.** The tokenizer could report
+  one byte of it (an invalid UTF-8 message, a position inside the character); the
+  message, the token and the position now cover the whole character (`"–"`, `"ř"`).
+  An unterminated block comment's token is `/*` (length 2) instead of empty.
 
 ### Changed
 
