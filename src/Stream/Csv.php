@@ -29,7 +29,7 @@ class Csv extends CsvProvider
     public static function openWithDelimiter(string $path, ?string $delimiter = null): Interface\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new Exception\FileNotFoundException("File not found or not readable.");
+            throw Exception\FileNotFoundException::forPath($path);
         }
 
         return new self($path, $delimiter ?? ',');

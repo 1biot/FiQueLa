@@ -3,12 +3,16 @@
 namespace FQL\Utils;
 
 use FQL\Exception\InvalidFormatException;
+use FQL\Exception\PathNotFoundException;
+use FQL\Exception\PathOutsideBaseException;
 use FQL\Query\FileQuery;
 
 class FileQueryPathValidator
 {
     /**
-     * @throws InvalidFormatException
+     * @throws PathNotFoundException when the file does not exist (only with `$mustExist`)
+     * @throws PathOutsideBaseException when the file lies outside `$basePath`
+     * @throws InvalidFormatException when `$basePath` itself does not exist
      */
     public static function validate(FileQuery $fileQuery, string $basePath, bool $mustExist = true): FileQuery
     {
@@ -28,8 +32,14 @@ class FileQueryPathValidator
             ? realpath($requestedPath)
             : self::resolveNearestExistingPath($requestedPath);
 
-        if ($validationPath === false || !self::isPathWithinBase($validationPath, $resolvedBasePath)) {
-            throw new InvalidFormatException('Invalid path of file');
+        if ($validationPath === false) {
+            // A missing file that would lie outside the base anyway is reported as outside.
+            throw self::isPathWithinBase($requestedPath, $normalizedBasePath)
+                ? PathNotFoundException::create($fileQuery->file, $basePath)
+                : PathOutsideBaseException::create($fileQuery->file, $basePath);
+        }
+        if (!self::isPathWithinBase($validationPath, $resolvedBasePath)) {
+            throw PathOutsideBaseException::create($fileQuery->file, $basePath);
         }
 
         if ($mustExist) {
