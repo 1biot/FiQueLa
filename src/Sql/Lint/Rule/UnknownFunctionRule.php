@@ -9,6 +9,7 @@ use FQL\Sql\Lint\LintIssue;
 use FQL\Sql\Lint\Rule;
 use FQL\Sql\Lint\Severity;
 use FQL\Sql\Runtime\FunctionInvoker;
+use FQL\Sql\Token\Span;
 
 /**
  * Flags every `FunctionCallNode` whose name isn't known to the runtime
@@ -16,6 +17,8 @@ use FQL\Sql\Runtime\FunctionInvoker;
  * any identifier followed by `(...)` as a function call, so the only way to
  * catch typos like `LOEWR(name)` pre-execution is to consult the dispatch
  * table.
+ *
+ * Span: the function name. Params: `['function' => NAME]` (upper-cased).
  */
 final class UnknownFunctionRule implements Rule
 {
@@ -44,9 +47,28 @@ final class UnknownFunctionRule implements Rule
                 $this->severity(),
                 $this->id(),
                 sprintf('Unknown function "%s".', $call->name),
-                $call->position ?? null
+                $call->position ?? null,
+                self::nameSpan($call, $ctx->source),
+                ['function' => $call->name]
             );
         }
         return $issues;
+    }
+
+    /**
+     * Span of the function name (`LOEWR` in `LOEWR(name)`), or of the whole call when
+     * the name cannot be found at its start.
+     */
+    private static function nameSpan(FunctionCallNode $call, string $sql): ?Span
+    {
+        $span = $call->span;
+        if ($span === null) {
+            return null;
+        }
+        $length = strlen($call->name);
+        if ($length <= $span->length() && strcasecmp(substr($sql, $span->start, $length), $call->name) === 0) {
+            return new Span($span->start, $span->start + $length);
+        }
+        return $span;
     }
 }

@@ -7,7 +7,9 @@ use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
 use FQL\Query;
+use FQL\Exception\SourceAwareException;
 use FQL\Sql\Ast\ExplainMode;
+use FQL\Sql\Ast\HasSpan;
 use FQL\Sql\Ast\Expression\ColumnReferenceNode;
 use FQL\Sql\Ast\Expression\ConditionGroupNode;
 use FQL\Sql\Ast\Expression\CteReferenceNode;
@@ -41,6 +43,12 @@ use FQL\Sql\Runtime\ExpressionEvaluator;
  *
  * Cost of the stringify-reparse hop: roughly 50 µs per clause, paid once at
  * build time. Negligible vs. any serialisation / stream setup.
+ *
+ * Errors: a {@see SourceAwareException} raised while a node is being built gets
+ * that node's span ({@see SourceAwareException::attachSpan()}), the innermost
+ * node first — a FROM file, a SELECT field, a JOIN, a WHERE condition, an ORDER BY
+ * item, the INTO target, and finally the statement itself. Nodes without a span
+ * (built in code) add nothing.
  */
 final class QueryBuildingVisitor
 {
@@ -96,7 +104,7 @@ final class QueryBuildingVisitor
         }
 
         try {
-            $query = $this->buildBody($ast, $override);
+            $query = $this->at($ast, fn () => $this->buildBody($ast, $override));
 
             // Attach each referenced CTE definition to the outer Query so its
             // __toString() renders the original `WITH name AS (...) ...` shape
@@ -107,7 +115,7 @@ final class QueryBuildingVisitor
                 foreach ($ast->commonTables as $cte) {
                     $body = $registry->resolvedBody($cte->name);
                     if ($body !== null) {
-                        $query->with($cte->name, $body);
+                        $this->at($cte, fn () => $query->with($cte->name, $body));
                     }
                 }
             }
@@ -147,48 +155,58 @@ final class QueryBuildingVisitor
         $this->applyFields($query, $ast->fields);
 
         foreach ($ast->joins as $join) {
-            $this->applyJoin($query, $join);
+            $this->at($join, fn () => $this->applyJoin($query, $join));
         }
 
-        if ($ast->where !== null) {
-            $query->addWhereConditions($this->buildWhereGroup($ast->where->conditions));
+        $where = $ast->where;
+        if ($where !== null) {
+            $this->at($where, fn () => $query->addWhereConditions($this->buildWhereGroup($where->conditions)));
         }
 
         if ($ast->groupBy !== null) {
             foreach ($ast->groupBy->fields as $field) {
-                $query->groupBy($this->compiler->renderExpression($field));
+                $this->at($field, fn () => $query->groupBy($this->compiler->renderExpression($field)));
             }
         }
 
-        if ($ast->having !== null) {
-            $query->addHavingConditions($this->buildHavingGroup($ast->having->conditions));
+        $having = $ast->having;
+        if ($having !== null) {
+            $this->at($having, fn () => $query->addHavingConditions($this->buildHavingGroup($having->conditions)));
         }
 
         if ($ast->orderBy !== null) {
             foreach ($ast->orderBy->items as $item) {
-                $query->orderBy(
+                $this->at($item, fn () => $query->orderBy(
                     $this->compiler->renderExpression($item->expression),
                     $item->direction
-                );
+                ));
             }
         }
 
-        if ($ast->limit !== null) {
-            if ($ast->limit->limit > 0) {
-                $query->limit($ast->limit->limit, $ast->limit->offset);
-            } elseif ($ast->limit->offset !== null) {
-                $query->offset($ast->limit->offset);
-            }
+        $limit = $ast->limit;
+        if ($limit !== null) {
+            $this->at($limit, function () use ($query, $limit): void {
+                if ($limit->limit > 0) {
+                    $query->limit($limit->limit, $limit->offset);
+                } elseif ($limit->offset !== null) {
+                    $query->offset($limit->offset);
+                }
+            });
         }
 
-        if ($ast->into !== null) {
-            $fileQuery = $this->fileQueryResolver->resolve($ast->into->target->fileQuery, mustExist: false);
-            $query->into($fileQuery);
+        $into = $ast->into;
+        if ($into !== null) {
+            $this->at($into->target, function () use ($query, $into): void {
+                $fileQuery = $this->fileQueryResolver->resolve($into->target->fileQuery, mustExist: false);
+                $query->into($fileQuery);
+            });
         }
 
         foreach ($ast->unions as $union) {
-            $rhs = $this->build($union->query);
-            $union->all ? $query->unionAll($rhs) : $query->union($rhs);
+            $this->at($union, function () use ($query, $union): void {
+                $rhs = $this->build($union->query);
+                $union->all ? $query->unionAll($rhs) : $query->union($rhs);
+            });
         }
 
         return $query;
@@ -210,7 +228,8 @@ final class QueryBuildingVisitor
         // an already-open stream — there is nothing to open in a stand-alone build.
         $source = $ast->from->source;
         if ($source instanceof FileQueryNode && $source->fileQuery->file === null) {
-            throw new Exception\QueryLogicException(
+            $span = $source->span();
+            $exception = new Exception\QueryLogicException(
                 sprintf(
                     'FROM source "%s" does not name a file; use format(path)%s for a stand-alone'
                     . ' build() or applyTo($existingQuery) to query an already-open stream',
@@ -218,15 +237,19 @@ final class QueryBuildingVisitor
                     $source->fileQuery->query !== null ? '.' . $source->fileQuery->query : ''
                 )
             );
+            throw $span !== null ? $exception->attachSpan($span) : $exception;
         }
         // FROM position must materialise CTE references — the outer SELECT/WHERE/etc
         // are merged into the returned Query, and an inline CTE body would leave its
         // own SELECT fields on the same instance (collision risk).
-        $query = $this->resolveSource($ast->from->source, fromContext: true);
-        if ($ast->from->alias !== null) {
-            $query->as($ast->from->alias);
-        }
-        return $query;
+        $from = $ast->from;
+        return $this->at($from, function () use ($from): Interface\Query {
+            $query = $this->resolveSource($from->source, fromContext: true);
+            if ($from->alias !== null) {
+                $query->as($from->alias);
+            }
+            return $query;
+        });
     }
 
     /**
@@ -244,6 +267,15 @@ final class QueryBuildingVisitor
      * @throws Exception\FileNotFoundException
      */
     private function resolveSource(ExpressionNode $node, bool $fromContext): Interface\Query
+    {
+        return $this->at($node, fn (): Interface\Query => $this->resolveSourceNode($node, $fromContext));
+    }
+
+    /**
+     * @throws Exception\InvalidFormatException
+     * @throws Exception\FileNotFoundException
+     */
+    private function resolveSourceNode(ExpressionNode $node, bool $fromContext): Interface\Query
     {
         if ($node instanceof CteReferenceNode) {
             return $this->resolveCteReference($node, $fromContext);
@@ -308,30 +340,38 @@ final class QueryBuildingVisitor
     private function applyFields(Interface\Query $query, array $fields): void
     {
         foreach ($fields as $field) {
-            if ($field->excluded) {
-                $query->exclude($this->fieldString($field->expression));
-                continue;
-            }
+            $this->at($field, fn () => $this->applyField($query, $field));
+        }
+    }
 
-            $expression = $field->expression;
+    /**
+     * @throws Exception\SelectException
+     */
+    private function applyField(Interface\Query $query, SelectFieldNode $field): void
+    {
+        if ($field->excluded) {
+            $query->exclude($this->fieldString($field->expression));
+            return;
+        }
 
-            if ($expression instanceof StarNode) {
-                $query->selectAll();
-                if ($field->alias !== null) {
-                    $query->as($field->alias);
-                }
-                continue;
-            }
+        $expression = $field->expression;
 
-            // Stringify the AST and hand it to the fluent select() — that path
-            // now parses SQL expression strings into AST internally, so there's
-            // a single entry point for both the SQL builder and user fluent code.
-            $rendered = $this->compiler->renderExpression($expression);
+        if ($expression instanceof StarNode) {
+            $query->selectAll();
             if ($field->alias !== null) {
-                $query->select($rendered . ' ' . Interface\Query::AS . ' ' . $field->alias);
-            } else {
-                $query->select($rendered);
+                $query->as($field->alias);
             }
+            return;
+        }
+
+        // Stringify the AST and hand it to the fluent select() — that path
+        // now parses SQL expression strings into AST internally, so there's
+        // a single entry point for both the SQL builder and user fluent code.
+        $rendered = $this->compiler->renderExpression($expression);
+        if ($field->alias !== null) {
+            $query->select($rendered . ' ' . Interface\Query::AS . ' ' . $field->alias);
+        } else {
+            $query->select($rendered);
         }
     }
 
@@ -393,13 +433,13 @@ final class QueryBuildingVisitor
             // Always build ExpressionCondition so complex operands (function calls,
             // arithmetic) resolve at runtime via the evaluator. Plain-column
             // equality still works: evaluator reduces ColumnReferenceNode → value.
-            $target->addCondition($logical, new Conditions\ExpressionCondition(
+            $this->at($condition, fn () => $target->addCondition($logical, new Conditions\ExpressionCondition(
                 $logical,
                 $condition->left,
                 $condition->operator,
                 $condition->right,
                 $this->evaluator
-            ));
+            )));
         }
     }
 
@@ -413,5 +453,27 @@ final class QueryBuildingVisitor
             return $node->name;
         }
         return $this->compiler->renderExpression($node);
+    }
+
+    /**
+     * Runs `$build` and ties a {@see SourceAwareException} it throws to `$node`'s span,
+     * unless an inner node already did. The same exception is re-thrown (class,
+     * message and previous unchanged).
+     *
+     * @template T
+     * @param \Closure(): T $build
+     * @return T
+     */
+    private function at(object $node, \Closure $build): mixed
+    {
+        try {
+            return $build();
+        } catch (SourceAwareException $exception) {
+            $span = $node instanceof HasSpan ? $node->span() : null;
+            if ($span !== null) {
+                $exception->attachSpan($span);
+            }
+            throw $exception;
+        }
     }
 }

@@ -87,6 +87,33 @@ final class TokenStream implements \Iterator, \Countable
         return $this->consume();
     }
 
+    /**
+     * The last consumed non-trivia token, or null when nothing has been consumed yet.
+     */
+    public function previous(): ?Token
+    {
+        for ($i = $this->position - 1; $i >= 0; $i--) {
+            $token = $this->tokens[$i];
+            if (!$token->type->isTrivia()) {
+                return $token;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Source span from `$first` (a token or a byte offset) to the end of the last
+     * consumed non-trivia token. Used by the parser to give every AST node its
+     * `[start, end)` range; empty when nothing was consumed since `$first`.
+     */
+    public function spanFrom(Token|int $first): Span
+    {
+        $start = $first instanceof Token ? $first->position->offset : $first;
+        $previous = $this->previous();
+        $end = $previous !== null ? $previous->position->offset + $previous->length : $start;
+        return new Span($start, max($start, $end));
+    }
+
     public function mark(): int
     {
         return $this->position;

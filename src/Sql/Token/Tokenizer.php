@@ -254,11 +254,26 @@ final class Tokenizer
             return;
         }
 
-        $position = new Position($startOffset, $startLine, $startColumn);
+        // Report the whole UTF-8 character, not one of its bytes: the scan can stop on a
+        // continuation byte when the identifier before it took the lead byte.
+        $charStart = $startOffset;
+        while ($charStart > 0 && $startOffset - $charStart < 3 && (ord($this->sql[$charStart]) & 0xC0) === 0x80) {
+            $charStart--;
+        }
+        $lead = ord($this->sql[$charStart]);
+        $width = $lead >= 0xF0 ? 4 : ($lead >= 0xE0 ? 3 : ($lead >= 0xC0 ? 2 : 1));
+        $character = substr($this->sql, $charStart, $width);
+        if ($charStart + $width <= $startOffset || preg_match('//u', $character) !== 1) {
+            [$charStart, $character] = [$startOffset, $char];
+        }
+        $position = new Position($charStart, $startLine, $startColumn - ($startOffset - $charStart));
+        $reason = sprintf('Unexpected character "%s"', $character);
         throw new ParseException(
-            new Token(TokenType::EOF, $char, $char, $position, 1),
+            new Token(TokenType::EOF, $character, $character, $position, strlen($character)),
             [],
-            sprintf('Unexpected character "%s" at %s', $char, (string) $position)
+            $reason . ' at ' . $position,
+            $reason,
+            ['kind' => 'unexpected-character']
         );
     }
 
@@ -312,9 +327,11 @@ final class Tokenizer
         }
         $position = new Position($startOffset, $startLine, $startColumn);
         throw new ParseException(
-            new Token(TokenType::EOF, '', '', $position, 0),
+            new Token(TokenType::EOF, '/*', '/*', $position, 2),
             [],
-            sprintf('Unterminated block comment starting at %s', (string) $position)
+            sprintf('Unterminated block comment starting at %s', (string) $position),
+            'Unterminated block comment',
+            ['kind' => 'unterminated-comment']
         );
     }
 
@@ -395,10 +412,13 @@ final class Tokenizer
         }
 
         $position = new Position($startOffset, $startLine, $startColumn);
+        $reason = sprintf('Unexpected operator character "%s"', $first);
         throw new ParseException(
             new Token(TokenType::EOF, $first, $first, $position, 1),
             [],
-            sprintf('Unexpected operator character "%s" at %s', $first, (string) $position)
+            $reason . ' at ' . $position,
+            $reason,
+            ['kind' => 'unexpected-operator']
         );
     }
 
@@ -434,7 +454,9 @@ final class Tokenizer
         throw new ParseException(
             new Token(TokenType::EOF, $quote, $quote, $position, 1),
             [],
-            sprintf('Unterminated string literal starting at %s', (string) $position)
+            sprintf('Unterminated string literal starting at %s', (string) $position),
+            'Unterminated string literal',
+            ['kind' => 'unterminated-string']
         );
     }
 
@@ -580,7 +602,9 @@ final class Tokenizer
         throw new ParseException(
             new Token(TokenType::EOF, '`', '`', $position, 1),
             [],
-            sprintf('Unterminated backtick identifier starting at %s', (string) $position)
+            sprintf('Unterminated backtick identifier starting at %s', (string) $position),
+            'Unterminated backtick identifier',
+            ['kind' => 'unterminated-identifier']
         );
     }
 

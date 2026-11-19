@@ -85,6 +85,59 @@ final class FileQuery implements \Stringable
     }
 
     /**
+     * Copy with the given parameter set. Keys the format does not know are ignored when
+     * writing; missing keys fall back to the format defaults.
+     *
+     * @param array<string, string|int|bool> $params
+     * @throws Exception\FileQueryException when a value cannot be written (contains `"`)
+     * @throws Exception\InvalidFormatException
+     */
+    public function withParams(array $params): self
+    {
+        $normalized = [];
+        foreach ($params as $key => $value) {
+            $normalized[$key] = self::paramValueToString($value);
+        }
+        return new self(self::toString($this->format, $this->file, $normalized, $this->query, true));
+    }
+
+    /**
+     * Builds a file query from its parts, e.g.
+     * `FileQuery::fromParts('csv', './data.csv', ['delimiter' => ';'], 'items')`
+     * is `csv(./data.csv, delimiter: ";").items` (or the positional form, see {@see toFql()}).
+     *
+     * @param array<string, string|int|bool> $params
+     * @throws Exception\FileQueryException when a part cannot be written
+     * @throws Exception\InvalidFormatException
+     */
+    public static function fromParts(
+        ?string $format,
+        ?string $file,
+        array $params = [],
+        ?string $query = null,
+        bool $namedParams = false
+    ): self {
+        $normalized = [];
+        foreach ($params as $key => $value) {
+            $normalized[$key] = self::paramValueToString($value);
+        }
+        return new self(self::toString($format, $file, $normalized, $query, $namedParams));
+    }
+
+    /**
+     * Writes the file query as FQL text. Only parameters that differ from the format
+     * defaults are written. With `$namedParams = false` they are positional when every
+     * one of them has a position (`csv(a.csv, "utf-8", ";")`), otherwise — and always with
+     * `$namedParams = true` — named (`csv(a.csv, delimiter: ";", enclosure: "'")`).
+     *
+     * @throws Exception\FileQueryException when a part cannot be written as FQL
+     */
+    public function toFql(bool $namedParams = false): string
+    {
+        return self::toString($this->format, $this->file, $this->params, $this->query, $namedParams);
+    }
+
+    /**
      * @deprecated Use withParam('encoding', $encoding) instead
      * @throws Exception\FileQueryException
      * @throws Exception\InvalidFormatException
@@ -220,55 +273,100 @@ final class FileQuery implements \Stringable
 
     /**
      * @param array<string, mixed> $params
+     * @throws Exception\FileQueryException when a part cannot be written as FQL
      */
     private static function toString(
         ?string $format,
         ?string $file,
         array $params,
-        ?string $query
+        ?string $query,
+        bool $namedParams = false
     ): string {
         $result = '';
 
-        if ($format !== null && $file !== null) {
+        if ($format !== null) {
+            if (preg_match('/^[a-zA-Z]{2,8}$/', $format) !== 1) {
+                throw new Exception\FileQueryException(
+                    sprintf('Format "%s" cannot be written in a file query: expected 2-8 letters', $format)
+                );
+            }
+            if ($file === null || $file === '') {
+                throw new Exception\FileQueryException(
+                    sprintf('A file query with format "%s" needs a file path', $format)
+                );
+            }
+            if (preg_match('/^[\w\s.\-\/]+$/u', $file) !== 1) {
+                throw new Exception\FileQueryException(sprintf(
+                    'File path "%s" cannot be written in a file query: only letters, digits, whitespace,'
+                    . ' "_", ".", "-" and "/" are allowed',
+                    $file
+                ));
+            }
+
             try {
                 $extension = Enum\Format::fromExtension($format);
                 $defaults = $extension->getDefaultParams();
+                $known = $extension->getParamNames();
+                $positional = $extension->getPositionalParamNames();
             } catch (Exception\InvalidFormatException) {
                 $defaults = [];
+                $known = [];
+                $positional = [];
             }
 
-            // Determine which params are non-default
-            $nonDefault = array_filter(
-                $params,
-                fn ($v, $k) => !isset($defaults[$k]) || $defaults[$k] !== $v,
-                ARRAY_FILTER_USE_BOTH
-            );
+            // Only parameters the format understands and that differ from its defaults,
+            // in the format's own order.
+            $nonDefault = [];
+            foreach ($known as $key) {
+                if (!array_key_exists($key, $params) || $params[$key] === null) {
+                    continue;
+                }
+                $value = self::paramValueToString($params[$key]);
+                if (isset($defaults[$key]) && (string) $defaults[$key] === $value) {
+                    continue;
+                }
+                if (str_contains($value, '"')) {
+                    throw new Exception\FileQueryException(sprintf(
+                        'Parameter "%s" cannot be written in a file query: the value %s contains a double quote',
+                        $key,
+                        json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    ));
+                }
+                $nonDefault[$key] = $value;
+            }
 
             $parts = [$file];
-
-            if ($nonDefault !== []) {
-                // For positional output, we need to include all params up to the last non-default
-                $keys = array_keys($defaults);
+            $canBePositional = array_diff(array_keys($nonDefault), $positional) === [];
+            if ($nonDefault !== [] && ($namedParams || !$canBePositional)) {
+                foreach ($nonDefault as $key => $value) {
+                    $parts[] = sprintf('%s: "%s"', $key, $value);
+                }
+            } elseif ($nonDefault !== []) {
+                // Positional output includes every position up to the last non-default one.
                 $lastNonDefaultIndex = -1;
-                foreach ($keys as $i => $key) {
+                foreach ($positional as $i => $key) {
                     if (isset($nonDefault[$key])) {
                         $lastNonDefaultIndex = $i;
                     }
                 }
 
                 for ($i = 0; $i <= $lastNonDefaultIndex; $i++) {
-                    $key = $keys[$i];
-                    $value = $params[$key] ?? $defaults[$key] ?? '';
-                    $parts[] = sprintf('"%s"', $value);
+                    $key = $positional[$i];
+                    $parts[] = sprintf('"%s"', $nonDefault[$key] ?? (string) ($defaults[$key] ?? ''));
                 }
             }
 
             $result = $format . '(' . implode(', ', $parts) . ')';
-        } elseif ($format !== null) {
-            $result = $format . '()';
         }
 
         if ($query !== null) {
+            if (preg_match('/^(?:\*|[\w*.\-]+)$/u', $query) !== 1) {
+                throw new Exception\FileQueryException(sprintf(
+                    'Path in file "%s" cannot be written in a file query: only letters, digits,'
+                    . ' "_", "-", "." and "*" are allowed',
+                    $query
+                ));
+            }
             if ($file !== null) {
                 $result .= '.';
             }
@@ -276,5 +374,13 @@ final class FileQuery implements \Stringable
         }
 
         return $result;
+    }
+
+    private static function paramValueToString(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+        return is_scalar($value) ? (string) $value : '';
     }
 }

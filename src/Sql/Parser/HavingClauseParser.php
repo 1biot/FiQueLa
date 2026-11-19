@@ -21,6 +21,6 @@ final class HavingClauseParser
             $stream,
             ClauseBoundary::isControlKeyword(...)
         );
-        return new HavingClauseNode($group, $havingKeyword->position);
+        return new HavingClauseNode($group, $havingKeyword->position, $stream->spanFrom($havingKeyword));
     }
 }

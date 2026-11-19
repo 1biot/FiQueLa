@@ -76,7 +76,12 @@ final class WithClauseParser
                 $select = $this->statementParser->parse($stream);
                 $stream->expect(TokenType::PAREN_CLOSE);
 
-                $ctes[] = new CommonTableExpressionNode($name, $select, $nameToken->position);
+                $ctes[] = new CommonTableExpressionNode(
+                    $name,
+                    $select,
+                    $nameToken->position,
+                    $stream->spanFrom($nameToken)
+                );
             } while ($stream->consumeIf(TokenType::COMMA) !== null);
         } finally {
             // Restore to outer scope; the caller is responsible for re-registering the

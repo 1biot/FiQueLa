@@ -13,7 +13,7 @@ class WriterFactory
     public static function create(FileQuery $fileQuery): Writer
     {
         if ($fileQuery->file !== null && file_exists($fileQuery->file)) {
-            throw new FileAlreadyExistsException(sprintf('File "%s" already exists', $fileQuery->file));
+            throw FileAlreadyExistsException::forPath($fileQuery->file);
         }
 
         return match ($fileQuery->extension) {

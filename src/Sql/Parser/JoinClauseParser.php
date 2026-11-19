@@ -51,7 +51,8 @@ final class JoinClauseParser
             $source,
             IdentifierHelper::stripOuterBackticks($aliasToken->value),
             $condition,
-            $leadToken->position
+            $leadToken->position,
+            $stream->spanFrom($leadToken)
         );
     }
 }

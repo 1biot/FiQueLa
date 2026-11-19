@@ -14,7 +14,7 @@
         </testsuite>
     </testsuites>
 
-    <source>
+    <source restrictDeprecations="true">
         <include>
             <directory>src</directory>
         </include>

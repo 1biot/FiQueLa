@@ -3,7 +3,9 @@
 namespace FQL\Sql\Ast\Expression;
 
 use FQL\Sql\Ast\Node\OrderByItemNode;
+use FQL\Sql\Ast\HasSpan;
 use FQL\Sql\Token\Position;
+use FQL\Sql\Token\Span;
 
 /**
  * AST envelope carrying the inner SELECT items and optional ORDER BY of a
@@ -15,7 +17,7 @@ use FQL\Sql\Token\Position;
  * build-time carrier between the parser/fluent builder and `storeAggregate`.
  * Attempting to evaluate it via `ExpressionEvaluator` is a logic error.
  */
-final readonly class CollectObjectExpressionNode implements ExpressionNode
+final readonly class CollectObjectExpressionNode implements ExpressionNode, HasSpan
 {
     /**
      * @param list<array{expression: ExpressionNode, alias: string|null}> $selectItems
@@ -24,12 +26,18 @@ final readonly class CollectObjectExpressionNode implements ExpressionNode
     public function __construct(
         public array $selectItems,
         public array $orderings,
-        public Position $position
+        public Position $position,
+        public ?Span $span = null
     ) {
     }
 
     public function position(): Position
     {
         return $this->position;
+    }
+
+    public function span(): ?Span
+    {
+        return $this->span;
     }
 }

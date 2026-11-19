@@ -22,6 +22,6 @@ final class WhereClauseParser
             $stream,
             ClauseBoundary::isControlKeyword(...)
         );
-        return new WhereClauseNode($group, $whereKeyword->position);
+        return new WhereClauseNode($group, $whereKeyword->position, $stream->spanFrom($whereKeyword));
     }
 }

@@ -14,7 +14,7 @@ class Xml extends XmlProvider implements Interface\Stream
     public static function openWithEncoding(string $path, ?string $encoding = null): Interface\Stream
     {
         if (file_exists($path) === false || is_readable($path) === false) {
-            throw new Exception\FileNotFoundException("File not found or not readable.");
+            throw Exception\FileNotFoundException::forPath($path);
         }
 
         $class = new self($path);

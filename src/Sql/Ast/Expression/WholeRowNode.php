@@ -2,7 +2,9 @@
 
 namespace FQL\Sql\Ast\Expression;
 
+use FQL\Sql\Ast\HasSpan;
 use FQL\Sql\Token\Position;
+use FQL\Sql\Token\Span;
 
 /**
  * Resolves to the entire source row when evaluated.
@@ -17,14 +19,21 @@ use FQL\Sql\Token\Position;
  * Not produced by the parser; only by the fluent / SQL-string aggregate setup
  * inside {@see \FQL\Traits\Select::storeAggregate()}.
  */
-final readonly class WholeRowNode implements ExpressionNode
+final readonly class WholeRowNode implements ExpressionNode, HasSpan
 {
-    public function __construct(public Position $position)
-    {
+    public function __construct(
+        public Position $position,
+        public ?Span $span = null
+    ) {
     }
 
     public function position(): Position
     {
         return $this->position;
+    }
+
+    public function span(): ?Span
+    {
+        return $this->span;
     }
 }

@@ -5,6 +5,7 @@ namespace FQL\Sql\Lint;
 use FQL\Sql\Compiler;
 use FQL\Sql\Lint\Rule\DuplicateAliasRule;
 use FQL\Sql\Lint\Rule\FileNotFoundRule;
+use FQL\Sql\Lint\Rule\FileOutsideBaseRule;
 use FQL\Sql\Lint\Rule\MissingFromRule;
 use FQL\Sql\Lint\Rule\UnknownFunctionRule;
 use FQL\Sql\Parser\ParseException;
@@ -47,6 +48,7 @@ final class Linter
             new DuplicateAliasRule(),
             new MissingFromRule(),
             new FileNotFoundRule(),
+            new FileOutsideBaseRule(),
         ];
     }
 
@@ -54,8 +56,15 @@ final class Linter
      * Runs every registered rule against `$sql` and returns the collected
      * findings. Passing `$checkFilesystem = true` enables the opt-in
      * {@see FileNotFoundRule} — rules that don't need the flag ignore it.
+     * `$basePath` is the base path the query will be compiled with: file rules
+     * resolve relative paths against it, and {@see FileOutsideBaseRule} reports
+     * files outside it.
+     *
+     * A syntax error is a single `syntax-error` issue with the
+     * {@see ParseException} span and params, plus `reason` (the message without
+     * the position suffix) in the params.
      */
-    public function lint(string $sql, bool $checkFilesystem = false): LintReport
+    public function lint(string $sql, bool $checkFilesystem = false, ?string $basePath = null): LintReport
     {
         $compiler = new Compiler($sql);
 
@@ -67,12 +76,14 @@ final class Linter
                     Severity::ERROR,
                     'syntax-error',
                     $e->getMessage(),
-                    $e->token->position
+                    $e->token->position,
+                    $e->getSpan(),
+                    $e->getParams() + ['reason' => $e->getReason()]
                 ),
             ]);
         }
 
-        $context = new LintContext($ast, $sql, $checkFilesystem);
+        $context = new LintContext($ast, $sql, $checkFilesystem, $basePath);
         $issues = [];
         foreach ($this->rules as $rule) {
             foreach ($rule->check($context) as $issue) {
@@ -83,8 +94,8 @@ final class Linter
         // Stable ordering by source offset (null-position issues first —
         // they're structural, not tied to a specific token).
         usort($issues, static function (LintIssue $a, LintIssue $b): int {
-            $ao = $a->position?->offset;
-            $bo = $b->position?->offset;
+            $ao = $a->position?->offset ?? $a->span?->start;
+            $bo = $b->position?->offset ?? $b->span?->start;
             if ($ao === null && $bo === null) {
                 return 0;
             }

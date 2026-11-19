@@ -38,7 +38,7 @@ final class OrderByClauseParser
             );
         }
 
-        return new OrderByClauseNode($items, $orderKeyword->position);
+        return new OrderByClauseNode($items, $orderKeyword->position, $stream->spanFrom($orderKeyword));
     }
 
     /**
@@ -50,7 +50,7 @@ final class OrderByClauseParser
      */
     public function parseItem(TokenStream $stream): OrderByItemNode
     {
-        $startPosition = $stream->peek()->position;
+        $start = $stream->peek();
         $expression = $this->expressionParser->parseExpression($stream);
         $direction = Sort::ASC;
         if ($stream->consumeIf(TokenType::KEYWORD_ASC) !== null) {
@@ -58,6 +58,6 @@ final class OrderByClauseParser
         } elseif ($stream->consumeIf(TokenType::KEYWORD_DESC) !== null) {
             $direction = Sort::DESC;
         }
-        return new OrderByItemNode($expression, $direction, $startPosition);
+        return new OrderByItemNode($expression, $direction, $start->position, $stream->spanFrom($start));
     }
 }

@@ -32,7 +32,7 @@ final class LimitOffsetParser
             $offset = (int) $stream->consume()->value;
         }
 
-        return new LimitClauseNode($limit, $offset, $limitPosition);
+        return new LimitClauseNode($limit, $offset, $limitPosition, $stream->spanFrom($limitPosition->offset));
     }
 
     /**

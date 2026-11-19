@@ -2,6 +2,7 @@
 
 namespace FQL\Exception;
 
-class InvalidArgumentException extends \InvalidArgumentException
+class InvalidArgumentException extends \InvalidArgumentException implements SourceAwareException
 {
+    use SourceAwareTrait;
 }

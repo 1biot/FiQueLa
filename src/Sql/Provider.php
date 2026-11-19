@@ -67,11 +67,12 @@ final class Provider
      * Pass `$checkFilesystem = true` to enable {@see \FQL\Sql\Lint\Rule\FileNotFoundRule},
      * which verifies every `FROM <format>(...)` path resolves to a readable
      * file. Disabled by default so tests and IDE integrations don't depend on
-     * real files.
+     * real files. `$basePath` resolves relative paths like {@see compile()} does and
+     * enables {@see \FQL\Sql\Lint\Rule\FileOutsideBaseRule}.
      */
-    public static function lint(string $sql, bool $checkFilesystem = false): LintReport
+    public static function lint(string $sql, bool $checkFilesystem = false, ?string $basePath = null): LintReport
     {
-        return (new Linter())->lint($sql, $checkFilesystem);
+        return (new Linter())->lint($sql, $checkFilesystem, $basePath);
     }
 
     /**

@@ -26,6 +26,6 @@ final class UnionParser
     {
         $all = $stream->consumeIf(TokenType::KEYWORD_ALL) !== null;
         $rightHand = $this->statementParser->parse($stream);
-        return new UnionClauseNode($rightHand, $all, $unionKeyword->position);
+        return new UnionClauseNode($rightHand, $all, $unionKeyword->position, $stream->spanFrom($unionKeyword));
     }
 }

@@ -9,6 +9,7 @@
   - [Sort](#sort)
   - [Type](#type)
 - [Exceptions](#exceptions)
+  - [SourceAwareException](#sourceawareexception)
 - [Interfaces](#interfaces)
   - [Aggregable](#aggregable)
   - [JoinHashmap](#joinhashmap)
@@ -57,12 +58,14 @@
     - [TokenType](#tokentype)
     - [Token](#token-class)
     - [Position](#position)
+    - [Span](#span)
     - [TokenStream](#tokenstream)
     - [Tokenizer](#tokenizer)
   - [Ast](#ast)
     - [Nodes](#ast-nodes)
     - [Expressions](#ast-expressions)
     - [Enums](#ast-enums)
+    - [Spans and copies](#ast-spans-and-copies)
   - [Parser](#sql-parser)
     - [Parser](#parser-class)
     - [ParseException](#parseexception)
@@ -75,6 +78,7 @@
     - [ExpressionEvaluator](#expressionevaluator)
     - [FunctionInvoker](#functioninvoker)
   - [Formatter](#sql-formatter)
+  - [Printer](#sql-printer)
   - [Highlighter](#sql-highlighter)
   - [Lint](#sql-lint)
   - [Support](#sql-support)
@@ -147,6 +151,10 @@ _public_ **getDefaultParams():** `array`
 _public_ **validateParams(**_array_ `$params`**):** `void`
 
 _public_ **normalizeParams(**_array_ `$positional`**,** _array_ `$named`**):** `array`
+
+_public_ **getParamNames():** `string[]` — parameters the format understands, in writing order (CSV: `encoding`, `delimiter`, `useHeader`, `enclosure`, `bom`; XML: `encoding`; LOG: `format`, `pattern`).
+
+_public_ **getPositionalParamNames():** `string[]` — the subset that can be written positionally (CSV: `encoding`, `delimiter`, `useHeader`; XML: `encoding`; LOG: `format`).
 
 ### Fulltext
 
@@ -280,8 +288,51 @@ _public static_ **listValues():** `Type[]`
 | `SortException` | `InvalidArgumentException` |
 | `UnknownFunctionException` | `UnexpectedValueException` |
 | `FunctionRegistrationException` | `InvalidArgumentException` |
+| `PathNotFoundException` | `InvalidFormatException` |
+| `PathOutsideBaseException` | `InvalidFormatException` |
 
 `UnknownFunctionException` is thrown by `FunctionInvoker` at runtime when a function name is not found in `FunctionRegistry`. `FunctionRegistrationException` is thrown by `FunctionRegistry` when registration fails — duplicate name, non-existent class, or class that does not implement `ScalarFunction` or `AggregateFunction`.
+
+`PathNotFoundException` and `PathOutsideBaseException` are thrown by `Utils\FileQueryPathValidator` (a query compiled with a `basePath`) for a file that does not exist and for a file outside the base path. Both used to be a plain `InvalidFormatException`; the message is still `Invalid path of file`.
+
+### SourceAwareException
+
+`FQL\Exception\SourceAwareException` _(interface, extends `\Throwable`)_ — implemented by every FiQueLa exception (and `Sql\Parser\ParseException`), so tooling can catch one type and read structured data instead of parsing messages. `getMessage()` is unchanged.
+
+_public_ **getRule():** `?string` — stable id of the error kind, the same ids lint uses; null for errors without one.
+
+_public_ **getSpan():** `?Token\Span` — byte range `[start, end)` in the SQL string that was parsed (the string passed to `Compiler`; `Sql\Provider::compile()` and `Query\Provider::fql()` parse `trim($sql)`). Null when the error is not tied to the text.
+
+_public_ **getParams():** `array<string, mixed>` — values for translating the error by rule.
+
+_public_ **getReason():** `string` — English message without the ` at line X, column Y` suffix and without long lists; otherwise the message.
+
+_public_ **attachSpan(**_Token\Span_ `$span`**):** `static` — sets the span unless one is set; used by the SQL builder.
+
+| Rule | Thrown as | Params | Span |
+|------|-----------|--------|------|
+| `syntax-error` | `ParseException` | `kind`, `token`, `tokenType`, `expected`, `context`? | the offending token |
+| `unknown-function` | `UnknownFunctionException` | `function` (list in `getRegisteredFunctions()`) | none (raised during execution) |
+| `file-not-found` | `PathNotFoundException`, `FileNotFoundException` | `path` (+ `basePath`) | the file query |
+| `file-outside-base` | `PathOutsideBaseException` | `path`, `basePath` | the file query |
+| `file-exists` | `FileAlreadyExistsException` | `path` (resolved target) | none (raised when writing) |
+| `file-unreadable` | `UnableOpenFileException` | – | the file query when raised while building |
+| null | any other (`SelectException`, `QueryLogicException`, …) | – | the node being built |
+
+Errors raised while `Compiler::toQuery()` / `applyTo()` builds the query carry the span of the innermost node being built: a FROM / JOIN / CTE / subquery file query, a SELECT field, a JOIN, a WHERE / HAVING condition, a GROUP BY field, an ORDER BY item, `LIMIT`, the INTO target, a UNION, and finally the whole statement. Errors raised while the query executes (row evaluation, reading, writing) have no span; run lint first to catch unknown functions with a position.
+
+```php
+$sql = 'SELECT * FROM json(../data.json)';
+try {
+    $results = (new Sql\Compiler($sql, basePath: $projectDir))->toQuery()->execute();
+} catch (Exception\SourceAwareException $e) {
+    $e->getRule();                // 'file-outside-base'
+    $e->getSpan()?->slice($sql);  // 'json(../data.json)' – bytes [14, 32)
+    $e->getParams()['path'];      // '../data.json'
+    $e->getReason();              // 'File "../data.json" is outside the base path'
+    $e->getMessage();             // 'Invalid path of file' (as before)
+}
+```
 
 ---
 
@@ -704,6 +755,14 @@ _public_ **withParam(**_string_ `$key`**,** _string_ `$value`**):** `self`
 _public_ **withQuery(**_?string_ `$query`**):** `self`
 
 _public_ **withFormat(**_?string_ `$format`**):** `self`
+
+_public_ **withParams(**_array<string, string|int|bool>_ `$params`**):** `self` — replaces the parameter set; missing keys fall back to the format defaults.
+
+_public static_ **fromParts(**_?string_ `$format`**,** _?string_ `$file`**,** _array_ `$params = []`**,** _?string_ `$query = null`**,** _bool_ `$namedParams = false`**):** `self`
+
+_public_ **toFql(**_bool_ `$namedParams = false`**):** `string` — writes every non-default parameter; positional when each one has a position, otherwise (and always with `$namedParams`) named.
+
+The `with…()` methods, `fromParts()` and `toFql()` throw `Exception\FileQueryException` for parts FQL cannot express: a value containing `"`, a file path outside `[\w\s./-]`, a path in file outside `[\w*.-]`, a format without a file. See [Editing Queries](editing-queries.md#writing-file-queries).
 
 _public_ **withEncoding(**_string_ `$encoding`**):** `self` _(deprecated, use `withParam`)_
 
@@ -1197,9 +1256,9 @@ _public static_ **format(**_string_ `$sql`**,** _?Formatter\FormatterOptions_ `$
 
 AST-driven pretty-print. One clause per line, multi-field SELECTs wrap onto separate lines (configurable).
 
-_public static_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `Lint\LintReport`
+_public static_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**,** _?string_ `$basePath = null`**):** `Lint\LintReport`
 
-Static analysis of an FQL string — returns a [`LintReport`](#sql-lint) of issues that wouldn't surface until execution (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files when `$checkFilesystem = true`). Parse failures collapse to a single `syntax-error` entry.
+Static analysis of an FQL string — returns a [`LintReport`](#sql-lint) of issues that wouldn't surface until execution (typo'd function names, duplicate SELECT aliases, missing FROM, missing source files when `$checkFilesystem = true`, files outside `$basePath`). Parse failures collapse to a single `syntax-error` entry. Pass the `$basePath` the query will be compiled with, so relative paths resolve the same way.
 
 ```php
 $report = Sql\Provider::lint('SELECT LOEWR(name) FROM json(products.json)');
@@ -1311,6 +1370,26 @@ _public_ **__construct(**_int_ `$offset`**,** _int_ `$line`**,** _int_ `$column`
 
 _public_ **__toString():** `string`
 
+#### Span
+
+`FQL\Sql\Token\Span` _(readonly)_
+
+Half-open byte range `[start, end)` of a node in the original SQL (first token to last token, no surrounding trivia).
+
+_public_ **__construct(**_int_ `$start`**,** _int_ `$end`**)**
+
+_public static_ **fromTokens(**_Token_ `$first`**,** _Token_ `$last`**):** `self`
+
+_public_ **length():** `int`
+
+_public_ **isEmpty():** `bool`
+
+_public_ **contains(**_Span_ `$other`**):** `bool`
+
+_public_ **slice(**_string_ `$sql`**):** `string`
+
+_public_ **__toString():** `string` — `[start, end)`
+
 #### TokenStream
 
 `FQL\Sql\Token\TokenStream` _implements_ `\Iterator`, `\Countable`
@@ -1328,6 +1407,10 @@ _public_ **consume():** `Token`
 _public_ **consumeIf(**_TokenType_ `...$types`**):** `?Token`
 
 _public_ **expect(**_TokenType_ `...$types`**):** `Token` — throws `Parser\ParseException`.
+
+_public_ **previous():** `?Token` — the last consumed non-trivia token.
+
+_public_ **spanFrom(**_Token|int_ `$first`**):** `Span` — from `$first` to the end of the last consumed token (used by the parser to fill node spans).
 
 _public_ **mark():** `int`
 
@@ -1353,7 +1436,7 @@ Handles: keyword detection, `FILE_QUERY` lookahead in `FROM`/`INTO`/`DESCRIBE`/`
 
 **namespace:** `FQL\Sql\Ast`
 
-AST nodes are immutable readonly value objects produced by the parser. All implement `AstNode` (interface exposing `position(): Position`).
+AST nodes are immutable readonly value objects produced by the parser. All implement `AstNode` (interface exposing `position(): Position`) and `HasSpan` (`span(): ?Span`, see [Spans and copies](#ast-spans-and-copies)). Every constructor takes an optional last `?Span $span = null`.
 
 #### Ast Nodes
 
@@ -1361,7 +1444,8 @@ AST nodes are immutable readonly value objects produced by the parser. All imple
 
 | Node | Fields |
 |------|--------|
-| `SelectStatementNode` | `from`, `fields`, `distinct`, `joins`, `where`, `groupBy`, `having`, `orderBy`, `limit`, `unions`, `into`, `describe`, `explain` |
+| `SelectStatementNode` | `from`, `fields`, `distinct`, `joins`, `where`, `groupBy`, `having`, `orderBy`, `limit`, `unions`, `into`, `describe`, `explain`, `commonTables` |
+| `CommonTableExpressionNode` | `name: string`, `query: SelectStatementNode` |
 | `FromClauseNode` | `source: ExpressionNode`, `alias: ?string` |
 | `JoinClauseNode` | `type: JoinType`, `source: ExpressionNode`, `alias: string`, `on: ConditionExpressionNode` |
 | `WhereClauseNode` | `conditions: ConditionGroupNode` |
@@ -1404,6 +1488,28 @@ AST nodes are immutable readonly value objects produced by the parser. All imple
 
 `BinaryOperator` also exposes `precedence(): int` (standard SQL / C-family: `* / %` > `+ -`) and `functionName(): string` (maps to `ADD`/`SUB`/`MULTIPLY`/`DIVIDE`/`MOD`).
 
+#### Ast Spans and Copies
+
+`FQL\Sql\Ast\HasSpan` — _public_ **span():** `?Span`. Implemented by every node class of the library (kept apart from `AstNode` so custom `AstNode` / `ExpressionNode` implementations stay compatible). The parser fills the span of every node; nodes built in code and `with…()` copies have none. A `BinaryOpNode` / `ConditionExpressionNode` span starts at its left operand, a nested `ConditionGroupNode` span includes its parentheses. Details in [Editing Queries](editing-queries.md#source-spans).
+
+`with…()` helpers return a copy with one property replaced (and no span):
+
+| Node | Helpers |
+|------|---------|
+| `SelectStatementNode` | `withFrom()`, `withFields()`, `withDistinct()`, `withJoins()`, `withWhere()`, `withGroupBy()`, `withHaving()`, `withOrderBy()`, `withLimit()`, `withUnions()`, `withInto()`, `withExplain()`, `withCommonTables()` |
+| `SelectFieldNode` | `withExpression()`, `withAlias()`, `withExcluded()` |
+| `FromClauseNode` | `withSource()`, `withAlias()` |
+| `JoinClauseNode` | `withType()`, `withSource()`, `withAlias()`, `withOn()` |
+| `WhereClauseNode`, `HavingClauseNode` | `withConditions()` |
+| `GroupByClauseNode` | `withFields()` |
+| `OrderByClauseNode` | `withItems()` |
+| `OrderByItemNode` | `withExpression()`, `withDirection()` |
+| `LimitClauseNode` | `withLimit()`, `withOffset()` |
+| `ConditionGroupNode` | `withEntries()`, `withAppended(LogicalOperator $logical, ConditionExpressionNode\|ConditionGroupNode $condition)`, `withoutEntry(int $index)` |
+| `ConditionExpressionNode` | `withLeft()`, `withOperator()`, `withRight()` |
+| `FunctionCallNode` | `withArguments()` |
+| `FileQueryNode` | `withFileQuery(FileQuery $fileQuery, string $raw = '')` |
+
 ### SQL Parser
 
 **namespace:** `FQL\Sql\Parser`
@@ -1426,9 +1532,9 @@ Individual clause / expression parsers are also part of the namespace: `Statemen
 
 `FQL\Sql\Parser\ParseException` _extends_ `Exception\UnexpectedValueException`
 
-Carries the offending token and the expected token types for rich positioned diagnostics (line + column).
+Carries the offending token and the expected token types for rich positioned diagnostics (line + column). As a [`SourceAwareException`](#sourceawareexception): rule `syntax-error`, the span of the offending token (a whole UTF-8 character for an unexpected character), the reason without ` at line X, column Y`, and params `kind` (`unexpected-token`, `unexpected-character`, `unexpected-operator`, `unterminated-string`, `unterminated-identifier`, `unterminated-comment`), `token`, `tokenType`, `expected` (token type names) and `context` (for `context()`).
 
-_public_ **__construct(**_Token\Token_ `$token`**,** _TokenType[]_ `$expected`**,** _string_ `$message`**)**
+_public_ **__construct(**_Token\Token_ `$token`**,** _TokenType[]_ `$expected`**,** _string_ `$message`**,** _?string_ `$reason = null`**,** _array_ `$params = []`**)** — `$reason` defaults to the message without its position suffix; `$params` are merged over the defaults.
 
 _public static_ **unexpected(**_Token\Token_ `$actual`**,** _TokenType_ `...$expected`**):** `self`
 
@@ -1530,7 +1636,7 @@ _public_ **invoke(**_string_ `$name`**,** _mixed[]_ `$args`**):** `mixed`
 
 **namespace:** `FQL\Sql\Formatter`
 
-AST-driven pretty-printer.
+AST-driven pretty-printer. Comments and layout are not kept (use [`SourcePrinter`](#sql-printer) to edit a query in place); expressions, conditions and sources are written by `FqlPrinter`, so the output parses back to the same query.
 
 `FQL\Sql\Formatter\SqlFormatter`
 
@@ -1548,6 +1654,42 @@ _public_ **formatStatement(**_Ast\Node\SelectStatementNode_ `$ast`**,** _int_ `$
 | `$uppercaseKeywords` | `true` |
 | `$fieldsPerLine` | `true` |
 | `$newline` | `"\n"` |
+
+### SQL Printer
+
+**namespace:** `FQL\Sql\Printer`
+
+Writes ASTs back as FQL. Guide: [Editing Queries](editing-queries.md).
+
+`FQL\Sql\Printer\SourcePrinter` — prints an edited copy of a parsed query, keeping the original text (whitespace, comments, backticks, quotes, keyword case) of every unchanged part.
+
+_public_ **__construct(**_string_ `$sql`**,** _?Ast\Node\SelectStatementNode_ `$original = null`**)** — parses `$sql` when `$original` is omitted; throws `Parser\ParseException`.
+
+_public_ **original():** `Ast\Node\SelectStatementNode` — the AST to copy and edit.
+
+_public_ **sql():** `string`
+
+_public_ **keywordCase():** `KeywordCase` — the case new keywords are written in (majority of the original keywords).
+
+_public_ **print(**_Ast\Node\SelectStatementNode_ `$edited`**):** `string` — `print(original())` returns the original SQL unchanged; throws `UnprintableNodeException`.
+
+`FQL\Sql\Printer\FqlPrinter` — writes any node as single-line FQL that parses back to the same tree.
+
+_public_ **__construct(**_KeywordCase_ `$keywordCase = KeywordCase::UPPER`**)**
+
+_public_ **print(**_Ast\AstNode_ `$node`**):** `string`
+
+_public_ **keywordCase():** `KeywordCase`
+
+_public static_ **identifier(**_string_ `$name`**):** `string` — alias / CTE name, backticked when needed.
+
+_public static_ **columnReference(**_string_ `$name`**,** _bool_ `$quoted = false`**):** `string` — column path, segments backticked when needed.
+
+_public static_ **stringLiteral(**_string_ `$value`**):** `string` — `"value"`, or `'value'` when it contains `"`.
+
+`FQL\Sql\Printer\KeywordCase` _(enum)_ — `UPPER`, `LOWER`; _public_ **apply(**_string_ `$keyword`**):** `string`.
+
+`FQL\Sql\Printer\UnprintableNodeException` _extends_ `Exception\InvalidArgumentException` — a tree FQL cannot express (identifier with a backtick, string with both quotes, `(a + b) * c`, a selected field after an excluded one, …); `public readonly ?AstNode $node`.
 
 ### SQL Highlighter
 
@@ -1573,11 +1715,13 @@ Static analyser for FQL strings — surfaces issues that only pop up at executio
 
 `FQL\Sql\Lint\LintIssue` _(readonly value object)_
 
-_public_ **__construct(**_Severity_ `$severity`**,** _string_ `$rule`**,** _string_ `$message`**,** _?Position_ `$position = null`**)**
+_public_ **__construct(**_Severity_ `$severity`**,** _string_ `$rule`**,** _string_ `$message`**,** _?Position_ `$position = null`**,** _?Span_ `$span = null`**,** _array_ `$params = []`**)**
+
+`$span` is the byte range `[start, end)` of the offending token or node in the linted SQL; `$params` the values the message is built from, so a UI can translate by `$rule` (`$message` stays the English fallback). `$position` keeps its meaning (for `duplicate-alias` the start of the field, while the span is the alias).
 
 _public_ **__toString():** `string` — `[ERROR] unknown-function at line 1, column 8 — Unknown function "LOEWR".`
 
-_public_ **toArray():** `array{severity, rule, message, line, column, offset}` — JSON-friendly projection.
+_public_ **toArray():** `array{severity, rule, message, line, column, offset, span: {start, end}|null, params}` — JSON-friendly projection.
 
 `FQL\Sql\Lint\LintReport` _(implements `IteratorAggregate`, `Countable`)_
 
@@ -1597,22 +1741,23 @@ _public_ **toArray():** `list<array>`
 
 _public_ **__construct(**_?list<Rule>_ `$rules = null`**)** — `null` uses `defaultRules()`.
 
-_public static_ **defaultRules():** `list<Rule>` — `UnknownFunctionRule`, `DuplicateAliasRule`, `MissingFromRule`, `FileNotFoundRule`.
+_public static_ **defaultRules():** `list<Rule>` — `UnknownFunctionRule`, `DuplicateAliasRule`, `MissingFromRule`, `FileNotFoundRule`, `FileOutsideBaseRule`.
 
-_public_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**):** `LintReport`
+_public_ **lint(**_string_ `$sql`**,** _bool_ `$checkFilesystem = false`**,** _?string_ `$basePath = null`**):** `LintReport`
 
 Typical usage goes through [`Sql\Provider::lint()`](#sql-provider). Construct your own `Linter` when you want a reduced rule set or need to inject a custom `FunctionInvoker` into `UnknownFunctionRule`.
 
 **Built-in rules** (`FQL\Sql\Lint\Rule\*`):
 
-| Class | ID | Severity | Checks |
-|-------|----|----------|--------|
-| `UnknownFunctionRule` | `unknown-function` | ERROR | Every `FunctionCallNode::$name` is known to the runtime `FunctionInvoker` (scalar or aggregate). |
-| `DuplicateAliasRule` | `duplicate-alias` | ERROR | No two SELECT fields share the same explicit alias (`SELECT a AS x, b AS x`). |
-| `MissingFromRule` | `missing-from` | WARNING | SELECT has a `FROM` clause. Not an error because `Compiler::applyTo()` legitimately omits it. |
-| `FileNotFoundRule` | `file-not-found` | ERROR | Opt-in (`$checkFilesystem = true`): every `FROM <format>(path)` path exists and is readable. |
+| Class | ID | Severity | Checks | Span | Params |
+|-------|----|----------|--------|------|--------|
+| `UnknownFunctionRule` | `unknown-function` | ERROR | Every `FunctionCallNode::$name` is known to the runtime `FunctionInvoker` (scalar or aggregate). | function name | `function` |
+| `DuplicateAliasRule` | `duplicate-alias` | ERROR | No two SELECT fields share the same explicit alias (`SELECT a AS x, b AS x`). | the repeated alias | `alias` |
+| `MissingFromRule` | `missing-from` | WARNING | SELECT has a `FROM` clause. Not an error because `Compiler::applyTo()` legitimately omits it. | – | – |
+| `FileNotFoundRule` | `file-not-found` | ERROR | Opt-in (`$checkFilesystem = true`): every file the query reads exists and is readable, resolved against `$basePath` (or the working directory). `INTO` targets are not checked. | file query | `path` |
+| `FileOutsideBaseRule` | `file-outside-base` | ERROR | Opt-in (`$checkFilesystem = true` and a `$basePath`): no file the query reads or writes (`INTO`) lies outside the base path. | file query | `path`, `basePath` |
 
-Parse failures emit a single `syntax-error` issue (severity `ERROR`) sourced from `ParseException::$token->position`; semantic rules don't run without a valid AST.
+Parse failures emit a single `syntax-error` issue (severity `ERROR`) with the `ParseException` position, span and params plus `reason` (the message without its position suffix); semantic rules don't run without a valid AST.
 
 `FQL\Sql\Lint\Rule` _(interface)_
 
@@ -1622,7 +1767,7 @@ _public_ **severity():** `Severity`
 
 _public_ **check(**_LintContext_ `$ctx`**):** `list<LintIssue>`
 
-`FQL\Sql\Lint\LintContext` _(readonly)_ — carries `SelectStatementNode $ast`, `string $source`, and `bool $checkFilesystem`.
+`FQL\Sql\Lint\LintContext` _(readonly)_ — carries `SelectStatementNode $ast`, `string $source`, `bool $checkFilesystem` and `?string $basePath`.
 
 `FQL\Sql\Lint\AstWalker`
 
@@ -2214,7 +2359,7 @@ _public_ **clear():** `void`
 
 _public static_ **validate(**_FileQuery_ `$fileQuery`**,** _string_ `$basePath`**,** _bool_ `$mustExist = true`**):** `FileQuery`
 
-Validates file paths against base path. Prevents directory traversal.
+Validates file paths against base path. Prevents directory traversal. Throws `PathNotFoundException` for a missing file (with `$mustExist`), `PathOutsideBaseException` for a file outside the base (also for a missing file that would lie outside), and `InvalidFormatException` when the base path does not exist.
 
 ---
 
