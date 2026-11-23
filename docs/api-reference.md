@@ -2002,8 +2002,8 @@ All aggregate classes implement `AggregateFunction` (`initial`/`accumulate`/`fin
 | `Avg` | `AVG(field)` | Average value |
 | `Count` | `COUNT(field)` | Row count |
 | `GroupConcat` | `GROUP_CONCAT(field, sep)` | Concatenate values |
-| `Max` | `MAX(field)` | Maximum value |
-| `Min` | `MIN(field)` | Minimum value |
+| `Max` | `MAX(field)` | Maximum value — number, or latest date |
+| `Min` | `MIN(field)` | Minimum value — number, or earliest date |
 | `Sum` | `SUM(field)` | Sum values |
 
 ### Math

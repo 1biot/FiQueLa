@@ -508,12 +508,24 @@ WHERE
 | `COUNT`           | Count rows                                     |
 | `SUM`             | Sum values                                     |
 | `AVG`             | Average values                                 |
-| `MIN`             | Minimum value                                  |
-| `MAX`             | Maximum value                                  |
+| `MIN`             | Minimum value (number or date)                 |
+| `MAX`             | Maximum value (number or date)                 |
 | `GROUP_CONCAT`    | Concatenate values                             |
 | `COLLECT_OBJECT`  | Collect rows as an array of structured objects |
 
 Aggregate functions support `DISTINCT` in the same way as SQL, for example `COUNT(DISTINCT id)`.
+
+`MIN` and `MAX` compare numbers numerically and dates chronologically. A string counts as a date when it
+holds an absolute date and/or time (`2026-08-16 10:15:51`, `2026-08-16T10:15:51+02:00`, `16.8.2026`,
+`10:15`), and the result keeps the format it was read in. Empty and whitespace-only strings (empty cells)
+are skipped like `NULL`. Mixing dates and numbers in one group, or a value that is neither, throws
+`UnexpectedValueException`.
+
+```sql
+SELECT state, MIN(date) AS firstSeen, MAX(date) AS lastSeen
+FROM csv(./logs/export.csv, "utf-8", ";").*
+GROUP BY state
+```
 
 **Example:**
 

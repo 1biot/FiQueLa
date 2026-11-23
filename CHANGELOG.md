@@ -1,5 +1,32 @@
 # Changelog
 
+## [3.3.1]
+
+> `MIN` and `MAX` work on dates: the earliest and latest date or time in a column,
+> returned in the format it was read in. Empty cells are skipped like `NULL`.
+
+### Added
+
+- **`MIN` / `MAX` over dates.** A value that is not numeric is read as a date when it
+  is a `DateTimeInterface` or a string with an absolute date and/or time
+  (`2026-08-16 10:15:51`, `2026-08-16T10:15:51+02:00`, `16.8.2026`, `10:15`,
+  `Sun, 16 Aug 2026 10:15:51 GMT`, …). Dates compare chronologically, so time zones,
+  microseconds and day-first formats order correctly, and the result is the original
+  value, not a reformatted one. A time without a date compares with other times.
+  Numbers keep comparing numerically and still return `int` / `float`.
+- **`MIN` / `MAX` skip empty strings.** An empty or whitespace-only value (an empty
+  CSV / XLSX cell) counts as `NULL` and is skipped, for numbers and dates alike; a
+  group with only empty values returns `NULL`. It threw
+  `MIN value is not numeric: ''` before.
+
+### Changed
+
+- **`MIN` / `MAX` error messages.** A value that is neither numeric nor a date throws
+  `UnexpectedValueException` with `MIN value is neither numeric nor a date: …`
+  (was `MIN value is not numeric: …`); words like `today` or `monday` and relative
+  expressions like `+1 day` are not dates. A group mixing dates and numbers throws
+  `MIN cannot compare a date with a number: …`. Same for `MAX`.
+
 ## [3.3.0]
 
 > Lossless AST edits: a parsed query can be changed and printed back with the user's
