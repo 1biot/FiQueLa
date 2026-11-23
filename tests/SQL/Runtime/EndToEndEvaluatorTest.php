@@ -194,6 +194,27 @@ class EndToEndEvaluatorTest extends TestCase
         $this->assertSame(390, $rows[0]['hi']);
     }
 
+    public function testMinMaxOverDateStrings(): void
+    {
+        $path = (string) realpath(__DIR__ . '/../../../examples/data/marketing-campaigns.json');
+        $rows = iterator_to_array(QueryProvider::fql(sprintf(
+            'SELECT type, MIN(start_date) AS firstStart, MAX(end_date) AS lastEnd '
+            . 'FROM json(%s).* GROUP BY type ORDER BY type',
+            $path
+        ))->execute()->fetchAll());
+
+        $this->assertSame([
+            ['type' => 'email', 'firstStart' => '2022-08-03T00:00:00.000', 'lastEnd' => '2024-07-30T00:00:00.000'],
+            ['type' => 'podcast', 'firstStart' => '2022-08-03T00:00:00.000', 'lastEnd' => '2024-07-30T00:00:00.000'],
+            [
+                'type' => 'social media',
+                'firstStart' => '2022-08-02T00:00:00.000',
+                'lastEnd' => '2024-07-31T00:00:00.000',
+            ],
+            ['type' => 'webinar', 'firstStart' => '2022-08-04T00:00:00.000', 'lastEnd' => '2024-07-31T00:00:00.000'],
+        ], $rows);
+    }
+
     public function testCountStarStillWorks(): void
     {
         $rows = $this->runSql('SELECT COUNT(*) AS total FROM json(%s).data.products');
