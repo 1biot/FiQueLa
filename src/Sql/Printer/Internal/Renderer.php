@@ -1518,7 +1518,13 @@ final class Renderer
                 // stale raw: write it from the FileQuery below
             }
         }
-        $named = $c !== null && preg_match('/,\s*\w+\s*:\s*"/', $c->raw) === 1;
+        // Named arguments in the original keep the copy named; a quoted file path is
+        // skipped so that a `, key: ` inside it does not count.
+        $named = $c !== null
+            && preg_match(
+                '/,\s*\w+\s*:\s*"/',
+                (string) preg_replace('/^\w+\(\s*(?:"[^"]*"|\'[^\']*\')/', '', $c->raw)
+            ) === 1;
         $text = $e->fileQuery->toFql($named);
         if (!$this->isFileQueryToken($text)) {
             throw new UnprintableNodeException(sprintf('File query "%s" cannot be written in FQL', $text), $e);

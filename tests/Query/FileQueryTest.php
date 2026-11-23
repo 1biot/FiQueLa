@@ -51,6 +51,26 @@ class FileQueryTest extends TestCase
             'JSON(data.json).data.users' => 'json(data.json).data.users',
             'XML(feed.xml, "windows-1250").SHOP.ITEM' => 'xml(feed.xml, "windows-1250").SHOP.ITEM',
             'Csv(data.csv, encoding: "utf-8")' => 'csv(data.csv)',
+            // quoted file paths — quotes are kept only when the path needs them
+            'csv("./data.csv")' => 'csv(./data.csv)',
+            'csv("./my data/file.csv")' => 'csv(./my data/file.csv)',
+            'csv("./my data (2026)/file [v1].csv")' => null,
+            'csv( "./data (1).csv" )' => 'csv("./data (1).csv")',
+            'csv("./data (1).csv", "windows-1250", ";").items' => null,
+            'csv("./data (1).csv", encoding: "windows-1250", delimiter: ";").*' => 'csv("./data (1).csv", "windows-1250", ";").*',
+            'csv("./data (1).csv",delimiter:";")' => 'csv("./data (1).csv", "utf-8", ";")',
+            'xml("C:\\feeds\\feed (2).xml", encoding: "windows-1250").SHOP.ITEM' => 'xml("C:\\feeds\\feed (2).xml", "windows-1250").SHOP.ITEM',
+            'json("./a, b: c.json").data.users' => null,
+            'jsonFile("./žluťoučký kůň (1).json").*' => 'jsonfile("./žluťoučký kůň (1).json").*',
+            'log("./logs/access (old).log", "apache_common").*' => null,
+            'dir("./my files (2)")' => null,
+            // single-quoted file paths — written with double quotes unless the path contains `"`
+            "csv('./data.csv')" => 'csv(./data.csv)',
+            "csv('./data (1).csv')" => 'csv("./data (1).csv")',
+            "csv( './data (1).csv' , \"windows-1250\", \";\").items" => 'csv("./data (1).csv", "windows-1250", ";").items',
+            "csv('./data (1).csv', encoding: \"windows-1250\", delimiter: \";\").*" => 'csv("./data (1).csv", "windows-1250", ";").*',
+            "csv('./my \"best\" data.csv', delimiter: \";\")" => "csv('./my \"best\" data.csv', \"utf-8\", \";\")",
+            "csv(\"./it's (1).csv\")" => null,
         ];
 
         foreach ($testFileQueryPaths as $testFileQueryPath => $expectedFileQueryPath) {
@@ -75,6 +95,21 @@ class FileQueryTest extends TestCase
             // old bracket syntax is now invalid
             '[csv](./path/to/file)' => 'Invalid query path',
             '[xml](./path/to/file)' => 'Invalid query path',
+            // parentheses in a path need quotes
+            'csv(./data (1).csv)' => 'Invalid query path',
+            // quoted file paths
+            'csv("")' => 'Invalid query path',
+            'csv("./a"b.csv")' => 'Invalid query path',
+            'csv("./unterminated.csv)' => 'Invalid query path',
+            'csv("./a.csv" "utf-8")' => 'Invalid query path',
+            "csv('')" => 'Invalid query path',
+            "csv('./a'b.csv')" => 'Invalid query path',
+            // the quotes must match
+            "csv('./a (1).csv\")" => 'Invalid query path',
+            "csv(\"./a (1).csv')" => 'Invalid query path',
+            // backticks are not file path quotes
+            'csv(`./a.csv`)' => 'Invalid query path',
+            'csv(`./my data (1).csv`, delimiter: ";")' => 'Invalid query path',
         ];
 
         foreach ($testFileQueryPaths as $testFileQueryPath => $expectedErrorMessage) {
@@ -87,6 +122,41 @@ class FileQueryTest extends TestCase
                 $this->assertStringStartsWith('Unsupported file format', $e->getMessage());
             }
         }
+    }
+
+    public function testQuotedFilePathIsReadBetweenTheQuotes(): void
+    {
+        $positional = new FileQuery('csv("./my data (2026)/file [v1].csv", "windows-1250", ";", "0").items');
+        $this->assertSame('csv', $positional->format);
+        $this->assertSame('./my data (2026)/file [v1].csv', $positional->file);
+        $this->assertSame('windows-1250', $positional->getParam('encoding'));
+        $this->assertSame(';', $positional->getParam('delimiter'));
+        $this->assertSame('0', $positional->getParam('useHeader'));
+        $this->assertSame('items', $positional->query);
+
+        $named = new FileQuery('csv( "./my data (2026)/file [v1].csv" , delimiter: ";", encoding: "windows-1250").items');
+        $this->assertSame('./my data (2026)/file [v1].csv', $named->file);
+        $this->assertSame($positional->getParam('encoding'), $named->getParam('encoding'));
+        $this->assertSame($positional->getParam('delimiter'), $named->getParam('delimiter'));
+        $this->assertSame('items', $named->query);
+
+        $single = new FileQuery("csv('./my data (2026)/file [v1].csv', delimiter: \";\", encoding: \"windows-1250\").items");
+        $this->assertSame('./my data (2026)/file [v1].csv', $single->file);
+        $this->assertSame($positional->getParam('encoding'), $single->getParam('encoding'));
+        $this->assertSame($positional->getParam('delimiter'), $single->getParam('delimiter'));
+        $this->assertSame('items', $single->query);
+
+        // spaces inside the quotes are part of the path, the other quote is a plain character
+        $this->assertSame(' a (1).csv ', (new FileQuery('csv(" a (1).csv ")'))->file);
+        $this->assertSame('./my "best" a.csv', (new FileQuery("csv('./my \"best\" a.csv')"))->file);
+        $this->assertSame("./it's a.csv", (new FileQuery("csv(\"./it's a.csv\")"))->file);
+    }
+
+    public function testQuotedFilePathCannotMixPositionalAndNamed(): void
+    {
+        $this->expectException(Exception\InvalidFormatException::class);
+        $this->expectExceptionMessage('Cannot mix positional and named parameters');
+        new FileQuery('csv("./data (1).csv", "utf-8", delimiter: ";")');
     }
 
     public function testGetParam(): void

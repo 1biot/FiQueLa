@@ -1,5 +1,40 @@
 # Changelog
 
+## [3.4.0]
+
+> Quoted file paths in file queries: `FROM csv("./my data (2026)/products [v1].csv", delimiter: ";")`
+> opens files whose path has parentheses, brackets, commas and other characters an
+> unquoted path does not allow.
+
+### Added
+
+- **Quoted file path.** The first argument of a file query may be written in double or
+  single quotes, in `FROM`, `JOIN`, `INTO` and `DESCRIBE`, in `Provider::fromFileQuery()`
+  and in `new FileQuery()`. The path is taken verbatim between the quotes, including
+  spaces, `\` (Windows paths), diacritics and the other quote (`'./my "best" a.csv'`);
+  there are no escapes. Backticks are not path quotes. Positional and named
+  parameters and the path in file work as before:
+  `csv("./a (1).csv", "windows-1250", ";").items`,
+  `csv("./a (1).csv", encoding: "windows-1250", delimiter: ";").items`. Unquoted paths
+  keep working unchanged.
+- **`FileQuery::pathToFql(string $file): string`** — the path as written in a file
+  query: as is when it holds only letters, digits, whitespace, `_ . - /`, otherwise in
+  double quotes, or in single quotes when the path contains `"`.
+
+### Changed
+
+- **Writing file queries quotes the path when needed.** `__toString()`, `toFql()`,
+  `with…()` and `fromParts()` write a path with other characters in quotes instead of
+  throwing `FileQueryException`; only a path containing both `"` and `'` still throws
+  (`File path "…" cannot be written in a file query: it contains both a double and a
+  single quote`).
+  Absolute paths resolved against a base path (`compile($sql, $basePath)`) with such
+  characters in a directory name work too.
+- **Stream sources are quoted.** `provideSource()` of the CSV, XML, JSON, NDJSON,
+  XLSX/ODS, LOG and directory streams quotes the file name when needed, so
+  `(string) $query`, `EXPLAIN` and `provideFileQuery()` of a query over such a file no
+  longer fail with `Invalid query path`.
+
 ## [3.3.1]
 
 > `MIN` and `MAX` work on dates: the earliest and latest date or time in a column,

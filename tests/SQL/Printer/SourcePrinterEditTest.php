@@ -336,6 +336,42 @@ class SourcePrinterEditTest extends TestCase
         );
     }
 
+    public function testQuotedSourcePathIsKeptAndItsParamsKeepTheirStyle(): void
+    {
+        $this->assertEdit(
+            'SELECT * FROM csv("./my data (1).csv", delimiter: ";").items WHERE id > 1',
+            fn (SelectStatementNode $a) => $this->withSource($a, fn (FileQuery $fq) => $fq->withParam('encoding', 'windows-1250')),
+            'SELECT * FROM csv("./my data (1).csv", encoding: "windows-1250", delimiter: ";").items WHERE id > 1'
+        );
+        $this->assertEdit(
+            'SELECT * FROM csv("./my data (1).csv", "utf-8", ";")',
+            fn (SelectStatementNode $a) => $this->withSource($a, fn (FileQuery $fq) => $fq->withParam('encoding', 'windows-1250')),
+            'SELECT * FROM csv("./my data (1).csv", "windows-1250", ";")'
+        );
+        // a `, key: "` inside the quoted path does not make the copy named
+        $this->assertEdit(
+            'SELECT * FROM csv("./a, b: ", "utf-8", ";")',
+            fn (SelectStatementNode $a) => $this->withSource($a, fn (FileQuery $fq) => $fq->withParam('encoding', 'windows-1250')),
+            'SELECT * FROM csv("./a, b: ", "windows-1250", ";")'
+        );
+        $this->assertEdit(
+            "SELECT * FROM csv('./a, b: \"x', \"utf-8\", \";\")",
+            fn (SelectStatementNode $a) => $this->withSource($a, fn (FileQuery $fq) => $fq->withParam('encoding', 'windows-1250')),
+            "SELECT * FROM csv('./a, b: \"x', \"windows-1250\", \";\")"
+        );
+        // an untouched single-quoted source keeps its quotes
+        $this->assertEdit(
+            "SELECT * FROM csv('./my data (1).csv') WHERE id > 1",
+            fn (SelectStatementNode $a) => $a->withWhere(null),
+            "SELECT * FROM csv('./my data (1).csv')"
+        );
+        $this->assertEdit(
+            'SELECT * FROM csv(./a.csv)',
+            fn (SelectStatementNode $a) => $this->withSource($a, fn (FileQuery $fq) => $fq->withFile('./reports (Q1)/a.csv')),
+            'SELECT * FROM csv("./reports (Q1)/a.csv")'
+        );
+    }
+
     public function testSourceWithAnExplicitRawIsWrittenAsGiven(): void
     {
         $this->assertEdit(

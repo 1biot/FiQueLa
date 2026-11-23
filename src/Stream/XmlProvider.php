@@ -4,6 +4,7 @@ namespace FQL\Stream;
 
 use FQL\Exception;
 use FQL\Interface;
+use FQL\Query\FileQuery;
 use Traversable;
 
 /**
@@ -266,7 +267,7 @@ abstract class XmlProvider extends AbstractStream implements \IteratorAggregate
     {
         $params = [];
         if ($this->xmlFilePath !== '') {
-            $params[] = basename($this->xmlFilePath);
+            $params[] = FileQuery::pathToFql(basename($this->xmlFilePath));
         }
 
         if ($this->inputEncoding !== null && strtolower($this->inputEncoding) !== 'utf-8') {

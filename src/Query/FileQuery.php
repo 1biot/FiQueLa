@@ -9,8 +9,11 @@ use FQL\Interface;
 final class FileQuery implements \Stringable
 {
     // @codingStandardsIgnoreStart
-    private const REGEXP = '(?<fq>(?<fs>(?<t>[a-zA-Z]{2,8})\((?<p>[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))?(?<q>\*|\.*[\w*.\-\_]{1,})?)';
+    private const REGEXP = '(?<fq>(?<fs>(?<t>[a-zA-Z]{2,8})\((?<p>\s*(?|"(?<pq>[^"]+)"|\'(?<pq>[^\']+)\')\s*|[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))?(?<q>\*|\.*[\w*.\-\_]{1,})?)';
     // @codingStandardsIgnoreEnd
+
+    /** File paths made only of these characters are written without quotes. */
+    private const UNQUOTED_FILE_PATTERN = '/^[\w\s.\-\/]+$/u';
 
     public readonly ?string $format;
     public readonly ?Enum\Format $extension;
@@ -32,7 +35,10 @@ final class FileQuery implements \Stringable
         $format = $matches['t'] ?? null;
         $this->format = ($format !== '' && $format !== null ? strtolower($format) : null);
 
-        $file = $matches['p'] ?? null;
+        // A quoted path (`csv("my files/a (1).csv")`, `csv('my files/a (1).csv')`) is taken
+        // verbatim between the quotes.
+        $quotedFile = $matches['pq'] ?? '';
+        $file = $quotedFile !== '' ? $quotedFile : ($matches['p'] ?? null);
         $this->file = ($file !== '' ? $file : null);
 
         if ($this->format !== null) {
@@ -188,6 +194,23 @@ final class FileQuery implements \Stringable
         return self::REGEXP;
     }
 
+    /**
+     * Writes a file path as the first argument of a file query: as is when it holds only
+     * letters, digits, whitespace, `_`, `.`, `-` and `/` (`./data/a.csv`), otherwise in
+     * double quotes (`"./my files/a (1).csv"`), or in single quotes when the path contains
+     * `"` (`'./my "best" files.csv'`). FQL has no escapes, so a path containing both `"`
+     * and `'` does not parse back ({@see toFql()} throws for it).
+     */
+    public static function pathToFql(string $file): string
+    {
+        if (preg_match(self::UNQUOTED_FILE_PATTERN, $file) === 1) {
+            return $file;
+        }
+        return str_contains($file, '"') && !str_contains($file, "'")
+            ? "'" . $file . "'"
+            : '"' . $file . '"';
+    }
+
     public function __toString(): string
     {
         return self::toString($this->format, $this->file, $this->params, $this->query);
@@ -295,11 +318,10 @@ final class FileQuery implements \Stringable
                     sprintf('A file query with format "%s" needs a file path', $format)
                 );
             }
-            if (preg_match('/^[\w\s.\-\/]+$/u', $file) !== 1) {
+            if (str_contains($file, '"') && str_contains($file, "'")) {
                 throw new Exception\FileQueryException(sprintf(
-                    'File path "%s" cannot be written in a file query: only letters, digits, whitespace,'
-                    . ' "_", ".", "-" and "/" are allowed',
-                    $file
+                    'File path %s cannot be written in a file query: it contains both a double and a single quote',
+                    json_encode($file, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                 ));
             }
 
@@ -335,7 +357,7 @@ final class FileQuery implements \Stringable
                 $nonDefault[$key] = $value;
             }
 
-            $parts = [$file];
+            $parts = [self::pathToFql($file)];
             $canBePositional = array_diff(array_keys($nonDefault), $positional) === [];
             if ($nonDefault !== [] && ($namedParams || !$canBePositional)) {
                 foreach ($nonDefault as $key => $value) {

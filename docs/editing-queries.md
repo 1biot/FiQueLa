@@ -285,8 +285,9 @@ Parts FQL cannot express throw `FQL\Exception\FileQueryException` with a message
 names the part:
 
 - a parameter value containing `"`;
-- a file path with characters outside letters, digits, whitespace, `_ . - /`
-  (e.g. `C:\data`, `,`, parentheses);
+- a file path containing both `"` and `'` (any other file path is written, in double quotes
+  when it has characters outside letters, digits, whitespace, `_ . - /`, e.g.
+  `csv("C:\data\a (1).csv")`, or in single quotes when it contains `"`);
 - a path in file with characters outside letters, digits, `_ - . *` (e.g. `@id`, spaces);
 - a format without a file, or a format name that is not 2–8 letters.
 

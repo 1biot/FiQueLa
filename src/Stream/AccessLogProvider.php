@@ -3,6 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Exception;
+use FQL\Query\FileQuery;
 use FQL\Stream\AccessLog\LogFormat;
 
 abstract class AccessLogProvider extends AbstractStream
@@ -106,7 +107,7 @@ abstract class AccessLogProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        $parts = [basename($this->logFilePath)];
+        $parts = [FileQuery::pathToFql(basename($this->logFilePath))];
 
         if ($this->formatProfile !== 'nginx_combined') {
             $parts[] = sprintf('"%s"', $this->formatProfile);

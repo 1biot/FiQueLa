@@ -744,7 +744,8 @@ All methods are inherited from `Interface\Query` via traits. See [Interface\Quer
 
 _public_ **__construct(**_string_ `$queryPath`**)**
 
-Parses a FileQuery string like `json(./data/products.json, "utf-8").data.products`.
+Parses a FileQuery string like `json(./data/products.json, "utf-8").data.products`. The file path may be quoted:
+`csv("./my data (1).csv", delimiter: ";")` or `csv('./my data (1).csv', delimiter: ";")`.
 
 _public_ **getParam(**_string_ `$key`**,** _mixed_ `$default = null`**):** `mixed`
 
@@ -760,9 +761,11 @@ _public_ **withParams(**_array<string, string|int|bool>_ `$params`**):** `self` 
 
 _public static_ **fromParts(**_?string_ `$format`**,** _?string_ `$file`**,** _array_ `$params = []`**,** _?string_ `$query = null`**,** _bool_ `$namedParams = false`**):** `self`
 
-_public_ **toFql(**_bool_ `$namedParams = false`**):** `string` — writes every non-default parameter; positional when each one has a position, otherwise (and always with `$namedParams`) named.
+_public_ **toFql(**_bool_ `$namedParams = false`**):** `string` — writes every non-default parameter; positional when each one has a position, otherwise (and always with `$namedParams`) named. The file path is quoted when it has characters outside `[\w\s./-]`.
 
-The `with…()` methods, `fromParts()` and `toFql()` throw `Exception\FileQueryException` for parts FQL cannot express: a value containing `"`, a file path outside `[\w\s./-]`, a path in file outside `[\w*.-]`, a format without a file. See [Editing Queries](editing-queries.md#writing-file-queries).
+_public static_ **pathToFql(**_string_ `$file`**):** `string` — the file path as written in a file query: as is when it holds only `[\w\s./-]`, otherwise in double quotes (`"./data (1).csv"`), or in single quotes when the path contains `"`.
+
+The `with…()` methods, `fromParts()` and `toFql()` throw `Exception\FileQueryException` for parts FQL cannot express: a value containing `"`, a file path containing both `"` and `'`, a path in file outside `[\w*.-]`, a format without a file. See [Editing Queries](editing-queries.md#writing-file-queries).
 
 _public_ **withEncoding(**_string_ `$encoding`**):** `self` _(deprecated, use `withParam`)_
 
