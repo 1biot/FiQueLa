@@ -5,6 +5,7 @@ namespace FQL\Stream;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
+use FQL\Query\FileQuery;
 use OpenSpout\Reader\ReaderInterface;
 
 abstract class SpreadsheetProvider extends AbstractStream
@@ -176,7 +177,7 @@ abstract class SpreadsheetProvider extends AbstractStream
     {
         $params = [];
         if ($this->filePath !== '') {
-            $params[] = basename($this->filePath);
+            $params[] = FileQuery::pathToFql(basename($this->filePath));
         }
 
         return sprintf('%s(%s)', $this->formatTag(), implode(', ', $params));

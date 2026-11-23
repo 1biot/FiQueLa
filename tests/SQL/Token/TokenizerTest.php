@@ -108,6 +108,43 @@ class TokenizerTest extends TestCase
         $this->assertSame('csv(data.csv, "|").rows', $tokens[3]->value);
     }
 
+    public function testFileQueryWithQuotedPathStaysOneToken(): void
+    {
+        $sql = 'SELECT a FROM csv("my data (1)/a [v1].csv", delimiter: ";").* AS a'
+            . " JOIN json('b, \"x\" (2).json').data AS b ON a.id = b.id"
+            . ' INTO csv("out (3).csv", "utf-8", "|") WHERE a.id > 1';
+        $tokens = $this->tokens($sql);
+
+        $fileQueries = array_values(array_filter($tokens, static fn (Token $t): bool => $t->type === TokenType::FILE_QUERY));
+        $this->assertSame(
+            ['csv("my data (1)/a [v1].csv", delimiter: ";").*', "json('b, \"x\" (2).json').data", 'csv("out (3).csv", "utf-8", "|")'],
+            array_map(static fn (Token $t): string => $t->raw, $fileQueries)
+        );
+        $metadata = $fileQueries[0]->metadata;
+        $this->assertInstanceOf(FileQuery::class, $metadata);
+        $this->assertSame('my data (1)/a [v1].csv', $metadata->file);
+        $this->assertSame(';', $metadata->getParam('delimiter'));
+        $this->assertInstanceOf(FileQuery::class, $fileQueries[1]->metadata);
+        $this->assertSame('b, "x" (2).json', $fileQueries[1]->metadata->file);
+
+        $this->assertSame(TokenType::KEYWORD_AS, $tokens[4]->type);
+        $this->assertSame(TokenType::KEYWORD_WHERE, $tokens[16]->type);
+    }
+
+    public function testBacktickIsNotAFilePathQuote(): void
+    {
+        $this->expectException(ParseException::class);
+        $this->tokens('SELECT * FROM csv(`a (1).csv`).*');
+    }
+
+    public function testDescribeQuotedPath(): void
+    {
+        $tokens = $this->tokens('DESCRIBE xls("./reports (Q1).xlsx").Sheet1');
+        $this->assertSame(TokenType::FILE_QUERY, $tokens[1]->type);
+        $this->assertSame('xls("./reports (Q1).xlsx").Sheet1', $tokens[1]->raw);
+        $this->assertSame(TokenType::EOF, $tokens[2]->type);
+    }
+
     public function testFileQueryContextDoesNotLeakAcrossParen(): void
     {
         // After JOIN, the next non-trivia non-paren token would normally be a FILE_QUERY,

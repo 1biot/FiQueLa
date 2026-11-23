@@ -4,6 +4,7 @@ namespace FQL\Stream;
 
 use FQL\Exception;
 use FQL\Exception\UnableOpenFileException;
+use FQL\Query\FileQuery;
 use JsonMachine as JM;
 
 /**
@@ -71,7 +72,7 @@ abstract class JsonProvider extends AbstractStream
     {
         $source = '';
         if ($this->jsonFilePath !== '') {
-            $source = sprintf('json(%s)', basename($this->jsonFilePath));
+            $source = sprintf('json(%s)', FileQuery::pathToFql(basename($this->jsonFilePath)));
         }
         return $source;
     }

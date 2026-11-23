@@ -3,6 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Exception;
+use FQL\Query\FileQuery;
 
 abstract class NDJsonProvider extends AbstractStream
 {
@@ -43,6 +44,6 @@ abstract class NDJsonProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        return sprintf('ndjson(%s)', $this->ndJsonFilePath);
+        return sprintf('ndjson(%s)', FileQuery::pathToFql($this->ndJsonFilePath));
     }
 }

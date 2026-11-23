@@ -73,6 +73,50 @@ class FileQueryWriterTest extends TestCase
         $this->assertSame('json(./a.json)', (string) FileQuery::fromParts('json', './a.json', ['delimiter' => ';']));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function filePaths(): array
+    {
+        return [
+            'plain path stays unquoted' => ['./data/a-b_c.csv', 'csv(./data/a-b_c.csv)'],
+            'space stays unquoted' => ['./my data/a b.csv', 'csv(./my data/a b.csv)'],
+            'parentheses' => ['./data (2026)/a(1).csv', 'csv("./data (2026)/a(1).csv")'],
+            'brackets, plus and ampersand' => ['./a [v1] + b & c.csv', 'csv("./a [v1] + b & c.csv")'],
+            'comma and colon' => ['./a, b: c.csv', 'csv("./a, b: c.csv")'],
+            'windows path' => ['C:\\data\\a.csv', 'csv("C:\\data\\a.csv")'],
+            'single quote' => ["./it's.csv", 'csv("./it\'s.csv")'],
+            'double quote is written in single quotes' => ['./my "best" a.csv', 'csv(\'./my "best" a.csv\')'],
+            'double quote and comma' => ['a.csv, "x"', 'csv(\'a.csv, "x"\')'],
+            'leading space with a parenthesis' => [' a(1).csv', 'csv(" a(1).csv")'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('filePaths')]
+    public function testFilePathsAreQuotedWhenNeededAndParseBack(string $file, string $expected): void
+    {
+        $fileQuery = (new FileQuery('csv(./a.csv)'))->withFile($file);
+
+        $this->assertSame($file, $fileQuery->file);
+        $this->assertSame($expected, (string) $fileQuery);
+        $this->assertSame($file, (new FileQuery((string) $fileQuery))->file);
+        $this->assertSame(substr($expected, 4, -1), FileQuery::pathToFql($file));
+    }
+
+    public function testQuotedFilePathKeepsParametersAndPathInFile(): void
+    {
+        $fileQuery = FileQuery::fromParts('csv', './my data (1).csv', ['delimiter' => ';', 'useHeader' => false], 'items');
+
+        $this->assertSame('csv("./my data (1).csv", "utf-8", ";", "0").items', (string) $fileQuery);
+        $this->assertSame('csv("./my data (1).csv", delimiter: ";", useHeader: "0").items', $fileQuery->toFql(true));
+
+        $again = new FileQuery($fileQuery->toFql(true));
+        $this->assertSame('./my data (1).csv', $again->file);
+        $this->assertSame(';', $again->getParam('delimiter'));
+        $this->assertSame('0', $again->getParam('useHeader'));
+        $this->assertSame('items', $again->query);
+    }
+
     public function testFromParts(): void
     {
         $this->assertSame(
@@ -97,9 +141,10 @@ class FileQueryWriterTest extends TestCase
             'quote in a pattern' => [fn () => (new FileQuery('log(./a.log)'))->withParam('pattern', '"%r"'), 'contains a double quote'],
             'attribute in path in file' => [fn () => $csv->withQuery('SHOP.@id'), 'Path in file "SHOP.@id"'],
             'space in path in file' => [fn () => $csv->withQuery('my items'), 'Path in file "my items"'],
-            'backslash in file path' => [fn () => $csv->withFile('C:\\data\\a.csv'), 'File path "C:\\data\\a.csv"'],
-            'comma in file path' => [fn () => $csv->withFile('a.csv, "x"'), 'File path'],
-            'parenthesis in file path' => [fn () => $csv->withFile('a(1).csv'), 'File path'],
+            'both quotes in file path' => [
+                fn () => $csv->withFile('it\'s "best".csv'),
+                'File path "it\'s \"best\".csv" cannot be written in a file query: it contains both a double and a single quote',
+            ],
             'format without file' => [fn () => $csv->withFile(null), 'needs a file path'],
             'bad format name' => [fn () => FileQuery::fromParts('c', './a.csv'), 'Format "c"'],
         ];

@@ -64,16 +64,21 @@ File Query is syntax allowing you to load file in FQL string directly without us
 It is usable for `FROM`, `JOIN` and `INTO` clause. File Query consists of three main parts:
 
 - `format` is the format name written directly before the parenthesis (e.g. `csv`, `json`, `xml`, `jsonFile`, `log`). If omitted, the format is detected from the file extension automatically.
-- `pathToFile` is the first argument inside the parenthesis — a relative or absolute path to the file.
+- `pathToFile` is the first argument inside the parenthesis — a relative or absolute path to the file. A path with
+  characters other than letters, digits, whitespace, `_`, `.`, `-` and `/` (parentheses, brackets, commas, `\`, …) is
+  written in double or single quotes: `csv("./my data (2026)/products [v1].csv")`,
+  `csv('./my "best" data.csv')`. The quotes may be used for any path; there are no escapes, so the path cannot contain
+  the quote it is written in. Backticks are not path quotes.
 - `params` are optional additional arguments after the file path, separated by commas. Arguments can be positional (`"value"`) or named (`key: "value"`), but you cannot mix positional and named arguments in the same query.
 - `path.to.data` is a dotted path to the data in the file.
 
 ----
 
 * **syntax**: `format(pathToFile[, params]).path.to.data`
-* **regexp**: `/(?<fq>(?<fs>(?<t>[a-zA-Z]{2,8})\((?<p>[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))?(?<q>\*|\.*[\w*.\-\_]{1,})?)/`
+* **regexp**: `/(?<fq>(?<fs>(?<t>[a-zA-Z]{2,8})\((?<p>\s*(?|"(?<pq>[^"]+)"|'(?<pq>[^']+)')\s*|[\w\s.\-\/]+(?:\.\w{2,5})?)(?<a>(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*)\))?(?<q>\*|\.*[\w*.\-\_]{1,})?)/`
   * _**\<t\>**_: `[a-zA-Z]{2,8}` - file format name
-  * _**\<p\>**_: `[\w\s.\-\/]+(?:\.\w{2,5})?` - path to the file, relative or absolute
+  * _**\<p\>**_: `\s*(?|"(?<pq>[^"]+)"|'(?<pq>[^']+)')\s*|[\w\s.\-\/]+(?:\.\w{2,5})?` - path to the file, relative or absolute, quoted or unquoted
+  * _**\<pq\>**_: `[^"]+` / `[^']+` - path to the file between the double or single quotes (set only for a quoted path)
   * _**\<a\>**_: `(?:,\s*(?:\w+\s*:\s*"[^"]*"|"[^"]*"))*` - optional arguments (positional or named)
   * _**\<q\>**_: `\*|\.*[\w*.\-\_]{1,}` - path to the data in the file
 

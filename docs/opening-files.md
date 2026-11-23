@@ -62,7 +62,9 @@ format(pathToFile[, params]).path.to.data
 ```
 
 - `format` — format name directly before parenthesis (`xml`, `json`, `csv`, `yaml`, `neon`, `ods`, `xls`, `log`, `dir`)
-- First argument is always the file path (unquoted)
+- First argument is always the file path — unquoted, or in double or single quotes when it contains other characters
+  than letters, digits, whitespace, `_`, `.`, `-` and `/` (e.g. parentheses or brackets); the path cannot contain the
+  quote it is written in, and backticks are not path quotes
 - Additional arguments are either positional (quoted) or named (`key: "value"`)
 - Positional and named parameters cannot be mixed
 
@@ -71,6 +73,9 @@ format(pathToFile[, params]).path.to.data
 xml(feed.xml).SHOP.ITEM
 csv(data.csv, "windows-1250", ";").*
 csv(data.csv, encoding: "windows-1250", delimiter: ";").*
+csv("./my data (2026)/products [v1].csv", "windows-1250", ";").*
+csv("./my data (2026)/products [v1].csv", encoding: "windows-1250", delimiter: ";").*
+csv('./my "best" data.csv', delimiter: ";").*
 json(data.json).data.users
 log(access.log).*
 log(access.log, "apache_common").*

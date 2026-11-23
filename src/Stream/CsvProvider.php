@@ -3,6 +3,7 @@
 namespace FQL\Stream;
 
 use FQL\Exception;
+use FQL\Query\FileQuery;
 
 /**
  * @phpstan-import-type StreamProviderArrayIterator from ArrayStreamProvider
@@ -190,7 +191,7 @@ abstract class CsvProvider extends AbstractStream
     {
         $params = [];
         if ($this->csvFilePath !== '') {
-            $params[] = basename($this->csvFilePath);
+            $params[] = FileQuery::pathToFql(basename($this->csvFilePath));
         }
 
         $hasNonDefaultEncoding = $this->inputEncoding !== null && strtolower($this->inputEncoding) !== 'utf-8';

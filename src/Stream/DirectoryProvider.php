@@ -3,6 +3,7 @@
 namespace FQL\Stream;
 
 use FilesystemIterator;
+use FQL\Query\FileQuery;
 
 abstract class DirectoryProvider extends AbstractStream
 {
@@ -60,7 +61,7 @@ abstract class DirectoryProvider extends AbstractStream
 
     public function provideSource(): string
     {
-        return sprintf('dir(%s)', $this->path);
+        return sprintf('dir(%s)', FileQuery::pathToFql($this->path));
     }
 
     private function getPermissionString(int $perms): string
