@@ -18,7 +18,9 @@ use FQL\Sql\Token\TokenType;
  * ` at line X, column Y` suffix, and params:
  *
  *  - `kind`: `unexpected-token`, `unexpected-character`, `unexpected-operator`,
- *    `unterminated-string`, `unterminated-identifier` or `unterminated-comment`;
+ *    `unterminated-string`, `unterminated-identifier`, `unterminated-comment` or
+ *    `unsupported-syntax` (valid-looking syntax the language does not support,
+ *    see {@see unsupported()});
  *  - `token` / `tokenType`: the offending text and its token type (`EOF` at the end
  *    of the input and for errors the tokenizer raises);
  *  - `expected`: token types that would have been accepted (may be empty);
@@ -63,6 +65,21 @@ class ParseException extends Exception\UnexpectedValueException
         $reason = sprintf('Unexpected %s ("%s") in %s', $actual->type->value, $actual->raw, $context);
 
         return new self($actual, [], $reason . ' at ' . $actual->position, $reason, ['context' => $context]);
+    }
+
+    /**
+     * Syntax that parses but is not supported (e.g. a subquery in FROM). The
+     * reason says what to write instead; kind `unsupported-syntax`.
+     */
+    public static function unsupported(Token $actual, string $reason, string $context): self
+    {
+        return new self(
+            $actual,
+            [],
+            $reason . ' at ' . $actual->position,
+            $reason,
+            ['kind' => 'unsupported-syntax', 'context' => $context]
+        );
     }
 
     public function getRule(): ?string

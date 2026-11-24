@@ -1,5 +1,97 @@
 # Changelog
 
+## [3.5.0]
+
+> Fixes: `UNION` keeps all rows in memory, `CAST(… AS DECIMAL)` works again, custom
+> functions register in every bootstrap with a cache, `where()` after `having()` targets
+> `WHERE`, result `min()` / `max()` / `avg()` return `null` for an empty set, and fluent
+> `where()` / `having()` accept SQL expressions. `ORDER BY` sorts by columns that are not
+> selected or are excluded. A subquery in `FROM` is a clear parse error; use `WITH`.
+
+### Added
+
+- **`ORDER BY` a column that is not selected or is excluded.**
+  `SELECT id FROM … ORDER BY price DESC` (fluent `select('id')->orderBy('price')`) and
+  `SELECT id, price EXCLUDE price … ORDER BY price DESC` left the rows unsorted, because the
+  sort read the finished row. The sort keys are computed in the projection now, from the
+  output row before `EXCLUDE` (an alias or selected field takes precedence) and otherwise
+  from the source row, and travel with the row to the full sort and the bounded
+  `ORDER BY … LIMIT` heap, which only compare them — no extra pass over the data.
+  Expressions work too (`ORDER BY price * 2`, `ORDER BY LOWER(name)`), with and without
+  `JOIN`, in FQL and the fluent API. With `GROUP BY` the sort uses output columns and
+  aggregates as before (an excluded aggregate alias works now). `SELECT DISTINCT` with an
+  `ORDER BY` column that is not in the output throws `QueryLogicException`
+  (`ORDER BY "price" is not in the SELECT DISTINCT output; select it or remove DISTINCT`).
+
+### Changed
+
+- **Subquery in `FROM` is a parse error.** Subqueries are supported in `JOIN` only; the
+  parser accepted `FROM (SELECT …) AS s`, but the query was built wrong
+  (`SELECT id FROM (SELECT id, price …) AS s` threw `Field "id" already defined`,
+  `SELECT s.id …` returned the alias as a column). It now throws `ParseException`
+  `Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`
+  with the span of `(`, rule `syntax-error` and the new `kind` `unsupported-syntax`
+  (context `FROM source`), in `FROM`, `DESCRIBE`, CTE bodies and `UNION` branches alike;
+  lint reports it as a `syntax-error` issue. `SELECT * FROM (SELECT …)` worked before and
+  needs rewriting as `WITH s AS (SELECT …) SELECT * FROM s`. New
+  `ParseException::unsupported()`. Subqueries in `JOIN` work as before.
+- **`Results` `avg()`, `min()`, `max()` return `?float`.** The return type of
+  `Interface\Aggregable::avg()` / `min()` / `max()` and of `Results\InMemory` /
+  `Results\Stream` is nullable now (`sum()` stays `float`); see Fixed.
+
+### Fixed
+
+- **`UNION` with `ORDER BY` or `JOIN` lost rows.** A query whose result is kept in memory
+  (`ORDER BY` or `JOIN`, or `execute(Results\InMemory::class)`) returned only the rows of
+  the last `UNION` branch: each branch numbers its rows from 0, and the in-memory result
+  kept those keys, so later branches overwrote earlier ones. The in-memory result is now
+  re-indexed and returns the same rows as `execute(Results\Stream::class)`.
+- **Documented: `ORDER BY` / `LIMIT` after `UNION`.** In FQL, `ORDER BY`, `OFFSET` and
+  `LIMIT` written after the last `UNION` belong to the last branch, not to the whole
+  union (unchanged behavior). To sort or limit all rows, use
+  `WITH u AS (SELECT … UNION ALL SELECT …) SELECT … FROM u ORDER BY … LIMIT …`.
+- **`CAST(… AS DECIMAL)`, `NUMERIC`, `NUMBER` (regression from 3.0.0).** They threw
+  `InvalidArgumentException: Unsupported type: number`. The evaluator calls
+  `Functions\Utils\Cast::execute()` again, so the 2.x behavior is back for every type:
+  `DECIMAL` / `NUMERIC` / `NUMBER` return a numeric value unchanged and `0` otherwise,
+  `CAST(NULL AS …)` returns `NULL` (it returned `0` / `0.0` / `""` for `INT`, `DOUBLE`,
+  `VARCHAR`, …), and strings are read with `Type::matchByString()` before the cast.
+  Applies to FQL and to fluent `cast()`.
+- **Registering custom functions in the bootstrap failed with a cache.**
+  `FunctionRegistry::register()` wrote the user class into
+  `fiquela-functions.compiled.php`, so the next process loaded it from the cache and
+  `register()` threw `Function "X" is already registered`. The compiled cache now holds
+  only the built-in functions and the `loadConfig()` sources; `register()`, `override()`
+  and `unregister()` apply to the current process only (an `override()` or
+  `unregister()` no longer leaks into other processes either). Registering the same
+  name twice in one process still throws. Caches written by older versions are rebuilt
+  on first use.
+- **`where()` after `having()` added to `HAVING`.** `->having('c', …)->where('price', …)`
+  produced `HAVING c > 0 AND price > 1`. `where()` and `whereGroup()` switch back to
+  `WHERE` now (inside an open `WHERE` group `where()` still joins that group); `and()`,
+  `or()` and `xor()` keep continuing in the clause of the last `where()` / `having()`.
+- **Result aggregates over an empty set.** On a result with no rows `min()` returned
+  `PHP_INT_MAX`, `max()` `PHP_INT_MIN` and `avg()` threw `DivisionByZeroError`; the same
+  happened (or `0` came back) when no value of the field was numeric. `min()`, `max()` and
+  `avg()` return `null` now, `sum()` still returns `0`. `min()` / `max()` skip `null` and
+  missing values instead of reading them as `0` (`max()` of `-5, null, -2` was `0`, it is
+  `-2` now). `Results\Stream` caches the `null` results too.
+- **SQL expressions in fluent `where()` / `having()`.** The first argument of `where()`,
+  `having()`, `and()`, `or()` and `xor()` was always read as a field path, so
+  `where('LOWER(name)', Operator::EQUAL, 'alpha')` and `where('price * 2', …)` matched
+  nothing and `having('SUM(price * 2)', …)` did not filter. An expression (function call,
+  arithmetic, `CASE`, `CAST`, …) builds an `ExpressionCondition` now and evaluates like the
+  same condition in FQL; the value is a literal (a quoted string is the text between the
+  quotes, a backticked string is a column). A plain field path and a key the expression
+  parser rejects (`my-field`, `items.0.price`, `group`) keep the `SimpleCondition` lookup
+  as before, and so does a `HAVING` key that is exactly the name of a selected column.
+  Aggregates in `HAVING` throw the same `QueryLogicException` as in FQL.
+- **Printing expression conditions.** `ExpressionCondition::render()` (WHERE / HAVING of
+  FQL queries and fluent expressions) wrote string literals in two pairs of quotes
+  (`LIKE ""al%""`, `IN (""a"")`), a number on the right as a string (`> '1'`) and
+  arithmetic as functions (`MULTIPLY(price, 2)`). It is written by `FqlPrinter` now
+  (`LIKE 'al%'`, `price * 2 > 1`), so `(string) $query` parses back to the same query.
+
 ## [3.4.0]
 
 > Quoted file paths in file queries: `FROM csv("./my data (2026)/products [v1].csv", delimiter: ";")`

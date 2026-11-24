@@ -147,18 +147,17 @@ class SourcePrinterEditTest extends TestCase
 
     public function testNewClauseInIndentedSubqueryFollowsItsIndentation(): void
     {
-        $sql = "SELECT *\nFROM (\n    SELECT id\n    FROM json(a.json)\n) AS t";
+        $sql = "SELECT *\nFROM json(b.json) AS b\nJOIN (\n    SELECT id\n    FROM json(a.json)\n) AS t ON b.id = t.id";
         $this->assertEdit(
             $sql,
             function (SelectStatementNode $a) {
-                $from = $a->from;
-                $this->assertInstanceOf(FromClauseNode::class, $from);
-                $sub = $from->source;
+                $join = $a->joins[0];
+                $sub = $join->source;
                 $this->assertInstanceOf(SubQueryNode::class, $sub);
                 $inner = $sub->query->withWhere(self::where(self::cond('id', Operator::GREATER_THAN, self::int(1))));
-                return $a->withFrom($from->withSource(new SubQueryNode($inner, $sub->position)));
+                return $a->withJoins([$join->withSource(new SubQueryNode($inner, $sub->position))]);
             },
-            "SELECT *\nFROM (\n    SELECT id\n    FROM json(a.json)\n    WHERE id > 1\n) AS t"
+            "SELECT *\nFROM json(b.json) AS b\nJOIN (\n    SELECT id\n    FROM json(a.json)\n    WHERE id > 1\n) AS t ON b.id = t.id"
         );
     }
 

@@ -172,14 +172,14 @@ class SqlSubqueryJoinTest extends TestCase
         $this->assertCount(4, $rows);
     }
 
-    public function testFromSubqueryAcceptsOrderByBeforeClosingParen(): void
+    public function testCteBodyAcceptsOrderByBeforeClosingParen(): void
     {
         // Regression: ClauseBoundary::isControlKeyword() now lists PAREN_CLOSE
         // as a clause terminator, so ORDER BY immediately before `)` parses
-        // cleanly inside a subquery (previously threw "expected comma or end
-        // of clause").
+        // cleanly inside a parenthesised query (previously threw "expected comma
+        // or end of clause"). Subqueries in FROM are not supported, WITH is.
         $sql = sprintf(
-            'SELECT * FROM (SELECT id, name FROM json(%s).data.users ORDER BY id DESC) AS s LIMIT 2',
+            'WITH s AS (SELECT id, name FROM json(%s).data.users ORDER BY id DESC) SELECT * FROM s LIMIT 2',
             $this->usersJson
         );
 

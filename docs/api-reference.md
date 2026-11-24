@@ -346,11 +346,13 @@ try {
 
 _public_ **sum(**_string_ `$key`**):** `float`
 
-_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `float`
+_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `?float`
 
-_public_ **min(**_string_ `$key`**):** `float`
+_public_ **min(**_string_ `$key`**):** `?float`
 
-_public_ **max(**_string_ `$key`**):** `float`
+_public_ **max(**_string_ `$key`**):** `?float`
+
+`sum()` is `0` for an empty result; `avg()`, `min()` and `max()` return `null` for an empty result or when no value of `$key` is numeric. `min()` / `max()` skip values that are not numeric (`null`, a missing key, text).
 
 ### JoinHashmap
 
@@ -883,11 +885,11 @@ _public_ **count():** `int`
 
 _public_ **sum(**_string_ `$key`**):** `float`
 
-_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `float`
+_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `?float`
 
-_public_ **min(**_string_ `$key`**):** `float`
+_public_ **min(**_string_ `$key`**):** `?float`
 
-_public_ **max(**_string_ `$key`**):** `float`
+_public_ **max(**_string_ `$key`**):** `?float`
 
 ### InMemory
 
@@ -1535,7 +1537,9 @@ Individual clause / expression parsers are also part of the namespace: `Statemen
 
 `FQL\Sql\Parser\ParseException` _extends_ `Exception\UnexpectedValueException`
 
-Carries the offending token and the expected token types for rich positioned diagnostics (line + column). As a [`SourceAwareException`](#sourceawareexception): rule `syntax-error`, the span of the offending token (a whole UTF-8 character for an unexpected character), the reason without ` at line X, column Y`, and params `kind` (`unexpected-token`, `unexpected-character`, `unexpected-operator`, `unterminated-string`, `unterminated-identifier`, `unterminated-comment`), `token`, `tokenType`, `expected` (token type names) and `context` (for `context()`).
+Carries the offending token and the expected token types for rich positioned diagnostics (line + column). As a [`SourceAwareException`](#sourceawareexception): rule `syntax-error`, the span of the offending token (a whole UTF-8 character for an unexpected character), the reason without ` at line X, column Y`, and params `kind` (`unexpected-token`, `unexpected-character`, `unexpected-operator`, `unterminated-string`, `unterminated-identifier`, `unterminated-comment`, `unsupported-syntax`), `token`, `tokenType`, `expected` (token type names) and `context` (for `context()` and `unsupported()`).
+
+_public static_ **unsupported(**_Token\Token_ `$actual`**,** _string_ `$reason`**,** _string_ `$context`**):** `ParseException` — syntax that parses but is not supported; kind `unsupported-syntax`, the reason says what to write instead. Thrown for a subquery in `FROM` (span: the `(`, context `FROM source`): `Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`.
 
 _public_ **__construct(**_Token\Token_ `$token`**,** _TokenType[]_ `$expected`**,** _string_ `$message`**,** _?string_ `$reason = null`**,** _array_ `$params = []`**)** — `$reason` defaults to the message without its position suffix; `$params` are merged over the defaults.
 
@@ -1937,7 +1941,7 @@ $result = $fn->finalize($acc); // float
 
 `FQL\Functions\FunctionRegistry`
 
-Global static registry for all scalar and aggregate function classes. Bootstrapped from `src/Functions/functions.neon` on first access. Results are compiled to `fiquela-functions.compiled.php` (not committed). Cache location priority: `setCacheDir()` > library directory > system temp > in-memory only.
+Global static registry for all scalar and aggregate function classes. Bootstrapped from `src/Functions/functions.neon` on first access. Results are compiled to `fiquela-functions.compiled.php` (not committed). Cache location priority: `setCacheDir()` > library directory > system temp > in-memory only. The compiled cache holds the built-in functions and `loadConfig()` sources only; `register()`, `override()` and `unregister()` apply to the current process and are not cached, so register custom functions in every bootstrap.
 
 Function names are case-insensitive. Registering a duplicate name throws `Exception\FunctionRegistrationException`.
 

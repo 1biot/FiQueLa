@@ -376,6 +376,9 @@ FROM file_reference [AS from_alias]
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
 - _**subquery**_: a nested SELECT statement in parentheses, e.g. `(SELECT id, name FROM ... WHERE ...)`.
+  Subqueries are supported in `JOIN` only. `FROM (SELECT …)` is a parse error
+  (`Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`);
+  name the query in a [`WITH`](#11-with-common-table-expressions) clause and select from it instead.
 - _**from_alias**_: optional alias for the FROM source. When set, fields can be accessed as `from_alias.field_name` and `from_alias.*` selects all fields.
 
 | Join type | Description      |
@@ -647,7 +650,28 @@ order_type_expr:
 [ORDER BY order_expr order_type_expr [, order_expr order_type_expr ...]]
 ```
 
-- _**order_expr**_: is a column name or alias column name.
+- _**order_expr**_: a column name, an alias or an expression (`price * 2`, `LOWER(name)`).
+
+A name of the SELECT output (an alias or a selected field) takes precedence; any other column is read from the
+source row, so you can sort by a column that is not selected or is removed with `EXCLUDE`:
+
+```sql
+SELECT id, name
+FROM json(./examples/data/products.json).data.products
+ORDER BY price DESC
+
+SELECT id, name, price
+EXCLUDE price
+FROM json(./examples/data/products.json).data.products
+ORDER BY price DESC
+```
+
+The sort keys are computed while the rows are selected, so sorting this way reads the data once.
+Two exceptions follow SQL:
+
+- with `GROUP BY` you sort by the output columns and aggregates (an excluded one too), not by source columns;
+- with `SELECT DISTINCT` you can sort only by what the output holds; a column that is not selected or is excluded
+  throws `QueryLogicException` (`ORDER BY "price" is not in the SELECT DISTINCT output; …`).
 
 | Sorting type  | Description  |
 |---------------|--------------|
@@ -753,7 +777,8 @@ WHERE price > 200
 Use `WITH` to define one or more named temporary result sets (Common Table Expressions, CTEs)
 that can be referenced by name later in the same statement. CTEs improve readability and let
 you eliminate repetition when the same sub-query is needed in several places (e.g. in both
-sides of a `JOIN` or across `UNION` branches).
+sides of a `JOIN` or across `UNION` branches). A CTE is also the way to select from a query:
+`FROM (SELECT …)` is not supported, `WITH s AS (SELECT …) SELECT … FROM s` is.
 
 ```sql
 WITH name AS (select_statement)
@@ -868,6 +893,36 @@ SELECT name, price FROM xml(./examples/data/feed2.xml).SHOP.ITEM
 WHERE price > 200
 UNION ALL
 SELECT name, price FROM xml(./examples/data/feed3.xml).SHOP.ITEM
+```
+
+**Sorting and limiting a union:** `ORDER BY`, `OFFSET` and `LIMIT` written after the last
+`UNION` belong to the **last branch**, not to the whole union — every branch is a complete
+query with its own clauses. The query below sorts and limits only the `price >= 400` rows:
+
+```sql
+SELECT name, price FROM json(./examples/data/products.json).data.products
+WHERE price <= 100
+UNION ALL
+SELECT name, price FROM json(./examples/data/products.json).data.products
+WHERE price >= 400
+ORDER BY price DESC
+LIMIT 1
+```
+
+To sort or limit the combined rows, wrap the union in a [common table expression](#11-with-common-table-expressions)
+and query it:
+
+```sql
+WITH u AS (
+    SELECT name, price FROM json(./examples/data/products.json).data.products
+    WHERE price <= 100
+    UNION ALL
+    SELECT name, price FROM json(./examples/data/products.json).data.products
+    WHERE price >= 400
+)
+SELECT name, price FROM u
+ORDER BY price DESC
+LIMIT 3
 ```
 
 ## 13. Into

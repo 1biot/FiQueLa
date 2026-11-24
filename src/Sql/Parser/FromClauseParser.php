@@ -14,6 +14,9 @@ use FQL\Sql\Token\TokenType;
 
 final class FromClauseParser
 {
+    public const FROM_SUBQUERY_REASON
+        = 'Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name';
+
     private StatementParser $statementParser;
 
     /** @var array<string, true> Names of CTEs visible in the current parse scope. */
@@ -53,6 +56,16 @@ final class FromClauseParser
      */
     public function parseClause(TokenStream $stream, Token $fromKeyword): FromClauseNode
     {
+        $peek = $stream->peek();
+        if ($peek->type === TokenType::PAREN_OPEN) {
+            // Subqueries are supported in JOIN only. A FROM subquery parsed but
+            // built a broken query (duplicate fields, the alias as a column).
+            throw ParseException::unsupported(
+                $peek,
+                self::FROM_SUBQUERY_REASON,
+                'FROM source'
+            );
+        }
         $source = $this->parseSource($stream);
         $alias = null;
         if ($stream->consumeIf(TokenType::KEYWORD_AS) !== null) {
@@ -63,6 +76,9 @@ final class FromClauseParser
     }
 
     /**
+     * Parses a FROM / JOIN source: a file query, a CTE name or (JOIN only, see
+     * {@see parseClause()}) a parenthesised subquery.
+     *
      * @throws ParseException
      */
     public function parseSource(TokenStream $stream): ExpressionNode

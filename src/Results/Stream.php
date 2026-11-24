@@ -35,16 +35,16 @@ class Stream extends ResultsProvider implements Aggregable
     use Traits\Helpers\EnhancedNestedArrayAccessor;
     use Traits\Helpers\StringOperations;
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $avgCache = [];
 
     /** @var array<string, float> */
     private array $sumCache = [];
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $minCache = [];
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $maxCache = [];
 
     private ?int $innerCounter = null;
@@ -77,6 +77,7 @@ class Stream extends ResultsProvider implements Aggregable
         private ?ExplainCollector $collector = null,
         private readonly ?string $fromAlias = null,
     ) {
+        $this->validateDistinctOrderings();
     }
 
     private string $collectorPrefix = '';
@@ -117,12 +118,13 @@ class Stream extends ResultsProvider implements Aggregable
         return $this->innerCounter;
     }
 
-    public function avg(string $key, int $decimalPlaces = 2): float
+    public function avg(string $key, int $decimalPlaces = 2): ?float
     {
-        if (!isset($this->avgCache[$key])) {
-            $this->avgCache[$key] = $this->sum($key) / $this->count();
+        if (!array_key_exists($key, $this->avgCache)) {
+            $this->avgCache[$key] = $this->average($key);
         }
-        return round($this->avgCache[$key], $decimalPlaces);
+        $average = $this->avgCache[$key];
+        return $average === null ? null : round($average, $decimalPlaces);
     }
 
     public function sum(string $key): float
@@ -133,17 +135,17 @@ class Stream extends ResultsProvider implements Aggregable
         return $this->sumCache[$key];
     }
 
-    public function min(string $key): float
+    public function min(string $key): ?float
     {
-        if (!isset($this->minCache[$key])) {
+        if (!array_key_exists($key, $this->minCache)) {
             $this->minCache[$key] = parent::min($key);
         }
         return $this->minCache[$key];
     }
 
-    public function max(string $key): float
+    public function max(string $key): ?float
     {
-        if (!isset($this->maxCache[$key])) {
+        if (!array_key_exists($key, $this->maxCache)) {
             $this->maxCache[$key] = parent::max($key);
         }
         return $this->maxCache[$key];
@@ -874,6 +876,7 @@ class Stream extends ResultsProvider implements Aggregable
         $count = 0;
         $currentOffset = 0;
         $applyLimitAtStream = $this->isLimitable() && !$this->isSortable();
+        $sortable = $this->isSortable();
         $c = $this->collector;
 
         foreach ($stream as $item) {
@@ -932,7 +935,14 @@ class Stream extends ResultsProvider implements Aggregable
                 $c->stopAccumulator($limitIdx);
             }
 
-            yield $this->applyExcludeFromSelect($resultItem);
+            if ($sortable) {
+                // Sort keys are taken here, where both the output row (before
+                // EXCLUDE) and the source row are at hand; they travel to the
+                // sort as the generator key.
+                yield $this->computeSortKeys($resultItem, $item) => $this->applyExcludeFromSelect($resultItem);
+            } else {
+                yield $this->applyExcludeFromSelect($resultItem);
+            }
 
             if ($c !== null && $limitIdx !== null) {
                 $c->incrementOut($limitIdx);
@@ -1052,7 +1062,9 @@ class Stream extends ResultsProvider implements Aggregable
                 $c->incrementOut($limitIdx);
             }
 
-            return yield $this->applyExcludeFromSelect($aggregatedItem);
+            return $this->isSortable()
+                ? yield $this->computeSortKeys($aggregatedItem) => $this->applyExcludeFromSelect($aggregatedItem)
+                : yield $this->applyExcludeFromSelect($aggregatedItem);
         }
 
         $count = 0;
@@ -1090,7 +1102,12 @@ class Stream extends ResultsProvider implements Aggregable
                 $c->stopAccumulator($limitIdx);
             }
 
-            yield $this->applyExcludeFromSelect($aggregatedItem);
+            if ($this->isSortable()) {
+                // GROUP BY sorts by output columns and aggregates only (no source row).
+                yield $this->computeSortKeys($aggregatedItem) => $this->applyExcludeFromSelect($aggregatedItem);
+            } else {
+                yield $this->applyExcludeFromSelect($aggregatedItem);
+            }
 
             if ($c !== null && $limitIdx !== null) {
                 $c->incrementOut($limitIdx);
@@ -1211,12 +1228,10 @@ class Stream extends ResultsProvider implements Aggregable
      * ORDER BY with OFFSET only).
      *
      * Decorate-sort-undecorate (a.k.a. Schwartzian transform): the ORDER BY keys
-     * are evaluated once per row, on the very same pass that materialises the
-     * stream, and the comparator then only compares pre-computed scalars instead
-     * of re-evaluating the expressions on every comparison — O(N) key
-     * evaluations rather than O(N log N). usort is stable on PHP 8+, so a full
-     * tie keeps insertion order and the result is identical to the previous
-     * evaluate-in-comparator path.
+     * arrive with every row as the generator key, computed once per row in the
+     * projection ({@see computeSortKeys()}), and the comparator only compares
+     * those pre-computed scalars — O(N) key evaluations rather than O(N log N).
+     * usort is stable on PHP 8+, so a full tie keeps insertion order.
      *
      * To keep the memory overhead small the rows and their keys live in two
      * parallel arrays and only a permutation of indices is sorted — the bulky
@@ -1225,28 +1240,26 @@ class Stream extends ResultsProvider implements Aggregable
      * memory by definition, so this only adds the key list plus the index
      * permutation.
      *
-     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @param \Traversable<array<int, mixed>, StreamProviderArrayIteratorValue> $iterator rows keyed by
+     *        their sort keys
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
     private function applyFullSort(\Traversable $iterator, ?int $sortIdx = null): \Generator
     {
         $c = $this->collector;
-        $evaluator = $this->expressionEvaluator();
-        [$directions, $expressions] = $this->compileOrderings();
+        $directions = $this->sortDirections();
         $singleKey = count($directions) === 1;
 
-        // Evaluate each row's sort keys once, on the same pass that drains the
-        // stream. Rows and keys go into parallel arrays; for a single key we
-        // store the bare scalar instead of a one-element array, which removes
-        // the per-row PHP array that otherwise dominates the memory overhead.
+        // Rows and their pre-computed keys go into parallel arrays; for a single
+        // key we store the bare scalar instead of a one-element array, which
+        // removes the per-row PHP array that otherwise dominates the memory overhead.
         $data = [];
         $keys = [];
-        foreach ($iterator as $item) {
+        foreach ($iterator as $rowKeys => $item) {
             if ($c !== null && $sortIdx !== null) {
                 $c->incrementIn($sortIdx);
             }
             $data[] = $item;
-            $rowKeys = $this->evaluateOrderKeys($expressions, $evaluator, $item);
             $keys[] = $singleKey ? $rowKeys[0] : $rowKeys;
         }
 
@@ -1290,25 +1303,24 @@ class Stream extends ResultsProvider implements Aggregable
      * Top-N sort for bounded queries (ORDER BY ... LIMIT).
      *
      * Feeds the stream into a {@see BoundedSortHeap}, which retains at most
-     * `$capacity` rows, capping memory at O($capacity) instead of O(N). Sort
-     * keys are evaluated once per row rather than on every comparison.
+     * `$capacity` rows, capping memory at O($capacity) instead of O(N). The
+     * sort keys arrive with every row as the generator key ({@see computeSortKeys()}).
      *
-     * @param \Traversable<StreamProviderArrayIteratorValue> $iterator
+     * @param \Traversable<array<int, mixed>, StreamProviderArrayIteratorValue> $iterator rows keyed by
+     *        their sort keys
      * @return \Generator<StreamProviderArrayIteratorValue>
      */
     private function applyBoundedSort(\Traversable $iterator, int $capacity, ?int $sortIdx = null): \Generator
     {
         $c = $this->collector;
-        $evaluator = $this->expressionEvaluator();
-        [$directions, $expressions] = $this->compileOrderings();
 
-        $heap = new BoundedSortHeap($directions, $capacity);
-        foreach ($iterator as $item) {
+        $heap = new BoundedSortHeap($this->sortDirections(), $capacity);
+        foreach ($iterator as $rowKeys => $item) {
             if ($c !== null && $sortIdx !== null) {
                 $c->incrementIn($sortIdx);
             }
 
-            $heap->offer($this->evaluateOrderKeys($expressions, $evaluator, $item), $item);
+            $heap->offer($rowKeys, $item);
         }
 
         foreach ($heap->sorted() as $item) {
@@ -1320,47 +1332,105 @@ class Stream extends ResultsProvider implements Aggregable
     }
 
     /**
-     * Splits the orderings into parallel direction/expression lists. Shared by
-     * both sort paths so the per-row key extraction lives in exactly one place.
-     *
-     * @return array{
-     *     0: array<int, Enum\Sort>,
-     *     1: array<int, \FQL\Sql\Ast\Expression\ExpressionNode>
-     * }
+     * @return array<int, Enum\Sort>
      */
-    private function compileOrderings(): array
+    private function sortDirections(): array
     {
-        $directions = [];
-        $expressions = [];
-        foreach ($this->orderings as $entry) {
-            $directions[] = $entry['sort'];
-            $expressions[] = $entry['expression'];
-        }
-
-        return [$directions, $expressions];
+        return array_map(static fn (array $entry): Enum\Sort => $entry['sort'], $this->orderings);
     }
 
     /**
-     * Evaluates the ORDER BY sort keys for a single row — once per row, not on
-     * every comparison.
+     * Evaluates the ORDER BY keys of one row, once, in the projection — before
+     * EXCLUDE, so a sort by an excluded or not selected column needs no extra
+     * pass over the data. A column of the output row (a SELECT alias or field)
+     * takes precedence; anything else is read from the source row. With GROUP BY
+     * there is no source row: only output columns and aggregates sort.
      *
-     * @param array<int, \FQL\Sql\Ast\Expression\ExpressionNode> $expressions
-     * @param StreamProviderArrayIteratorValue $item
+     * @param array<int|string, mixed> $resultItem output row before EXCLUDE
+     * @param array<int|string, mixed> $sourceItem source (joined) row
      * @return array<int, mixed>
      */
-    private function evaluateOrderKeys(
-        array $expressions,
-        \FQL\Sql\Runtime\ExpressionEvaluator $evaluator,
-        array $item
-    ): array {
+    private function computeSortKeys(array $resultItem, array $sourceItem = []): array
+    {
+        $evaluator = $this->expressionEvaluator();
         $keys = [];
-        foreach ($expressions as $expression) {
-            $keys[] = $evaluator->evaluate($expression, $item);
+        foreach ($this->orderings as $entry) {
+            $expression = $entry['expression'];
+            if (
+                $expression instanceof \FQL\Sql\Ast\Expression\ColumnReferenceNode
+                && array_key_exists($expression->name, $resultItem)
+            ) {
+                // Exact precedence for a plain output column, even when it is NULL.
+                $keys[] = $resultItem[$expression->name];
+                continue;
+            }
+            $keys[] = $evaluator->evaluate($expression, $resultItem, $sourceItem);
         }
 
         return $keys;
     }
 
+    /**
+     * SELECT DISTINCT de-duplicates the output rows, so (as in SQL) it can only
+     * be sorted by what the output holds: a selected field or alias that is not
+     * excluded, an expression written exactly as a selected one, or with `*` a
+     * source column that is not excluded. GROUP BY queries keep their rules.
+     *
+     * @throws Exception\QueryLogicException
+     */
+    private function validateDistinctOrderings(): void
+    {
+        if (!$this->distinct || $this->orderings === [] || $this->isGroupable()) {
+            return;
+        }
+
+        $excluded = [];
+        foreach ($this->excludedFields as $field) {
+            $excluded[$this->outputName($field)] = true;
+        }
+
+        $output = [];
+        $hasStar = false;
+        foreach ($this->selectedFields as $field => $data) {
+            if ($field === Query::SELECT_ALL || str_ends_with($data['originField'], '.*')) {
+                $hasStar = true;
+                continue;
+            }
+            $name = $this->outputName($field);
+            if (!isset($excluded[$name])) {
+                $output[$name] = true;
+            }
+        }
+
+        $compiler = new \FQL\Sql\Builder\ExpressionCompiler();
+        foreach ($this->orderings as $entry) {
+            $expression = $entry['expression'];
+            if (isset($output[$compiler->renderExpression($expression)])) {
+                continue;
+            }
+
+            $columns = \FQL\Sql\Lint\AstWalker::findAll(
+                $expression,
+                \FQL\Sql\Ast\Expression\ColumnReferenceNode::class
+            );
+            foreach ($columns as $column) {
+                $name = $this->outputName($column->name);
+                if (isset($output[$name]) || ($hasStar && !isset($excluded[$name]))) {
+                    continue;
+                }
+
+                throw new Exception\QueryLogicException(sprintf(
+                    'ORDER BY "%s" is not in the SELECT DISTINCT output; select it or remove DISTINCT',
+                    $name
+                ));
+            }
+        }
+    }
+
+    private function outputName(string $field): string
+    {
+        return $this->isQuoted($field) ? $this->removeQuotes($field) : $this->removeAllBackticks($field);
+    }
 
     /**
      * @param \Traversable<StreamProviderArrayIteratorValue> $data

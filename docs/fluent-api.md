@@ -304,6 +304,15 @@ To replace a built-in with your own variant, use
 `FunctionRegistry::unregister($name)`. Functions loaded via a separate
 neon config are available through `FunctionRegistry::loadConfig($neonPath)`.
 
+`register()`, `override()` and `unregister()` change the registry of the
+current process only; they are not written to the compiled cache
+(`fiquela-functions.compiled.php`), which holds just the built-in functions
+and the `loadConfig()` files. That is why the registration belongs in the
+bootstrap that runs in every request / process. Registering the same name twice
+in one process still throws `FunctionRegistrationException`. Call
+`setCacheDir()` and `loadConfig()` before `register()` — both reload the
+registry from its sources.
+
 
 ## 3. Joining Data Sources
 
@@ -364,6 +373,26 @@ Use the `where()` method to filter the data in your query results before any agg
 multiple conditions. Conditions support dot notation for nested fields and brings the support for grouping conditions with
 `whereGroup()`, `andGroup`, `orGroup` and `endGroup()`.
 
+The first argument of `where()`, `having()`, `and()`, `or()` and `xor()` is a field path or an SQL expression:
+
+```php
+$query->where('price', Operator::GREATER_THAN, 100)            // field path
+    ->and('LOWER(name)', Operator::EQUAL, 'alpha')             // function call
+    ->and('price * 2', Operator::LESS_THAN, 1000)              // arithmetic
+    ->and('CASE WHEN stock > 0 THEN "yes" ELSE "no" END', Operator::EQUAL, 'yes');
+```
+
+- A field path (`price`, `brand.code`, `my-field`, `` `Název zboží` ``, and anything the expression parser
+  cannot read, such as `items.0.price` or a field named `group`) is compared as before; a string value naming a
+  field of the row compares with that field.
+- An expression is evaluated exactly like the same condition written in FQL. The value is a literal — a string
+  in quotes (`'"active"'`) is the text between them — and a backticked value (`` '`cost`' ``) is a column. The
+  query prints the condition as FQL (`LOWER(name) = "alpha"`, `price * 2 < 1000`).
+- Aggregates cannot be evaluated row by row in `HAVING`, in FQL or fluent alike:
+  `having('SUM(price * 2)', …)` throws `QueryLogicException` (`Aggregate function SUM cannot be evaluated
+  row-by-row`); alias the aggregate in `select()` and use the alias. A `HAVING` key that is exactly the name of a
+  selected column (`sum('price')` without an alias is a column named `SUM(price)`) still reads that column.
+
 ### Logical operators
 
 | Operator | Description  |
@@ -379,6 +408,19 @@ $query->where(...)
     ->and(...)
     ->or(...)
     ->xor(...);
+```
+
+`where()` and `whereGroup()` always add to `WHERE`, `having()` and `havingGroup()` to
+`HAVING`. `and()`, `or()` and `xor()` continue in the clause of the last `where()` /
+`having()` (or the open group), so the calls can be mixed in any order:
+
+```php
+$query->groupBy('category')
+    ->where('price', Operator::GREATER_THAN, 100)      // WHERE price > 100
+    ->having('total', Operator::GREATER_THAN, 1)       // HAVING total > 1
+    ->and('total', Operator::LESS_THAN, 10)            //   AND total < 10
+    ->where('stock', Operator::GREATER_THAN, 0)        // WHERE … AND stock > 0
+    ->and('active', Operator::EQUAL, true);            //   AND active = true
 ```
 
 ### Operators
@@ -636,6 +678,12 @@ $query->randomString(16)->as('RANDOM_STRING')
     ->orderBy('name', Sort::DESC);
 ```
 
+`orderBy()` takes a column, an alias or an expression (`orderBy('price * 2')`). A SELECT alias or field takes
+precedence, other columns come from the source row, so `select('id')->orderBy('price')` and
+`select('id', 'price')->exclude('price')->orderBy('price')` both sort by price. With `groupBy()` only output
+columns and aggregates sort, and with `distinct()` a column that is not in the output throws
+`QueryLogicException`; see [Sorting](file-query-language.md#8-sorting-and-filtering).
+
 ## 7. Pagination
 
 Use the `limit()` and `offset()` methods to paginate the data in your query results.
@@ -800,6 +848,13 @@ $results = $query1
     ->unionAll($query3)
     ->execute();
 ```
+
+`orderBy()`, `offset()` and `limit()` act on the query they are called on: on `$query1` they
+sort and limit the rows of `$query1` before the other branches are appended, on `$query2`
+only the rows of `$query2`. The combined rows keep the branch order. To sort or limit the
+whole union, wrap it in a CTE in FQL:
+`WITH u AS (SELECT … UNION ALL SELECT …) SELECT … FROM u ORDER BY … LIMIT …`
+(see [Union](file-query-language.md#12-union)).
 
 ## 11. Into
 
