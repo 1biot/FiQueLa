@@ -199,7 +199,10 @@ final class ExpressionEvaluator
     private function evaluateCast(CastExpressionNode $node, array $item, array $resultItem): mixed
     {
         $value = $this->evaluate($node->value, $item, $resultItem);
-        return Enum\Type::castValue($value, $node->targetType);
+        // Cast::execute() handles NULL, the DECIMAL / NUMERIC / NUMBER target
+        // (Type::NUMBER, which Type::castValue() does not know) and reads
+        // strings with Type::matchByString() before casting.
+        return Functions\Utils\Cast::execute($value, $node->targetType);
     }
 
     /**

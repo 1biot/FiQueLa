@@ -15,6 +15,13 @@
   `LIMIT` written after the last `UNION` belong to the last branch, not to the whole
   union (unchanged behavior). To sort or limit all rows, use
   `WITH u AS (SELECT … UNION ALL SELECT …) SELECT … FROM u ORDER BY … LIMIT …`.
+- **`CAST(… AS DECIMAL)`, `NUMERIC`, `NUMBER` (regression from 3.0.0).** They threw
+  `InvalidArgumentException: Unsupported type: number`. The evaluator calls
+  `Functions\Utils\Cast::execute()` again, so the 2.x behavior is back for every type:
+  `DECIMAL` / `NUMERIC` / `NUMBER` return a numeric value unchanged and `0` otherwise,
+  `CAST(NULL AS …)` returns `NULL` (it returned `0` / `0.0` / `""` for `INT`, `DOUBLE`,
+  `VARCHAR`, …), and strings are read with `Type::matchByString()` before the cast.
+  Applies to FQL and to fluent `cast()`.
 
 ## [3.4.0]
 
