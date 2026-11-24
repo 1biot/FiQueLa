@@ -346,11 +346,13 @@ try {
 
 _public_ **sum(**_string_ `$key`**):** `float`
 
-_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `float`
+_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `?float`
 
-_public_ **min(**_string_ `$key`**):** `float`
+_public_ **min(**_string_ `$key`**):** `?float`
 
-_public_ **max(**_string_ `$key`**):** `float`
+_public_ **max(**_string_ `$key`**):** `?float`
+
+`sum()` is `0` for an empty result; `avg()`, `min()` and `max()` return `null` for an empty result or when no value of `$key` is numeric. `min()` / `max()` skip values that are not numeric (`null`, a missing key, text).
 
 ### JoinHashmap
 
@@ -883,11 +885,11 @@ _public_ **count():** `int`
 
 _public_ **sum(**_string_ `$key`**):** `float`
 
-_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `float`
+_public_ **avg(**_string_ `$key`**,** _int_ `$decimalPlaces = 2`**):** `?float`
 
-_public_ **min(**_string_ `$key`**):** `float`
+_public_ **min(**_string_ `$key`**):** `?float`
 
-_public_ **max(**_string_ `$key`**):** `float`
+_public_ **max(**_string_ `$key`**):** `?float`
 
 ### InMemory
 

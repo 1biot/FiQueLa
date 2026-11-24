@@ -35,16 +35,16 @@ class Stream extends ResultsProvider implements Aggregable
     use Traits\Helpers\EnhancedNestedArrayAccessor;
     use Traits\Helpers\StringOperations;
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $avgCache = [];
 
     /** @var array<string, float> */
     private array $sumCache = [];
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $minCache = [];
 
-    /** @var array<string, float> */
+    /** @var array<string, float|null> */
     private array $maxCache = [];
 
     private ?int $innerCounter = null;
@@ -117,12 +117,13 @@ class Stream extends ResultsProvider implements Aggregable
         return $this->innerCounter;
     }
 
-    public function avg(string $key, int $decimalPlaces = 2): float
+    public function avg(string $key, int $decimalPlaces = 2): ?float
     {
-        if (!isset($this->avgCache[$key])) {
-            $this->avgCache[$key] = $this->sum($key) / $this->count();
+        if (!array_key_exists($key, $this->avgCache)) {
+            $this->avgCache[$key] = $this->average($key);
         }
-        return round($this->avgCache[$key], $decimalPlaces);
+        $average = $this->avgCache[$key];
+        return $average === null ? null : round($average, $decimalPlaces);
     }
 
     public function sum(string $key): float
@@ -133,17 +134,17 @@ class Stream extends ResultsProvider implements Aggregable
         return $this->sumCache[$key];
     }
 
-    public function min(string $key): float
+    public function min(string $key): ?float
     {
-        if (!isset($this->minCache[$key])) {
+        if (!array_key_exists($key, $this->minCache)) {
             $this->minCache[$key] = parent::min($key);
         }
         return $this->minCache[$key];
     }
 
-    public function max(string $key): float
+    public function max(string $key): ?float
     {
-        if (!isset($this->maxCache[$key])) {
+        if (!array_key_exists($key, $this->maxCache)) {
             $this->maxCache[$key] = parent::max($key);
         }
         return $this->maxCache[$key];

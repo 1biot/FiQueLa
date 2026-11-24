@@ -16,6 +16,9 @@
   lint reports it as a `syntax-error` issue. `SELECT * FROM (SELECT …)` worked before and
   needs rewriting as `WITH s AS (SELECT …) SELECT * FROM s`. New
   `ParseException::unsupported()`. Subqueries in `JOIN` work as before.
+- **`Results` `avg()`, `min()`, `max()` return `?float`.** The return type of
+  `Interface\Aggregable::avg()` / `min()` / `max()` and of `Results\InMemory` /
+  `Results\Stream` is nullable now (`sum()` stays `float`); see Fixed.
 
 ### Fixed
 
@@ -48,6 +51,12 @@
   produced `HAVING c > 0 AND price > 1`. `where()` and `whereGroup()` switch back to
   `WHERE` now (inside an open `WHERE` group `where()` still joins that group); `and()`,
   `or()` and `xor()` keep continuing in the clause of the last `where()` / `having()`.
+- **Result aggregates over an empty set.** On a result with no rows `min()` returned
+  `PHP_INT_MAX`, `max()` `PHP_INT_MIN` and `avg()` threw `DivisionByZeroError`; the same
+  happened (or `0` came back) when no value of the field was numeric. `min()`, `max()` and
+  `avg()` return `null` now, `sum()` still returns `0`. `min()` / `max()` skip `null` and
+  missing values instead of reading them as `0` (`max()` of `-5, null, -2` was `0`, it is
+  `-2` now). `Results\Stream` caches the `null` results too.
 
 ## [3.4.0]
 

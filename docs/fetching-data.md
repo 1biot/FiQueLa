@@ -95,31 +95,34 @@ $count = $results->count();
 
 **sum(**_string_`$field`**):**`float`
 
-Method to sum values by field.
+Method to sum values by field. Values that are not numeric count as `0`; an empty result sums to `0`.
 
 ```php
 $sum = $results->sum('total_price');
 ```
 
-**avg(**_string_`$field`**,** _int_`$decimalPlaces = 2` **):**`float`
+**avg(**_string_`$field`**,** _int_`$decimalPlaces = 2` **):**`?float`
 
-Method to calculate average value by field. You can specify a number of decimal places.
+Method to calculate average value by field (the sum divided by the number of rows). You can specify a number of
+decimal places. Returns `null` for an empty result or when no value of the field is numeric.
 
 ```php
 $avg = $results->avg('total_price', 2);
 ```
 
-**max(**_string_`$field`**):**`float`
+**max(**_string_`$field`**):**`?float`
 
-Method to get maximum value.
+Method to get maximum value. Values that are not numeric (`null`, a missing field, text) are skipped; returns `null`
+for an empty result or when no value is numeric.
 
 ```php
-$max = $results->max('total_price);
+$max = $results->max('total_price');
 ```
 
-**min(**_string_`$field`**):**`float`
+**min(**_string_`$field`**):**`?float`
 
-Method to get minimum value.
+Method to get minimum value. Values that are not numeric (`null`, a missing field, text) are skipped; returns `null`
+for an empty result or when no value is numeric.
 
 ```php
 $min = $results->min('total_price');

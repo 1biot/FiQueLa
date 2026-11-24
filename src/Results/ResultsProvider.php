@@ -101,6 +101,10 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         return iterator_count($this->getIterator());
     }
 
+    /**
+     * Sum of the numeric values of `$key`; values that are not numeric count as 0,
+     * so an empty result (or one without numeric values) sums to 0.
+     */
     public function sum(string $key): float
     {
         $sum = 0;
@@ -112,31 +116,75 @@ abstract class ResultsProvider implements Results, \IteratorAggregate
         return $sum;
     }
 
-    public function avg(string $key, int $decimalPlaces = 2): float
+    /**
+     * Sum of the numeric values divided by the number of rows, rounded. Null for an
+     * empty result or when no value of `$key` is numeric.
+     */
+    public function avg(string $key, int $decimalPlaces = 2): ?float
     {
-        return round($this->sum($key) / $this->count(), $decimalPlaces);
+        $average = $this->average($key);
+        return $average === null ? null : round($average, $decimalPlaces);
     }
 
-    public function min(string $key): float
+    /**
+     * Smallest numeric value of `$key`; values that are not numeric (also `null` and
+     * a missing key) are skipped. Null for an empty result or when no value is numeric.
+     */
+    public function min(string $key): ?float
     {
-        $min = PHP_INT_MAX;
-        foreach ($this->getIterator() as $item) {
-            $value = $item[$key] ?? 0;
-            $min = min($min, is_numeric($value) ? (float) $value : PHP_INT_MAX);
+        $min = null;
+        foreach ($this->numericValues($key) as $value) {
+            $min = $min === null ? $value : min($min, $value);
         }
 
         return $min;
     }
 
-    public function max(string $key): float
+    /**
+     * Largest numeric value of `$key`; values that are not numeric (also `null` and
+     * a missing key) are skipped. Null for an empty result or when no value is numeric.
+     */
+    public function max(string $key): ?float
     {
-        $max = PHP_INT_MIN;
-        foreach ($this->getIterator() as $item) {
-            $value = $item[$key] ?? 0;
-            $max = max($max, is_numeric($value) ? (float) $value : PHP_INT_MIN);
+        $max = null;
+        foreach ($this->numericValues($key) as $value) {
+            $max = $max === null ? $value : max($max, $value);
         }
 
         return $max;
+    }
+
+    /**
+     * Unrounded {@see avg()} in one pass over the rows.
+     */
+    protected function average(string $key): ?float
+    {
+        $sum = 0;
+        $rows = 0;
+        $hasNumeric = false;
+        foreach ($this->getIterator() as $item) {
+            $rows++;
+            $value = $item[$key] ?? null;
+            if (is_numeric($value)) {
+                $sum += $value;
+                $hasNumeric = true;
+            }
+        }
+
+        return $hasNumeric ? $sum / $rows : null;
+    }
+
+    /**
+     * @return \Generator<float>
+     */
+    private function numericValues(string $key): \Generator
+    {
+        foreach ($this->getIterator() as $item) {
+            $value = $item[$key] ?? null;
+            if (is_numeric($value)) {
+                yield (float) $value;
+            }
+        }
     }
 
     /**
