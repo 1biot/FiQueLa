@@ -228,7 +228,9 @@ class Query implements Interface\Query
         );
 
         return $resolvedResultClass === Results\InMemory::class
-            ? new Results\InMemory(iterator_to_array($streamResult->getIterator()))
+            // Re-index: UNION branches each number their rows from 0, so keeping
+            // the generator keys would let a later branch overwrite earlier rows.
+            ? new Results\InMemory(iterator_to_array($streamResult->getIterator(), false))
             : $streamResult;
     }
 

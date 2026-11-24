@@ -215,4 +215,99 @@ class UnionTest extends TestCase
         $this->assertCount(3, $rows);
         $this->assertSame([1, 3, 5], array_column($rows, 'id'));
     }
+
+    private const CATALOG = '{"data":[{"id":1,"price":300,"cat":"a"},{"id":2,"price":100,"cat":"b"},'
+        . '{"id":3,"price":500,"cat":"a"},{"id":4,"price":200,"cat":"b"}]}';
+
+    private function catalog(): \FQL\Interface\Stream
+    {
+        return Json::string(self::CATALOG);
+    }
+
+    private function catalogFile(): string
+    {
+        $file = tempnam(sys_get_temp_dir(), 'fql-union-') . '.json';
+        file_put_contents($file, self::CATALOG);
+        return $file;
+    }
+
+    public function testInMemoryUnionAllWithOrderByKeepsRowsOfAllBranches(): void
+    {
+        $stream = $this->catalog();
+        $query2 = $stream->query()->select('id', 'price')->from('data')->where('cat', Operator::EQUAL, 'b');
+        $results = $stream->query()
+            ->select('id', 'price')
+            ->from('data')
+            ->where('cat', Operator::EQUAL, 'a')
+            ->orderBy('price')->desc()
+            ->unionAll($query2)
+            ->execute();
+
+        $this->assertInstanceOf(\FQL\Results\InMemory::class, $results);
+        $this->assertSame(4, $results->count());
+        $this->assertSame(
+            [[3, 500], [1, 300], [2, 100], [4, 200]],
+            array_map(fn ($r) => [$r['id'], $r['price']], iterator_to_array($results->fetchAll()))
+        );
+    }
+
+    public function testInMemoryUnionMatchesStreamResult(): void
+    {
+        $stream = $this->catalog();
+        $build = fn () => $stream->query()
+            ->select('id', 'price')
+            ->from('data')
+            ->where('cat', Operator::EQUAL, 'a')
+            ->orderBy('price')->desc()
+            ->union($stream->query()->select('id', 'price')->from('data')->where('cat', Operator::EQUAL, 'b'));
+
+        $inMemory = iterator_to_array($build()->execute()->fetchAll());
+        $streamed = iterator_to_array($build()->execute(\FQL\Results\Stream::class)->fetchAll());
+        $this->assertCount(4, $inMemory);
+        $this->assertSame($streamed, $inMemory);
+    }
+
+    public function testInMemoryJoinWithUnionKeepsRowsOfAllBranches(): void
+    {
+        $stream = $this->catalog();
+        $results = $stream->query()
+            ->select('id', 'price', 'c.cat')->as('joined')
+            ->from('data')
+            ->where('cat', Operator::EQUAL, 'a')
+            ->leftJoin($stream->query()->select('id', 'cat')->from('data'), 'c')
+            ->on('id', Operator::EQUAL, 'id')
+            ->unionAll(
+                $stream->query()->select('id', 'price', 'cat')->from('data')->where('cat', Operator::EQUAL, 'b')
+            )
+            ->execute();
+
+        $this->assertInstanceOf(\FQL\Results\InMemory::class, $results);
+        $rows = iterator_to_array($results->fetchAll());
+        $this->assertSame([1, 3, 2, 4], array_column($rows, 'id'));
+    }
+
+    public function testFqlOrderByAndLimitAfterUnionBindToLastBranch(): void
+    {
+        $file = $this->catalogFile();
+        $sql = 'SELECT id, price FROM json(' . $file . ').data WHERE cat = "a"'
+            . ' UNION ALL SELECT id, price FROM json(' . $file . ').data WHERE cat = "b" ORDER BY price DESC LIMIT 1';
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        // ORDER BY / LIMIT belong to the last branch only: branch "a" stays as read,
+        // branch "b" is sorted and cut to one row.
+        $this->assertSame([[1, 300], [3, 500], [4, 200]], array_map(fn ($r) => [$r['id'], $r['price']], $rows));
+        unlink($file);
+    }
+
+    public function testFqlWithClauseSortsAndLimitsWholeUnion(): void
+    {
+        $file = $this->catalogFile();
+        $sql = 'WITH u AS (SELECT id, price FROM json(' . $file . ').data WHERE cat = "a"'
+            . ' UNION ALL SELECT id, price FROM json(' . $file . ').data WHERE cat = "b")'
+            . ' SELECT id, price FROM u ORDER BY price DESC LIMIT 3';
+        $rows = iterator_to_array(SqlProvider::compile($sql)->toQuery()->execute()->fetchAll());
+
+        $this->assertSame([[3, 500], [1, 300], [4, 200]], array_map(fn ($r) => [$r['id'], $r['price']], $rows));
+        unlink($file);
+    }
 }

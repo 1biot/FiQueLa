@@ -801,6 +801,13 @@ $results = $query1
     ->execute();
 ```
 
+`orderBy()`, `offset()` and `limit()` act on the query they are called on: on `$query1` they
+sort and limit the rows of `$query1` before the other branches are appended, on `$query2`
+only the rows of `$query2`. The combined rows keep the branch order. To sort or limit the
+whole union, wrap it in a CTE in FQL:
+`WITH u AS (SELECT … UNION ALL SELECT …) SELECT … FROM u ORDER BY … LIMIT …`
+(see [Union](file-query-language.md#12-union)).
+
 ## 11. Into
 
 Use `into()` on executed results to export data into a file.

@@ -870,6 +870,36 @@ UNION ALL
 SELECT name, price FROM xml(./examples/data/feed3.xml).SHOP.ITEM
 ```
 
+**Sorting and limiting a union:** `ORDER BY`, `OFFSET` and `LIMIT` written after the last
+`UNION` belong to the **last branch**, not to the whole union — every branch is a complete
+query with its own clauses. The query below sorts and limits only the `price >= 400` rows:
+
+```sql
+SELECT name, price FROM json(./examples/data/products.json).data.products
+WHERE price <= 100
+UNION ALL
+SELECT name, price FROM json(./examples/data/products.json).data.products
+WHERE price >= 400
+ORDER BY price DESC
+LIMIT 1
+```
+
+To sort or limit the combined rows, wrap the union in a [common table expression](#11-with-common-table-expressions)
+and query it:
+
+```sql
+WITH u AS (
+    SELECT name, price FROM json(./examples/data/products.json).data.products
+    WHERE price <= 100
+    UNION ALL
+    SELECT name, price FROM json(./examples/data/products.json).data.products
+    WHERE price >= 400
+)
+SELECT name, price FROM u
+ORDER BY price DESC
+LIMIT 3
+```
+
 ## 13. Into
 
 Use `INTO` to export query results into a file.

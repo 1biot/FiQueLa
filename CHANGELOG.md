@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.5.0]
+
+> Bug fixes.
+
+### Fixed
+
+- **`UNION` with `ORDER BY` or `JOIN` lost rows.** A query whose result is kept in memory
+  (`ORDER BY` or `JOIN`, or `execute(Results\InMemory::class)`) returned only the rows of
+  the last `UNION` branch: each branch numbers its rows from 0, and the in-memory result
+  kept those keys, so later branches overwrote earlier ones. The in-memory result is now
+  re-indexed and returns the same rows as `execute(Results\Stream::class)`.
+- **Documented: `ORDER BY` / `LIMIT` after `UNION`.** In FQL, `ORDER BY`, `OFFSET` and
+  `LIMIT` written after the last `UNION` belong to the last branch, not to the whole
+  union (unchanged behavior). To sort or limit all rows, use
+  `WITH u AS (SELECT … UNION ALL SELECT …) SELECT … FROM u ORDER BY … LIMIT …`.
+
 ## [3.4.0]
 
 > Quoted file paths in file queries: `FROM csv("./my data (2026)/products [v1].csv", delimiter: ";")`
