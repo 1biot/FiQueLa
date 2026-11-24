@@ -678,6 +678,12 @@ $query->randomString(16)->as('RANDOM_STRING')
     ->orderBy('name', Sort::DESC);
 ```
 
+`orderBy()` takes a column, an alias or an expression (`orderBy('price * 2')`). A SELECT alias or field takes
+precedence, other columns come from the source row, so `select('id')->orderBy('price')` and
+`select('id', 'price')->exclude('price')->orderBy('price')` both sort by price. With `groupBy()` only output
+columns and aggregates sort, and with `distinct()` a column that is not in the output throws
+`QueryLogicException`; see [Sorting](file-query-language.md#8-sorting-and-filtering).
+
 ## 7. Pagination
 
 Use the `limit()` and `offset()` methods to paginate the data in your query results.

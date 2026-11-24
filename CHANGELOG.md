@@ -2,7 +2,26 @@
 
 ## [3.5.0]
 
-> Bug fixes.
+> Fixes: `UNION` keeps all rows in memory, `CAST(… AS DECIMAL)` works again, custom
+> functions register in every bootstrap with a cache, `where()` after `having()` targets
+> `WHERE`, result `min()` / `max()` / `avg()` return `null` for an empty set, and fluent
+> `where()` / `having()` accept SQL expressions. `ORDER BY` sorts by columns that are not
+> selected or are excluded. A subquery in `FROM` is a clear parse error; use `WITH`.
+
+### Added
+
+- **`ORDER BY` a column that is not selected or is excluded.**
+  `SELECT id FROM … ORDER BY price DESC` (fluent `select('id')->orderBy('price')`) and
+  `SELECT id, price EXCLUDE price … ORDER BY price DESC` left the rows unsorted, because the
+  sort read the finished row. The sort keys are computed in the projection now, from the
+  output row before `EXCLUDE` (an alias or selected field takes precedence) and otherwise
+  from the source row, and travel with the row to the full sort and the bounded
+  `ORDER BY … LIMIT` heap, which only compare them — no extra pass over the data.
+  Expressions work too (`ORDER BY price * 2`, `ORDER BY LOWER(name)`), with and without
+  `JOIN`, in FQL and the fluent API. With `GROUP BY` the sort uses output columns and
+  aggregates as before (an excluded aggregate alias works now). `SELECT DISTINCT` with an
+  `ORDER BY` column that is not in the output throws `QueryLogicException`
+  (`ORDER BY "price" is not in the SELECT DISTINCT output; select it or remove DISTINCT`).
 
 ### Changed
 

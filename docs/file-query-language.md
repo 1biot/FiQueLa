@@ -650,7 +650,28 @@ order_type_expr:
 [ORDER BY order_expr order_type_expr [, order_expr order_type_expr ...]]
 ```
 
-- _**order_expr**_: is a column name or alias column name.
+- _**order_expr**_: a column name, an alias or an expression (`price * 2`, `LOWER(name)`).
+
+A name of the SELECT output (an alias or a selected field) takes precedence; any other column is read from the
+source row, so you can sort by a column that is not selected or is removed with `EXCLUDE`:
+
+```sql
+SELECT id, name
+FROM json(./examples/data/products.json).data.products
+ORDER BY price DESC
+
+SELECT id, name, price
+EXCLUDE price
+FROM json(./examples/data/products.json).data.products
+ORDER BY price DESC
+```
+
+The sort keys are computed while the rows are selected, so sorting this way reads the data once.
+Two exceptions follow SQL:
+
+- with `GROUP BY` you sort by the output columns and aggregates (an excluded one too), not by source columns;
+- with `SELECT DISTINCT` you can sort only by what the output holds; a column that is not selected or is excluded
+  throws `QueryLogicException` (`ORDER BY "price" is not in the SELECT DISTINCT output; …`).
 
 | Sorting type  | Description  |
 |---------------|--------------|
