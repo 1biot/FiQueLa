@@ -3,6 +3,8 @@
 namespace FQL\Traits;
 
 use FQL\Conditions\BaseConditionGroup;
+use FQL\Conditions\Condition;
+use FQL\Conditions\ExpressionCondition;
 use FQL\Conditions\GroupCondition;
 use FQL\Conditions\HavingConditionGroup;
 use FQL\Conditions\SimpleCondition;
@@ -10,6 +12,13 @@ use FQL\Conditions\WhereConditionGroup;
 use FQL\Enum;
 use FQL\Exception;
 use FQL\Interface;
+use FQL\Sql;
+use FQL\Sql\Ast\Expression\ColumnReferenceNode;
+use FQL\Sql\Ast\Expression\ExpressionNode;
+use FQL\Sql\Ast\Expression\LiteralNode;
+use FQL\Sql\Printer\FqlPrinter;
+use FQL\Sql\Printer\UnprintableNodeException;
+use FQL\Sql\Token\Position;
 
 /**
  * @phpstan-import-type ConditionValue from Interface\Query
@@ -197,14 +206,19 @@ trait Conditions
      */
     private function switchToWhereContext(): void
     {
+        if ($this->isHavingContext()) {
+            $this->currentGroup = $this->whereConditions;
+        }
+    }
+
+    private function isHavingContext(): bool
+    {
         $root = $this->currentGroup;
         while (($parent = $root->getParent()) !== null) {
             $root = $parent;
         }
 
-        if ($root === $this->havingConditions) {
-            $this->currentGroup = $this->whereConditions;
-        }
+        return $root === $this->havingConditions;
     }
 
     /**
@@ -221,7 +235,98 @@ trait Conditions
             throw new Exception\QueryLogicException('WHERE/HAVING is not allowed in DESCRIBE mode');
         }
 
-        $this->currentGroup->addCondition($type, new SimpleCondition($type, $key, $operator, $value));
+        $this->currentGroup->addCondition($type, $this->createCondition($type, $key, $operator, $value));
+    }
+
+    /**
+     * A plain field path (`price`, `brand.code`, `my-field`, `items.0.price`) becomes a
+     * {@see SimpleCondition} as before; any other expression (function call,
+     * arithmetic, CASE, CAST, …) an {@see ExpressionCondition} evaluated like the same
+     * condition in FQL. A key the expression parser rejects stays a field path, and so
+     * does a HAVING key naming a selected output column (`SUM(price)` selected without
+     * an alias is a column named `SUM(price)`).
+     *
+     * @param ConditionValue $value
+     */
+    private function createCondition(
+        Enum\LogicalOperator $type,
+        string $key,
+        Enum\Operator $operator,
+        array|float|int|string|Enum\Type $value
+    ): Condition {
+        $expression = $this->conditionExpression($key);
+        if ($expression === null) {
+            return new SimpleCondition($type, $key, $operator, $value);
+        }
+
+        return new ExpressionCondition($type, $expression, $operator, $this->conditionRightSide($value));
+    }
+
+    private function conditionExpression(string $key): ?ExpressionNode
+    {
+        if ($this->isHavingContext() && isset($this->selectedFields[$key])) {
+            return null;
+        }
+
+        try {
+            $node = Sql\Provider::parseExpression($key);
+        } catch (Sql\Parser\ParseException) {
+            return null;
+        }
+
+        return $node instanceof ColumnReferenceNode || $node instanceof LiteralNode ? null : $node;
+    }
+
+    /**
+     * The fluent value as the right side of an expression condition, read as FQL reads
+     * the rendered condition: scalars are literals, a backticked string is a column and
+     * a string in quotes (`'"active"'`) is the literal between them.
+     *
+     * @param ConditionValue $value
+     * @return ExpressionNode|Enum\Type|ExpressionNode[]
+     */
+    private function conditionRightSide(array|float|int|string|Enum\Type $value): ExpressionNode|Enum\Type|array
+    {
+        if ($value instanceof Enum\Type) {
+            return $value;
+        }
+        if (is_array($value)) {
+            return array_values(array_map(
+                fn (mixed $item): ExpressionNode => $this->conditionValueNode($item),
+                $value
+            ));
+        }
+
+        return $this->conditionValueNode($value);
+    }
+
+    private function conditionValueNode(mixed $value): ExpressionNode
+    {
+        if (is_string($value) && preg_match('/^`.+`$/s', $value) === 1) {
+            return new ColumnReferenceNode(trim($value, '`'), Position::synthetic());
+        }
+        if (is_string($value) && preg_match('/^(["\'])(.*)\1$/s', $value, $matches) === 1) {
+            $value = $matches[2];
+        }
+
+        $raw = match (true) {
+            is_string($value) => $this->stringLiteralRaw($value),
+            is_bool($value) => $value ? 'TRUE' : 'FALSE',
+            $value === null => 'NULL',
+            is_scalar($value) => (string) $value,
+            default => '',
+        };
+
+        return new LiteralNode($value, Enum\Type::match($value), $raw, Position::synthetic());
+    }
+
+    private function stringLiteralRaw(string $value): string
+    {
+        try {
+            return FqlPrinter::stringLiteral($value);
+        } catch (UnprintableNodeException) {
+            return '';
+        }
     }
 
     private function conditionsToString(BaseConditionGroup $context): string

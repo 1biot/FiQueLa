@@ -57,6 +57,21 @@
   `avg()` return `null` now, `sum()` still returns `0`. `min()` / `max()` skip `null` and
   missing values instead of reading them as `0` (`max()` of `-5, null, -2` was `0`, it is
   `-2` now). `Results\Stream` caches the `null` results too.
+- **SQL expressions in fluent `where()` / `having()`.** The first argument of `where()`,
+  `having()`, `and()`, `or()` and `xor()` was always read as a field path, so
+  `where('LOWER(name)', Operator::EQUAL, 'alpha')` and `where('price * 2', …)` matched
+  nothing and `having('SUM(price * 2)', …)` did not filter. An expression (function call,
+  arithmetic, `CASE`, `CAST`, …) builds an `ExpressionCondition` now and evaluates like the
+  same condition in FQL; the value is a literal (a quoted string is the text between the
+  quotes, a backticked string is a column). A plain field path and a key the expression
+  parser rejects (`my-field`, `items.0.price`, `group`) keep the `SimpleCondition` lookup
+  as before, and so does a `HAVING` key that is exactly the name of a selected column.
+  Aggregates in `HAVING` throw the same `QueryLogicException` as in FQL.
+- **Printing expression conditions.** `ExpressionCondition::render()` (WHERE / HAVING of
+  FQL queries and fluent expressions) wrote string literals in two pairs of quotes
+  (`LIKE ""al%""`, `IN (""a"")`), a number on the right as a string (`> '1'`) and
+  arithmetic as functions (`MULTIPLY(price, 2)`). It is written by `FqlPrinter` now
+  (`LIKE 'al%'`, `price * 2 > 1`), so `(string) $query` parses back to the same query.
 
 ## [3.4.0]
 

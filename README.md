@@ -8,7 +8,7 @@
 ![Packagist License](https://img.shields.io/packagist/l/1biot/fiquela)
 
 ![Coverage](https://img.shields.io/badge/coverage-91.73%25-lightgreen)
-![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_2117-lightgreen)
+![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-tests%3A_2148-lightgreen)
 ![PHPStan](https://img.shields.io/badge/phpstan-level_8-lightgreen)
 
 **FiQueLa** brings SQL querying to structured files. Filter, join, group, aggregate, and export data from XML, CSV, JSON, NDJSON, YAML, NEON, XLSX, ODS, and HTTP access logs — using familiar SQL syntax or a fluent PHP API.

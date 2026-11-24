@@ -3,9 +3,13 @@
 namespace FQL\Conditions;
 
 use FQL\Enum;
+use FQL\Sql\Ast\Expression\ConditionExpressionNode;
 use FQL\Sql\Ast\Expression\ExpressionNode;
 use FQL\Sql\Builder\ExpressionCompiler;
+use FQL\Sql\Printer\FqlPrinter;
+use FQL\Sql\Printer\UnprintableNodeException;
 use FQL\Sql\Runtime\ExpressionEvaluator;
+use FQL\Sql\Token\Position;
 
 /**
  * Condition whose operands are full `ExpressionNode` trees rather than field-name
@@ -50,10 +54,23 @@ final class ExpressionCondition extends Condition
     }
 
     /**
-     * Human-readable SQL-like form, useful for `__toString` on condition groups and
-     * for debug output. Reuses the AST-aware `ExpressionCompiler`.
+     * The condition as FQL (`price * 2 > 500`, `LOWER(name) LIKE "al%"`), written by
+     * {@see FqlPrinter} so it parses back to the same condition. Trees the printer
+     * cannot write (e.g. a string with both quote characters) fall back to the
+     * `ExpressionCompiler` form.
      */
     public function render(): string
+    {
+        try {
+            return (new FqlPrinter())->print(
+                new ConditionExpressionNode($this->left, $this->operator, $this->right, Position::synthetic())
+            );
+        } catch (UnprintableNodeException) {
+            return $this->renderWithCompiler();
+        }
+    }
+
+    private function renderWithCompiler(): string
     {
         $compiler = new ExpressionCompiler();
         $fieldString = $compiler->renderExpression($this->left);

@@ -373,6 +373,26 @@ Use the `where()` method to filter the data in your query results before any agg
 multiple conditions. Conditions support dot notation for nested fields and brings the support for grouping conditions with
 `whereGroup()`, `andGroup`, `orGroup` and `endGroup()`.
 
+The first argument of `where()`, `having()`, `and()`, `or()` and `xor()` is a field path or an SQL expression:
+
+```php
+$query->where('price', Operator::GREATER_THAN, 100)            // field path
+    ->and('LOWER(name)', Operator::EQUAL, 'alpha')             // function call
+    ->and('price * 2', Operator::LESS_THAN, 1000)              // arithmetic
+    ->and('CASE WHEN stock > 0 THEN "yes" ELSE "no" END', Operator::EQUAL, 'yes');
+```
+
+- A field path (`price`, `brand.code`, `my-field`, `` `Název zboží` ``, and anything the expression parser
+  cannot read, such as `items.0.price` or a field named `group`) is compared as before; a string value naming a
+  field of the row compares with that field.
+- An expression is evaluated exactly like the same condition written in FQL. The value is a literal — a string
+  in quotes (`'"active"'`) is the text between them — and a backticked value (`` '`cost`' ``) is a column. The
+  query prints the condition as FQL (`LOWER(name) = "alpha"`, `price * 2 < 1000`).
+- Aggregates cannot be evaluated row by row in `HAVING`, in FQL or fluent alike:
+  `having('SUM(price * 2)', …)` throws `QueryLogicException` (`Aggregate function SUM cannot be evaluated
+  row-by-row`); alias the aggregate in `select()` and use the alias. A `HAVING` key that is exactly the name of a
+  selected column (`sum('price')` without an alias is a column named `SUM(price)`) still reads that column.
+
 ### Logical operators
 
 | Operator | Description  |
