@@ -259,7 +259,7 @@ class SourceAwareExceptionTest extends TestCase
                 FileNotFoundException::class, 'json(./nope.json)', 'file-not-found', ['path' => './nope.json'],
             ],
             'missing file in a subquery' => [
-                'SELECT * FROM (SELECT * FROM json(./nope.json)) AS s', false,
+                "SELECT a.name FROM $products AS a JOIN (SELECT * FROM json(./nope.json)) AS s ON a.id = s.id", false,
                 FileNotFoundException::class, 'json(./nope.json)', 'file-not-found', ['path' => './nope.json'],
             ],
             'duplicate field' => [

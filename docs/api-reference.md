@@ -1535,7 +1535,9 @@ Individual clause / expression parsers are also part of the namespace: `Statemen
 
 `FQL\Sql\Parser\ParseException` _extends_ `Exception\UnexpectedValueException`
 
-Carries the offending token and the expected token types for rich positioned diagnostics (line + column). As a [`SourceAwareException`](#sourceawareexception): rule `syntax-error`, the span of the offending token (a whole UTF-8 character for an unexpected character), the reason without ` at line X, column Y`, and params `kind` (`unexpected-token`, `unexpected-character`, `unexpected-operator`, `unterminated-string`, `unterminated-identifier`, `unterminated-comment`), `token`, `tokenType`, `expected` (token type names) and `context` (for `context()`).
+Carries the offending token and the expected token types for rich positioned diagnostics (line + column). As a [`SourceAwareException`](#sourceawareexception): rule `syntax-error`, the span of the offending token (a whole UTF-8 character for an unexpected character), the reason without ` at line X, column Y`, and params `kind` (`unexpected-token`, `unexpected-character`, `unexpected-operator`, `unterminated-string`, `unterminated-identifier`, `unterminated-comment`, `unsupported-syntax`), `token`, `tokenType`, `expected` (token type names) and `context` (for `context()` and `unsupported()`).
+
+_public static_ **unsupported(**_Token\Token_ `$actual`**,** _string_ `$reason`**,** _string_ `$context`**):** `ParseException` — syntax that parses but is not supported; kind `unsupported-syntax`, the reason says what to write instead. Thrown for a subquery in `FROM` (span: the `(`, context `FROM source`): `Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`.
 
 _public_ **__construct(**_Token\Token_ `$token`**,** _TokenType[]_ `$expected`**,** _string_ `$message`**,** _?string_ `$reason = null`**,** _array_ `$params = []`**)** — `$reason` defaults to the message without its position suffix; `$params` are merged over the defaults.
 

@@ -376,6 +376,9 @@ FROM file_reference [AS from_alias]
 
 - _**file_reference**_: is a [FileQuery](#2-file-query).
 - _**subquery**_: a nested SELECT statement in parentheses, e.g. `(SELECT id, name FROM ... WHERE ...)`.
+  Subqueries are supported in `JOIN` only. `FROM (SELECT …)` is a parse error
+  (`Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`);
+  name the query in a [`WITH`](#11-with-common-table-expressions) clause and select from it instead.
 - _**from_alias**_: optional alias for the FROM source. When set, fields can be accessed as `from_alias.field_name` and `from_alias.*` selects all fields.
 
 | Join type | Description      |
@@ -753,7 +756,8 @@ WHERE price > 200
 Use `WITH` to define one or more named temporary result sets (Common Table Expressions, CTEs)
 that can be referenced by name later in the same statement. CTEs improve readability and let
 you eliminate repetition when the same sub-query is needed in several places (e.g. in both
-sides of a `JOIN` or across `UNION` branches).
+sides of a `JOIN` or across `UNION` branches). A CTE is also the way to select from a query:
+`FROM (SELECT …)` is not supported, `WITH s AS (SELECT …) SELECT … FROM s` is.
 
 ```sql
 WITH name AS (select_statement)

@@ -4,6 +4,19 @@
 
 > Bug fixes.
 
+### Changed
+
+- **Subquery in `FROM` is a parse error.** Subqueries are supported in `JOIN` only; the
+  parser accepted `FROM (SELECT …) AS s`, but the query was built wrong
+  (`SELECT id FROM (SELECT id, price …) AS s` threw `Field "id" already defined`,
+  `SELECT s.id …` returned the alias as a column). It now throws `ParseException`
+  `Subqueries in FROM are not supported; use WITH name AS (...) SELECT ... FROM name`
+  with the span of `(`, rule `syntax-error` and the new `kind` `unsupported-syntax`
+  (context `FROM source`), in `FROM`, `DESCRIBE`, CTE bodies and `UNION` branches alike;
+  lint reports it as a `syntax-error` issue. `SELECT * FROM (SELECT …)` worked before and
+  needs rewriting as `WITH s AS (SELECT …) SELECT * FROM s`. New
+  `ParseException::unsupported()`. Subqueries in `JOIN` work as before.
+
 ### Fixed
 
 - **`UNION` with `ORDER BY` or `JOIN` lost rows.** A query whose result is kept in memory

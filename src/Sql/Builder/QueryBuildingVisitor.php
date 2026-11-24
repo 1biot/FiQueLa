@@ -281,6 +281,12 @@ final class QueryBuildingVisitor
             return $this->resolveCteReference($node, $fromContext);
         }
         if ($node instanceof SubQueryNode) {
+            if ($fromContext) {
+                // The parser rejects this; guards ASTs assembled or edited in code.
+                throw new Exception\QueryLogicException(
+                    \FQL\Sql\Parser\FromClauseParser::FROM_SUBQUERY_REASON
+                );
+            }
             return $this->build($node->query);
         }
         if ($node instanceof FileQueryNode) {

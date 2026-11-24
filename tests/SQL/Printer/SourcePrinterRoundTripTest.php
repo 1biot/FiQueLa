@@ -36,7 +36,6 @@ class SourcePrinterRoundTripTest extends TestCase
             'attribute and dollar paths' => ["SELECT @attributes.id, \$meta.x, order-total FROM xml(a.xml).ROOT.ITEM"],
             'table star and inner join' => ["SELECT p.*, c.name FROM json(p.json) AS p INNER JOIN json(c.json) AS c ON p.cid = c.id"],
             'every join type' => ["SELECT * FROM json(a.json) AS a LEFT OUTER JOIN csv(b.csv, \"windows-1250\", \";\") AS b ON a.id == b.id RIGHT JOIN json(c.json) AS c ON c.id = a.id FULL JOIN json(d.json) AS d ON d.id = a.id JOIN json(e.json) AS e ON e.id = a.id"],
-            'subquery in FROM' => ["SELECT * FROM (SELECT id, name FROM json(a.json) WHERE id > 1) AS sub WHERE sub.id < 10"],
             'subquery in JOIN' => ["SELECT * FROM json(a.json) AS a LEFT JOIN (SELECT id FROM json(b.json)) AS b ON a.id = b.id"],
             'two CTEs' => ["WITH active AS (SELECT * FROM json(u.json) WHERE active = true), recent AS (SELECT * FROM active WHERE year >= 2020) SELECT name FROM recent ORDER BY name"],
             'multi-line CTE' => ["WITH\n  a AS (\n    SELECT x FROM json(a.json)\n  )\nSELECT * FROM a"],
