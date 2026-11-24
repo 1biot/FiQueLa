@@ -31,6 +31,10 @@
   `unregister()` no longer leaks into other processes either). Registering the same
   name twice in one process still throws. Caches written by older versions are rebuilt
   on first use.
+- **`where()` after `having()` added to `HAVING`.** `->having('c', …)->where('price', …)`
+  produced `HAVING c > 0 AND price > 1`. `where()` and `whereGroup()` switch back to
+  `WHERE` now (inside an open `WHERE` group `where()` still joins that group); `and()`,
+  `or()` and `xor()` keep continuing in the clause of the last `where()` / `having()`.
 
 ## [3.4.0]
 

@@ -390,6 +390,19 @@ $query->where(...)
     ->xor(...);
 ```
 
+`where()` and `whereGroup()` always add to `WHERE`, `having()` and `havingGroup()` to
+`HAVING`. `and()`, `or()` and `xor()` continue in the clause of the last `where()` /
+`having()` (or the open group), so the calls can be mixed in any order:
+
+```php
+$query->groupBy('category')
+    ->where('price', Operator::GREATER_THAN, 100)      // WHERE price > 100
+    ->having('total', Operator::GREATER_THAN, 1)       // HAVING total > 1
+    ->and('total', Operator::LESS_THAN, 10)            //   AND total < 10
+    ->where('stock', Operator::GREATER_THAN, 0)        // WHERE … AND stock > 0
+    ->and('active', Operator::EQUAL, true);            //   AND active = true
+```
+
 ### Operators
 
 Operators are enums that represent the comparison operators used in the conditions. To use operators, you must import the `Operator` enum.

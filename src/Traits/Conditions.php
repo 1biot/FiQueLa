@@ -77,7 +77,8 @@ trait Conditions
     }
 
     /**
-     * Switch context to WHERE and optionally add condition
+     * Switch context to WHERE and add condition. Inside an open WHERE group the
+     * condition joins that group; after having() it goes back to WHERE.
      * @param ConditionValue $value
      */
     public function where(
@@ -85,6 +86,7 @@ trait Conditions
         Enum\Operator $operator,
         array|float|int|string|Enum\Type $value
     ): Interface\Query {
+        $this->switchToWhereContext();
         $this->addCondition(Enum\LogicalOperator::AND, $key, $operator, $value);
         return $this;
     }
@@ -144,6 +146,7 @@ trait Conditions
 
     public function whereGroup(): Interface\Query
     {
+        $this->switchToWhereContext();
         return $this->andGroup();
     }
 
@@ -185,6 +188,23 @@ trait Conditions
 
         $this->currentGroup = $this->currentGroup->getParent() ?? $this->whereConditions;
         return $this;
+    }
+
+    /**
+     * Moves the current context back to WHERE when it is in HAVING (the HAVING
+     * root or a group nested in it). A context already inside WHERE, including
+     * an open WHERE group, is kept.
+     */
+    private function switchToWhereContext(): void
+    {
+        $root = $this->currentGroup;
+        while (($parent = $root->getParent()) !== null) {
+            $root = $parent;
+        }
+
+        if ($root === $this->havingConditions) {
+            $this->currentGroup = $this->whereConditions;
+        }
     }
 
     /**

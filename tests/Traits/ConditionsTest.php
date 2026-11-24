@@ -175,4 +175,89 @@ class ConditionsTest extends TestCase
 
         $this->assertSame([3, 4, 5], array_column($results, 'id'));
     }
+
+    private function catalogQuery(): \FQL\Interface\Query
+    {
+        return Json::string(
+            '{"data":[{"id":1,"price":300,"cat":"a"},{"id":2,"price":100,"cat":"b"},'
+            . '{"id":3,"price":500,"cat":"a"},{"id":4,"price":200,"cat":"b"}]}'
+        )->query()
+            ->select('cat')
+            ->count('id')->as('c')
+            ->from('data')
+            ->groupBy('cat');
+    }
+
+    public function testWhereAfterHavingTargetsWhere(): void
+    {
+        $query = $this->catalogQuery()
+            ->having('c', Operator::GREATER_THAN, 0)
+            ->where('price', Operator::GREATER_THAN, 100);
+
+        $sql = (string) $query;
+        $this->assertStringContainsString('WHERE price > 100', $sql);
+        $this->assertStringContainsString('HAVING c > 0' . PHP_EOL, $sql . PHP_EOL);
+        $this->assertSame(
+            [['cat' => 'a', 'c' => 2], ['cat' => 'b', 'c' => 1]],
+            iterator_to_array($query->execute()->fetchAll())
+        );
+    }
+
+    public function testWhereHavingAndWhereAndChain(): void
+    {
+        $query = $this->catalogQuery()
+            ->where('price', Operator::GREATER_THAN, 100)
+            ->having('c', Operator::GREATER_THAN, 0)
+            ->and('c', Operator::LESS_THAN, 10)
+            ->where('id', Operator::NOT_EQUAL, 3)
+            ->and('cat', Operator::EQUAL, 'a');
+
+        $sql = (string) $query;
+        $this->assertStringContainsString("WHERE price > 100 AND id != 3 AND cat = 'a'", $sql);
+        $this->assertStringContainsString('HAVING c > 0 AND c < 10' . PHP_EOL, $sql . PHP_EOL);
+        $this->assertSame([['cat' => 'a', 'c' => 1]], iterator_to_array($query->execute()->fetchAll()));
+    }
+
+    public function testOrAndXorContinueInHavingAfterHaving(): void
+    {
+        $sql = (string) $this->catalogQuery()
+            ->where('price', Operator::GREATER_THAN, 100)
+            ->having('c', Operator::GREATER_THAN, 5)
+            ->or('c', Operator::EQUAL, 1)
+            ->xor('cat', Operator::EQUAL, 'b');
+
+        $this->assertStringContainsString('WHERE price > 100' . PHP_EOL, $sql);
+        $this->assertStringContainsString("HAVING c > 5 OR c = 1 XOR cat = 'b'", $sql);
+    }
+
+    public function testWhereGroupAfterHavingTargetsWhere(): void
+    {
+        $query = $this->catalogQuery()
+            ->having('c', Operator::GREATER_THAN, 0)
+            ->whereGroup()
+                ->where('id', Operator::EQUAL, 1)
+                ->or('id', Operator::EQUAL, 4)
+            ->endGroup()
+            ->and('price', Operator::GREATER_THAN, 0);
+
+        $sql = (string) $query;
+        $this->assertStringContainsString('WHERE (id = 1 OR id = 4) AND price > 0', $sql);
+        $this->assertStringContainsString('HAVING c > 0' . PHP_EOL, $sql . PHP_EOL);
+        $this->assertSame(
+            [['cat' => 'a', 'c' => 1], ['cat' => 'b', 'c' => 1]],
+            iterator_to_array($query->execute()->fetchAll())
+        );
+    }
+
+    public function testWhereInsideWhereGroupStaysInGroup(): void
+    {
+        $sql = (string) $this->catalogQuery()
+            ->where('price', Operator::GREATER_THAN, 0)
+            ->whereGroup()
+                ->where('id', Operator::EQUAL, 1)
+                ->or('id', Operator::EQUAL, 4)
+            ->endGroup();
+
+        $this->assertStringContainsString('WHERE price > 0 AND (id = 1 OR id = 4)', $sql);
+    }
 }
