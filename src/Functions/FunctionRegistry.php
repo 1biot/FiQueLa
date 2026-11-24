@@ -30,10 +30,23 @@ use Nette\Neon\Neon;
  *
  * `loadConfig($path)` appends the given neon file as an additional source;
  * the cache key incorporates the source list + mtimes for invalidation.
+ *
+ * The cache holds only what the sources declare (the built-in neon and the
+ * `loadConfig()` files). Changes made at runtime with `register()`,
+ * `override()` and `unregister()` live in the current process only, so an
+ * application registers its functions in every bootstrap and the next
+ * process starts from the same cached state.
  */
 final class FunctionRegistry
 {
     private const CACHE_FILENAME = 'fiquela-functions.compiled.php';
+
+    /**
+     * Bumped when the cache content changes meaning. Version 2: the cache no
+     * longer contains runtime registrations; files written before (without
+     * the version) may hold user classes and are rebuilt.
+     */
+    private const CACHE_VERSION = 2;
 
     /** @var array<string, class-string<ScalarFunction>>|null */
     private static ?array $scalar = null;
@@ -89,8 +102,10 @@ final class FunctionRegistry
     }
 
     /**
-     * Registers a new function class. Throws on duplicate name — use
-     * {@see override()} to replace an existing entry.
+     * Registers a new function class for the current process. Throws on
+     * duplicate name — use {@see override()} to replace an existing entry.
+     * The registration is not written to the compiled cache: call it in every
+     * bootstrap.
      *
      * @param class-string $class
      */
@@ -98,12 +113,12 @@ final class FunctionRegistry
     {
         self::ensureBootstrapped();
         self::registerInternal($class, override: false);
-        self::writeCache();
     }
 
     /**
      * Registers a function class, replacing any existing entry with the same
-     * name. Useful for swapping built-ins (e.g. a stricter `Lower`).
+     * name. Useful for swapping built-ins (e.g. a stricter `Lower`). Applies
+     * to the current process only, like {@see register()}.
      *
      * @param class-string $class
      */
@@ -111,12 +126,11 @@ final class FunctionRegistry
     {
         self::ensureBootstrapped();
         self::registerInternal($class, override: true);
-        self::writeCache();
     }
 
     /**
-     * Removes a function by name (built-in or user-registered). Throws when
-     * the name is unknown.
+     * Removes a function by name (built-in or user-registered) for the
+     * current process. Throws when the name is unknown.
      */
     public static function unregister(string $name): void
     {
@@ -131,7 +145,6 @@ final class FunctionRegistry
                 sprintf('Cannot unregister unknown function "%s"', $name)
             );
         }
-        self::writeCache();
     }
 
     /**
@@ -396,13 +409,16 @@ final class FunctionRegistry
     /**
      * @return array{scalar: array<string, class-string<ScalarFunction>>,
      *               aggregate: array<string, class-string<AggregateFunction>>,
-     *               sources: string[]}|null
+     *               sources: string[], version: int}|null
      */
     private static function loadCache(string $cacheFile): ?array
     {
         /** @var mixed $payload */
         $payload = @include $cacheFile;
         if (!is_array($payload) || !isset($payload['scalar'], $payload['aggregate'])) {
+            return null;
+        }
+        if (($payload['version'] ?? null) !== self::CACHE_VERSION) {
             return null;
         }
         // Verify cached source list still matches what we expect; if user
@@ -412,10 +428,14 @@ final class FunctionRegistry
         if (!is_array($cachedSources) || $cachedSources !== self::allSources()) {
             return null;
         }
-        /** @var array{scalar: array<string, class-string<ScalarFunction>>, aggregate: array<string, class-string<AggregateFunction>>, sources: string[]} $payload */
+        /** @var array{scalar: array<string, class-string<ScalarFunction>>, aggregate: array<string, class-string<AggregateFunction>>, sources: string[], version: int} $payload */
         return $payload;
     }
 
+    /**
+     * Writes the registry as built from the sources. Called only right after
+     * the bootstrap, before any runtime register / override / unregister.
+     */
     private static function writeCache(): void
     {
         $path = self::cacheFilePath();
@@ -427,6 +447,7 @@ final class FunctionRegistry
         }
 
         $payload = [
+            'version' => self::CACHE_VERSION,
             'scalar' => self::$scalar,
             'aggregate' => self::$aggregate,
             'sources' => self::allSources(),

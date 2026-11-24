@@ -304,6 +304,15 @@ To replace a built-in with your own variant, use
 `FunctionRegistry::unregister($name)`. Functions loaded via a separate
 neon config are available through `FunctionRegistry::loadConfig($neonPath)`.
 
+`register()`, `override()` and `unregister()` change the registry of the
+current process only; they are not written to the compiled cache
+(`fiquela-functions.compiled.php`), which holds just the built-in functions
+and the `loadConfig()` files. That is why the registration belongs in the
+bootstrap that runs in every request / process. Registering the same name twice
+in one process still throws `FunctionRegistrationException`. Call
+`setCacheDir()` and `loadConfig()` before `register()` — both reload the
+registry from its sources.
+
 
 ## 3. Joining Data Sources
 

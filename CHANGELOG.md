@@ -22,6 +22,15 @@
   `CAST(NULL AS …)` returns `NULL` (it returned `0` / `0.0` / `""` for `INT`, `DOUBLE`,
   `VARCHAR`, …), and strings are read with `Type::matchByString()` before the cast.
   Applies to FQL and to fluent `cast()`.
+- **Registering custom functions in the bootstrap failed with a cache.**
+  `FunctionRegistry::register()` wrote the user class into
+  `fiquela-functions.compiled.php`, so the next process loaded it from the cache and
+  `register()` threw `Function "X" is already registered`. The compiled cache now holds
+  only the built-in functions and the `loadConfig()` sources; `register()`, `override()`
+  and `unregister()` apply to the current process only (an `override()` or
+  `unregister()` no longer leaks into other processes either). Registering the same
+  name twice in one process still throws. Caches written by older versions are rebuilt
+  on first use.
 
 ## [3.4.0]
 

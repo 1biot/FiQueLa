@@ -1937,7 +1937,7 @@ $result = $fn->finalize($acc); // float
 
 `FQL\Functions\FunctionRegistry`
 
-Global static registry for all scalar and aggregate function classes. Bootstrapped from `src/Functions/functions.neon` on first access. Results are compiled to `fiquela-functions.compiled.php` (not committed). Cache location priority: `setCacheDir()` > library directory > system temp > in-memory only.
+Global static registry for all scalar and aggregate function classes. Bootstrapped from `src/Functions/functions.neon` on first access. Results are compiled to `fiquela-functions.compiled.php` (not committed). Cache location priority: `setCacheDir()` > library directory > system temp > in-memory only. The compiled cache holds the built-in functions and `loadConfig()` sources only; `register()`, `override()` and `unregister()` apply to the current process and are not cached, so register custom functions in every bootstrap.
 
 Function names are case-insensitive. Registering a duplicate name throws `Exception\FunctionRegistrationException`.
 
