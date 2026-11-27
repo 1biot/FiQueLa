@@ -306,4 +306,25 @@ class QueryBuilderTest extends TestCase
         $query = $visitor->build($ast);
         $this->assertCount(1, iterator_to_array($query->execute()->fetchAll()));
     }
+
+    /**
+     * A SELECT expression is handed to the fluent select() as a string. When it does not
+     * parse back, the build must fail instead of selecting a missing column (NULL in
+     * every row). FQL strings have no escapes, so a literal with both quote characters
+     * cannot be written.
+     */
+    public function testExpressionThatDoesNotParseBackFailsTheBuild(): void
+    {
+        $sql = sprintf('SELECT name FROM json(%s).data.products', $this->productsJson);
+        $ast = $this->buildAst($sql);
+        $pos = new Position(0, 1, 1);
+        $call = new \FQL\Sql\Ast\Expression\FunctionCallNode('UPPER', [
+            new \FQL\Sql\Ast\Expression\LiteralNode('a"b\'c', Enum\Type::STRING, 'x', $pos),
+        ], false, $pos);
+        $ast = $ast->withFields([new \FQL\Sql\Ast\Node\SelectFieldNode($call, 'r', false, $pos)]);
+
+        $this->expectException(Exception\QueryLogicException::class);
+        $this->expectExceptionMessage('Cannot rebuild expression "UPPER("a"b\'c")"');
+        (new QueryBuilder())->build($ast);
+    }
 }

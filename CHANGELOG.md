@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.5.1]
+
+> Fixes functions, `CASE`, arithmetic, `GROUP BY` and `ORDER BY` over a backticked column
+> such as `` `variant:Rozmer uteráku` ``, which returned `NULL`.
+
+### Fixed
+
+- **Functions over a backticked column returned `NULL`.** In FQL,
+  ``SELECT CONCAT(name, ": ", `variant:Rozmer uteráku`) AS label`` gave `NULL` in every
+  row, as did any function, `CASE` or arithmetic whose argument is a backticked column
+  with a colon, space, diacritics or a keyword name (`` LOWER(`a b`) ``,
+  `` UPPER(`group`) ``). `ORDER BY` and `GROUP BY` over such an expression did not sort or
+  group. The SQL builder writes each `SELECT` / `GROUP BY` / `ORDER BY` expression back
+  to FQL for the fluent API, which parses it again, and the column lost its backticks on
+  the way. The parse failed and the whole call was read as one missing column. The same
+  happened to a string literal containing `"` (`CONCAT(name, ' "x"')`) and to a
+  `COLLECT_OBJECT` alias with a space. Columns, strings and aliases are now quoted so they
+  parse back. Result keys of unaliased expressions are unchanged (`` UPPER(`a:b`) `` is
+  still `UPPER(a:b)`). A `SELECT`, `GROUP BY` or `ORDER BY` expression that cannot be
+  parsed back now throws `QueryLogicException` (`Cannot rebuild expression "…"`) instead
+  of returning `NULL`. The top-level column alone (`` SELECT `variant:Rozmer uteráku` ``)
+  worked before and is unchanged.
+
 ## [3.5.0]
 
 > Fixes: `UNION` keeps all rows in memory, `CAST(… AS DECIMAL)` works again, custom

@@ -15,6 +15,8 @@ use FQL\Sql\Ast\Expression\FunctionCallNode;
 use FQL\Sql\Ast\Expression\LiteralNode;
 use FQL\Sql\Ast\Expression\MatchAgainstNode;
 use FQL\Sql\Ast\Expression\StarNode;
+use FQL\Sql\Printer\FqlPrinter;
+use FQL\Sql\Printer\UnprintableNodeException;
 
 /**
  * Converts AST ExpressionNode / ConditionGroupNode trees back into FQL string form.
@@ -37,7 +39,7 @@ final class ExpressionCompiler
             return $this->renderLiteral($node);
         }
         if ($node instanceof ColumnReferenceNode) {
-            return $node->name;
+            return $this->renderColumn($node);
         }
         if ($node instanceof StarNode) {
             return '*';
@@ -51,7 +53,10 @@ final class ExpressionCompiler
             return 'CAST(' . $this->renderExpression($node->value) . ' AS ' . strtoupper($node->targetType->value) . ')';
         }
         if ($node instanceof MatchAgainstNode) {
-            $fields = implode(', ', array_map(static fn (ColumnReferenceNode $f): string => $f->name, $node->fields));
+            $fields = implode(', ', array_map(
+                fn (ColumnReferenceNode $f): string => $this->renderColumn($f),
+                $node->fields
+            ));
             return sprintf(
                 'MATCH(%s) AGAINST("%s IN %s MODE")',
                 $fields,
@@ -93,7 +98,7 @@ final class ExpressionCompiler
             foreach ($node->selectItems as $item) {
                 $rendered = $this->renderExpression($item['expression']);
                 if ($item['alias'] !== null) {
-                    $rendered .= ' AS ' . $item['alias'];
+                    $rendered .= ' AS ' . $this->renderAlias($item['alias']);
                 }
                 $parts[] = $rendered;
             }
@@ -114,8 +119,34 @@ final class ExpressionCompiler
     }
 
     /**
+     * A column as FQL that parses back to the same column. The tokenizer strips the
+     * backticks from a single quoted segment (`` `variant:Size` `` → `variant:Size`), so
+     * the bare name would not re-parse inside a function call, and the fluent API would
+     * then read the whole call as one unknown column. Names that FQL cannot write are
+     * returned as they are, which is what this method did before.
+     */
+    private function renderColumn(ColumnReferenceNode $node): string
+    {
+        try {
+            return FqlPrinter::columnReference($node->name);
+        } catch (UnprintableNodeException) {
+            return $node->name;
+        }
+    }
+
+    private function renderAlias(string $alias): string
+    {
+        try {
+            return FqlPrinter::identifier($alias);
+        } catch (UnprintableNodeException) {
+            return $alias;
+        }
+    }
+
+    /**
      * Serialises a LiteralNode back to its FQL textual form (numbers unchanged, strings
-     * wrapped in double quotes, booleans/null keyword-cased).
+     * wrapped in double quotes, or single quotes when they contain a double quote,
+     * booleans/null keyword-cased).
      */
     public function renderLiteral(LiteralNode $node): string
     {
@@ -126,7 +157,12 @@ final class ExpressionCompiler
             return $node->value ? 'TRUE' : 'FALSE';
         }
         if (is_string($node->value)) {
-            return '"' . $node->value . '"';
+            try {
+                return FqlPrinter::stringLiteral($node->value);
+            } catch (UnprintableNodeException) {
+                // Contains both quote characters; FQL strings have no escapes.
+                return '"' . $node->value . '"';
+            }
         }
         return (string) $node->value;
     }

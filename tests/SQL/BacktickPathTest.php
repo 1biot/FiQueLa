@@ -189,4 +189,70 @@ class BacktickPathTest extends TestCase
         );
         $this->assertSame([['zbozi.cz' => 'foo'], ['zbozi.cz' => 'bar']], $rows);
     }
+
+    /**
+     * Function arguments are rendered back to FQL and parsed again; a backticked column
+     * whose name has a colon, a space or diacritics lost its backticks there and the
+     * whole call evaluated to NULL.
+     */
+    public function testFunctionOverBacktickedColumnWithColonAndDiacritics(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'CONCAT(name, ": ", `variant:Rozmer uteráku`) AS joined, LOWER(`a b`) AS lowered',
+            [
+                ['name' => 'Uterák', 'variant:Rozmer uteráku' => '30x50cm', 'a b' => 'XY'],
+                ['name' => 'Osuška', 'variant:Rozmer uteráku' => '70x140cm', 'a b' => 'Z'],
+            ]
+        );
+        $this->assertSame([
+            ['joined' => 'Uterák: 30x50cm', 'lowered' => 'xy'],
+            ['joined' => 'Osuška: 70x140cm', 'lowered' => 'z'],
+        ], $rows);
+    }
+
+    public function testUnaliasedFunctionOverBacktickedColumnKeepsResultKey(): void
+    {
+        $rows = $this->inMemoryJsonQuery('`a:b`, UPPER(`a:b`)', [['a:b' => 'x']]);
+        $this->assertSame([['a:b' => 'x', 'UPPER(a:b)' => 'X']], $rows);
+    }
+
+    public function testOrderByAndGroupByFunctionOverBacktickedColumn(): void
+    {
+        $data = [
+            ['name' => 'X', 'a:b' => 'cc'],
+            ['name' => 'Y', 'a:b' => 'AA'],
+            ['name' => 'Z', 'a:b' => 'aa'],
+        ];
+        $tmp = tempnam(sys_get_temp_dir(), 'fql-btp-');
+        file_put_contents($tmp, json_encode($data));
+        try {
+            $sorted = iterator_to_array(Provider::fql(
+                sprintf('SELECT name FROM json(%s) ORDER BY LOWER(`a:b`) DESC, name ASC', $tmp)
+            )->execute()->fetchAll());
+            $this->assertSame(['X', 'Y', 'Z'], array_column($sorted, 'name'));
+
+            $grouped = iterator_to_array(Provider::fql(sprintf(
+                'SELECT LOWER(`a:b`) AS k, COUNT(name) AS cnt FROM json(%s) GROUP BY LOWER(`a:b`) ORDER BY k',
+                $tmp
+            ))->execute()->fetchAll());
+            $this->assertSame([['k' => 'aa', 'cnt' => 2], ['k' => 'cc', 'cnt' => 1]], $grouped);
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    public function testStringLiteralWithDoubleQuoteInsideFunction(): void
+    {
+        $rows = $this->inMemoryJsonQuery("CONCAT(name, ' \"', name, '\"') AS r", [['name' => 'a']]);
+        $this->assertSame([['r' => 'a "a"']], $rows);
+    }
+
+    public function testCollectObjectAliasWithSpace(): void
+    {
+        $rows = $this->inMemoryJsonQuery(
+            'COLLECT_OBJECT(`a:b` AS `my key`) AS items',
+            [['a:b' => 1], ['a:b' => 2]]
+        );
+        $this->assertSame([['items' => [['my key' => 1], ['my key' => 2]]]], $rows);
+    }
 }
