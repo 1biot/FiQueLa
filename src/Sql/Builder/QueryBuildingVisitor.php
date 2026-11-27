@@ -22,6 +22,8 @@ use FQL\Sql\Ast\Node\CommonTableExpressionNode;
 use FQL\Sql\Ast\Node\JoinClauseNode;
 use FQL\Sql\Ast\Node\SelectFieldNode;
 use FQL\Sql\Ast\Node\SelectStatementNode;
+use FQL\Sql\Parser\ParseException;
+use FQL\Sql\Provider;
 use FQL\Sql\Runtime\ExpressionEvaluator;
 
 /**
@@ -165,7 +167,7 @@ final class QueryBuildingVisitor
 
         if ($ast->groupBy !== null) {
             foreach ($ast->groupBy->fields as $field) {
-                $this->at($field, fn () => $query->groupBy($this->compiler->renderExpression($field)));
+                $this->at($field, fn () => $query->groupBy($this->renderForFluent($field)));
             }
         }
 
@@ -177,7 +179,7 @@ final class QueryBuildingVisitor
         if ($ast->orderBy !== null) {
             foreach ($ast->orderBy->items as $item) {
                 $this->at($item, fn () => $query->orderBy(
-                    $this->compiler->renderExpression($item->expression),
+                    $this->renderForFluent($item->expression),
                     $item->direction
                 ));
             }
@@ -373,7 +375,7 @@ final class QueryBuildingVisitor
         // Stringify the AST and hand it to the fluent select() — that path
         // now parses SQL expression strings into AST internally, so there's
         // a single entry point for both the SQL builder and user fluent code.
-        $rendered = $this->compiler->renderExpression($expression);
+        $rendered = $this->renderForFluent($expression);
         if ($field->alias !== null) {
             $query->select($rendered . ' ' . Interface\Query::AS . ' ' . $field->alias);
         } else {
@@ -447,6 +449,32 @@ final class QueryBuildingVisitor
                 $this->evaluator
             )));
         }
+    }
+
+    /**
+     * Renders an expression for the fluent select(), groupBy() and orderBy(), which parse
+     * the string again. When that parse fails they take the whole string as one column
+     * name (for a field literally named `group`), so an expression that does not survive
+     * the round trip would select a missing column and give NULL in every row. A column
+     * is not checked: that fallback is what it relies on.
+     *
+     * @throws Exception\QueryLogicException when the rendered expression does not parse
+     */
+    private function renderForFluent(ExpressionNode $node): string
+    {
+        $rendered = $this->compiler->renderExpression($node);
+        if (!$node instanceof ColumnReferenceNode) {
+            try {
+                Provider::parseExpression($rendered);
+            } catch (ParseException $exception) {
+                throw new Exception\QueryLogicException(
+                    sprintf('Cannot rebuild expression "%s": %s', $rendered, $exception->getMessage()),
+                    0,
+                    $exception
+                );
+            }
+        }
+        return $rendered;
     }
 
     /**

@@ -142,7 +142,8 @@ class ExpressionCompilerTest extends TestCase
             $this->pos
         );
         $rendered = $this->compiler->renderExpression($node);
-        $this->assertSame('MATCH(title, desc) AGAINST("hello world IN NATURAL MODE")', $rendered);
+        // `desc` is a keyword, so it is backticked to parse back as a column.
+        $this->assertSame('MATCH(title, `desc`) AGAINST("hello world IN NATURAL MODE")', $rendered);
     }
 
     public function testRenderUnsupportedNodeThrows(): void
@@ -347,5 +348,66 @@ class ExpressionCompilerTest extends TestCase
         $this->assertSame('`info`.`invoiceNumber`', $reparsed->arguments[0]->left->name);
         $this->assertSame(Enum\Operator::IS, $reparsed->arguments[0]->operator);
         $this->assertSame(Enum\Type::ARRAY, $reparsed->arguments[0]->right);
+    }
+
+    /**
+     * A single backticked segment reaches the AST without its backticks, so the name has
+     * to be quoted again or the rendered call does not parse back.
+     */
+    public function testRenderColumnQuotesNamesThatAreNotPlainIdentifiers(): void
+    {
+        $this->assertSame('`variant:Rozmer uteráku`', $this->compiler->renderExpression(
+            new ColumnReferenceNode('variant:Rozmer uteráku', $this->pos, true)
+        ));
+        $this->assertSame('`a b`', $this->compiler->renderExpression($this->column('a b')));
+        $this->assertSame('`group`', $this->compiler->renderExpression($this->column('group')));
+        $this->assertSame('price', $this->compiler->renderExpression(
+            new ColumnReferenceNode('price', $this->pos, true)
+        ));
+        $this->assertSame('items[].name', $this->compiler->renderExpression($this->column('items[].name')));
+        $this->assertSame('`info`.`a b`', $this->compiler->renderExpression($this->column('`info`.`a b`')));
+    }
+
+    public function testRenderFunctionCallWithQuotedColumnParsesBack(): void
+    {
+        $node = new FunctionCallNode('CONCAT', [
+            $this->column('name'),
+            $this->literal(': ', Enum\Type::STRING, '": "'),
+            new ColumnReferenceNode('variant:Rozmer uteráku', $this->pos, true),
+        ], false, $this->pos);
+
+        $rendered = $this->compiler->renderExpression($node);
+        $this->assertSame('CONCAT(name, ": ", `variant:Rozmer uteráku`)', $rendered);
+
+        $reparsed = \FQL\Sql\Provider::parseExpression($rendered);
+        $this->assertInstanceOf(FunctionCallNode::class, $reparsed);
+        $this->assertInstanceOf(ColumnReferenceNode::class, $reparsed->arguments[2]);
+        $this->assertSame('variant:Rozmer uteráku', $reparsed->arguments[2]->name);
+    }
+
+    public function testRenderStringLiteralWithDoubleQuoteUsesSingleQuotes(): void
+    {
+        $node = $this->literal('say "hi"', Enum\Type::STRING, "'say \"hi\"'");
+        $this->assertSame("'say \"hi\"'", $this->compiler->renderLiteral($node));
+    }
+
+    /**
+     * Names FQL cannot write (a backtick inside, an index like `x[0]`) are rendered as
+     * they are, as before the quoting was added.
+     */
+    public function testRenderKeepsNamesThatFqlCannotWrite(): void
+    {
+        $this->assertSame('a`b', $this->compiler->renderExpression($this->column('a`b')));
+        $this->assertSame('x[0]', $this->compiler->renderExpression($this->column('x[0]')));
+
+        $node = new \FQL\Sql\Ast\Expression\CollectObjectExpressionNode(
+            [
+                ['expression' => $this->column('name'), 'alias' => 'my key'],
+                ['expression' => $this->column('price'), 'alias' => 'a`b'],
+            ],
+            [],
+            $this->pos
+        );
+        $this->assertSame('name AS `my key`, price AS a`b', $this->compiler->renderExpression($node));
     }
 }
